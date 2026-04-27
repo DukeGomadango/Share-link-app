@@ -1,0 +1,121 @@
+export const ja = {
+  common: {
+    save: "保存",
+    cancel: "キャンセル",
+    loading: "読み込み中...",
+    manage: "管理",
+    create: "作成",
+    back: "戻る",
+  },
+  nav: {
+    dashboard: "ダッシュボード",
+    campaigns: "キャンペーン",
+    library: "ライブラリ",
+    settings: "設定",
+    version: "v2.0 MVP",
+  },
+  dashboard: {
+    title: "ダッシュボード",
+    newCampaign: "新しいキャンペーン",
+    activeCampaigns: "アクティブなキャンペーン",
+    totalDistributed: "配布総数",
+    openRate: "開封率",
+    recentActivity: "最近のアクティビティ",
+    noRecentActivity: "最近のアクティビティはありません。",
+    quickLinks: "クイックリンク",
+    generateLink: "リンクを手動生成",
+    viewAnalytics: "分析を表示",
+  },
+  campaigns: {
+    title: "キャンペーン",
+    subtitle: "デジタルコンテンツ配布を管理します。",
+    createCampaign: "キャンペーン作成",
+    noCampaignsTitle: "キャンペーンがありません",
+    noCampaignsDescription:
+      "最初のキャンペーンを作成して、ファンへのデジタルコンテンツ配布を始めましょう。",
+    files: "ファイル",
+    assigned: "配布先",
+    openRate: "開封率",
+    status: {
+      active: "公開中",
+      draft: "下書き",
+      completed: "完了",
+    },
+  },
+  library: {
+    title: "ライブラリ",
+    subtitle: "アップロードされたすべてのアセットを管理します。",
+    uploadArea: "ここにファイルをドロップするか、クリックしてアップロード",
+    filterType: "フィルタ: ファイルの種類",
+    fileType: {
+      all: "すべて",
+      image: "画像",
+      audio: "音声",
+    },
+    noFilesTitle: "ファイルがありません",
+    noFilesDescription: "ファイルをアップロードして管理を始めましょう。",
+    linkedCampaigns: "紐付けられたキャンペーン:",
+    none: "なし",
+  },
+  settings: {
+    title: "設定",
+    subtitle: "アカウントと環境設定を管理します。",
+    appearance: {
+      heading: "外観",
+      description: "デバイスでのプラットフォームの表示方法をカスタマイズします。",
+      themePreference: "テーマ設定",
+      themeDescription: "ライトモードまたはダークモードを選択します。",
+    },
+    language: {
+      heading: "言語",
+      description: "表示言語を選択します。",
+      label: "表示言語",
+      langDescription: "切り替えると即座に反映されます。",
+    },
+    profile: {
+      heading: "プロフィール",
+      description: "クリエイター情報を更新します。",
+      displayName: "表示名",
+      emailAddress: "メールアドレス",
+      emailNote: "メールアドレスの変更はサポートにお問い合わせください。",
+      saveChanges: "変更を保存",
+    },
+  },
+  auth: {
+    login: {
+      title: "おかえりなさい",
+      subtitle: "アカウントにサインイン",
+      email: "メールアドレス",
+      password: "パスワード",
+      forgotPassword: "パスワードをお忘れですか？",
+      signIn: "サインイン",
+      noAccount: "アカウントをお持ちでないですか？",
+      registerHere: "こちらから登録",
+    },
+    register: {
+      title: "アカウント作成",
+      subtitle: "今日からギフト配布を始めよう",
+      creatorName: "クリエイター名",
+      creatorNamePlaceholder: "例: VTuberチャンネル",
+      email: "メールアドレス",
+      password: "パスワード",
+      signUp: "アカウント登録",
+      alreadyHaveAccount: "すでにアカウントをお持ちですか？",
+      signIn: "サインイン",
+    },
+  },
+  onboarding: {
+    title: "Digital Return MVP へようこそ！",
+    description:
+      "試してみましょう！ファイルプールからファイルをドラッグして受取人カードにドロップすると、安全なユニークな請求リンクが自動生成されます。 ✨",
+    gotIt: "わかった、始めよう！",
+  },
+};
+
+// 再帰的に string 型に変換するユーティリティ型
+type DeepString<T> = {
+  [K in keyof T]: T[K] extends object ? DeepString<T[K]> : string;
+};
+
+export type TranslationKeys = DeepString<typeof ja>;
+

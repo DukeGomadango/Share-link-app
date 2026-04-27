@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MSWProvider } from "@/components/msw-provider";
+import { I18nProvider } from "@/lib/i18n";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -28,9 +29,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <MSWProvider>
-            {children}
-          </MSWProvider>
+          <I18nProvider>
+            <MSWProvider>
+              {children}
+            </MSWProvider>
+          </I18nProvider>
         </ThemeProvider>
       </body>
     </html>
