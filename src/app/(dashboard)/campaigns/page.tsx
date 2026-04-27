@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus, Megaphone, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/shared/GlassCard";
+import { useTranslation } from "@/lib/i18n";
 
 interface Campaign {
   id: string;
@@ -21,6 +22,7 @@ interface Campaign {
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const { t, locale } = useTranslation();
 
   useEffect(() => {
     fetch("/api/campaigns")
@@ -33,13 +35,16 @@ export default function CampaignsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
-          <p className="text-muted-foreground mt-1">Manage your digital distributions.</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t.campaigns.title}</h1>
+          <p className="text-muted-foreground mt-1">{t.campaigns.subtitle}</p>
         </div>
-        <Button asChild className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-6 shadow-lg shadow-emerald-500/20 transition-all hover:scale-105">
+        <Button
+          asChild
+          className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-6 shadow-lg shadow-emerald-500/20 transition-all hover:scale-105"
+        >
           <Link href="/campaigns/new">
             <Plus className="w-4 h-4 mr-2" />
-            Create Campaign
+            {t.campaigns.createCampaign}
           </Link>
         </Button>
       </div>
@@ -49,27 +54,38 @@ export default function CampaignsPage() {
           <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
             <Megaphone className="w-8 h-8 text-emerald-500" />
           </div>
-          <h2 className="text-xl font-semibold mb-2">No campaigns yet</h2>
+          <h2 className="text-xl font-semibold mb-2">{t.campaigns.noCampaignsTitle}</h2>
           <p className="text-muted-foreground mb-6 max-w-sm">
-            Create your first campaign to start distributing secure digital contents to your fans.
+            {t.campaigns.noCampaignsDescription}
           </p>
           <Button asChild className="bg-emerald-500">
-            <Link href="/campaigns/new">Create Campaign</Link>
+            <Link href="/campaigns/new">{t.campaigns.createCampaign}</Link>
           </Button>
         </GlassCard>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {campaigns.map((campaign) => (
-            <GlassCard key={campaign.id} className="relative group hover:border-emerald-500/50 transition-colors">
+            <GlassCard
+              key={campaign.id}
+              className="relative group hover:border-emerald-500/50 transition-colors"
+            >
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-md ${campaign.status === 'active' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
+                  <div
+                    className={`p-2 rounded-md ${
+                      campaign.status === "active"
+                        ? "bg-emerald-500/20 text-emerald-500"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
                     <Megaphone className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg line-clamp-1">{campaign.name}</h3>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(campaign.createdAt).toLocaleDateString()}
+                      {new Date(campaign.createdAt).toLocaleDateString(
+                        locale === "ja" ? "ja-JP" : "en-US"
+                      )}
                     </p>
                   </div>
                 </div>
@@ -80,21 +96,25 @@ export default function CampaignsPage() {
 
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Files</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t.campaigns.files}</p>
                   <p className="font-semibold">{campaign.stats.totalFiles}</p>
                 </div>
                 <div className="text-center border-x border-border/50">
-                  <p className="text-xs text-muted-foreground mb-1">Assigned</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t.campaigns.assigned}</p>
                   <p className="font-semibold">{campaign.stats.assignedRecipients}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-muted-foreground mb-1">Open Rate</p>
+                  <p className="text-xs text-muted-foreground mb-1">{t.campaigns.openRate}</p>
                   <p className="font-semibold">{campaign.stats.openRate}%</p>
                 </div>
               </div>
 
-              <Button asChild variant="outline" className="w-full glass group-hover:bg-emerald-500 group-hover:text-white transition-colors border-border/50">
-                <Link href={`/campaigns/${campaign.id}`}>Manage</Link>
+              <Button
+                asChild
+                variant="outline"
+                className="w-full glass group-hover:bg-emerald-500 group-hover:text-white hover:bg-emerald-600 hover:text-white transition-colors border-border/50"
+              >
+                <Link href={`/campaigns/${campaign.id}`}>{t.common.manage}</Link>
               </Button>
             </GlassCard>
           ))}
