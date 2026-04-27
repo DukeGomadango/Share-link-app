@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, CSSProperties } from "react";
 import { Lock } from "lucide-react";
 
 export function ImageViewer({ src, watermarkText }: { src: string; watermarkText: string }) {
@@ -59,7 +59,7 @@ export function ImageViewer({ src, watermarkText }: { src: string; watermarkText
       <canvas 
         ref={canvasRef} 
         className="max-w-full h-auto rounded-2xl pointer-events-none" 
-        style={{ WebkitTouchCallout: "none" } as any} // iOS長押しポップアップ防止
+        style={{ WebkitTouchCallout: "none" } as CSSProperties} // iOS長押しポップアップ防止
       />
     </div>
   );

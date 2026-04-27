@@ -19,6 +19,10 @@ export function AudioPlayer({ src, title }: { src: string; title: string }) {
     const updateDuration = () => setDuration(audio.duration);
     const onEnded = () => setIsPlaying(false);
 
+    if (audio.readyState >= 1) { // HAVE_METADATA or higher
+      updateDuration();
+    }
+
     audio.addEventListener("timeupdate", updateProgress);
     audio.addEventListener("loadedmetadata", updateDuration);
     audio.addEventListener("ended", onEnded);
