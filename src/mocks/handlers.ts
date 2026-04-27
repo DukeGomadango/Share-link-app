@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import { campaignHandlers } from './handlers/campaigns';
+import { fileHandlers } from './handlers/files';
 
 export const handlers = [
   http.get('/api/stats/overview', () => {
@@ -9,5 +10,6 @@ export const handlers = [
       openRate: 86.4
     });
   }),
-  ...campaignHandlers
+  ...campaignHandlers,
+  ...fileHandlers
 ];
