@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { Link as LinkIcon, Download, Users, MailPlus, FolderOpen, FileAudio, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
-import { FileItem, Recipient } from "@/components/features/campaigns/types";
+import { FileItem, Recipient, LibraryFile } from "@/components/features/campaigns/types";
 import { DraggableFileItem } from "@/components/features/campaigns/DraggableFileItem";
 import { DroppableRecipient } from "@/components/features/campaigns/DroppableRecipient";
 import { LibrarySelectModal } from "@/components/features/campaigns/LibrarySelectModal";
@@ -34,7 +34,7 @@ export default function CampaignDetailPage() {
 
   // ライブラリモーダル用状態
   const [showLibraryModal, setShowLibraryModal] = useState(false);
-  const [libraryFiles, setLibraryFiles] = useState<any[]>([]);
+  const [libraryFiles, setLibraryFiles] = useState<LibraryFile[]>([]);
 
   const fetchLibraryFiles = () => {
     fetch("/api/files")
@@ -57,7 +57,7 @@ export default function CampaignDetailPage() {
     );
   };
 
-  const handleDragStart = (event: any) => {
+  const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const file = active.data.current?.file;
     if (file) setActiveDragFile(file);

@@ -6,8 +6,14 @@ import { Copy, Gift, MousePointerClick, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 
+interface DashboardStats {
+  activeCampaigns: number;
+  totalDistributed: number;
+  openRate: number;
+}
+
 export default function DashboardPage() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const { t } = useTranslation();
 
   useEffect(() => {

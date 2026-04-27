@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { X, Check, FileImage, FileAudio } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileItem } from "./types";
+import { FileItem, LibraryFile } from "./types";
 
 interface LibrarySelectModalProps {
   isOpen: boolean;
   onClose: () => void;
-  libraryFiles: any[]; // Or ideally a better type
+  libraryFiles: LibraryFile[];
   onAddFiles: (files: FileItem[]) => void;
 }
 
