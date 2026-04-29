@@ -7,7 +7,7 @@ export const GlassCard = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("glass p-6", className)}
+    className={cn("glass glass-text-safe p-6", className)}
     {...props}
   />
 ));
