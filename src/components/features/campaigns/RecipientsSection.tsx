@@ -34,7 +34,7 @@ export function RecipientsSection({
         </Button>
       </div>
 
-      <div className="overflow-y-auto flex-1 pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-max pb-20">
+      <div className="scrollbar-prominent overflow-y-auto flex-1 pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-max pb-20">
         {recipients.map(recipient => (
           <DroppableRecipient
             key={recipient.id}

@@ -65,7 +65,7 @@ export function LibrarySelectModal({
           {t.campaigns.selectFromLibraryDescription}
         </p>
 
-        <div className="flex-1 overflow-y-auto mb-6 min-h-[300px] pr-2">
+        <div className="scrollbar-prominent flex-1 overflow-y-auto mb-6 min-h-[300px] pr-2">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {libraryFiles.map((file) => {
               const isSelected = selectedIds.has(file.id);

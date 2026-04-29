@@ -36,7 +36,7 @@ export function FilePoolSection({
         </span>
       </div>
 
-      <div className="overflow-y-auto flex-1 pr-2 space-y-3 pb-20">
+      <div className="scrollbar-prominent overflow-y-auto flex-1 pr-2 space-y-3 pb-20">
         {files.map(file => (
           <DraggableFileItem
             key={file.id}

@@ -96,7 +96,7 @@ export function CommandDropPalette({
             autoFocus
           />
         </div>
-        <Command.List className="max-h-[420px] overflow-y-auto p-2">
+        <Command.List className="scrollbar-prominent max-h-[420px] overflow-y-auto p-2">
           {showShortcuts ? (
             <div className="mb-2 rounded-md border border-border/70 bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
               <p className="font-semibold text-foreground mb-1">{labels.shortcutsTitle}</p>

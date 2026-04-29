@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MSWProvider } from "@/components/msw-provider";
 import { I18nProvider } from "@/lib/i18n";
+import { GlobalScrollbarActivity } from "@/components/shared/GlobalScrollbarActivity";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -51,6 +52,7 @@ export default function RootLayout({
         >
           <I18nProvider>
             <MSWProvider>
+              <GlobalScrollbarActivity />
               {children}
             </MSWProvider>
           </I18nProvider>
