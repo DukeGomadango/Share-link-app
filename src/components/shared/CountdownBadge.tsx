@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export function CountdownBadge({ expiresAt }: { expiresAt: Date }) {
   const [timeLeft, setTimeLeft] = useState("");
-  const [isUrgent, setIsUrgent] = useState(false);
+  const [urgencyLevel, setUrgencyLevel] = useState<"normal" | "warning" | "expired">("normal");
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -15,11 +15,16 @@ export function CountdownBadge({ expiresAt }: { expiresAt: Date }) {
 
       if (difference <= 0) {
         setTimeLeft("Expired");
-        setIsUrgent(true);
+        setUrgencyLevel("expired");
         return;
       }
 
-      setIsUrgent(difference < 1000 * 60 * 60 * 24); // 残り1日以下で緊急表示
+      // 残り1日以下で「warning」（赤ではなくアンバー系で穏やかに通知）
+      if (difference < 1000 * 60 * 60 * 24) {
+        setUrgencyLevel("warning");
+      } else {
+        setUrgencyLevel("normal");
+      }
 
       const days = Math.floor(difference / (1000 * 60 * 60 * 24));
       const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -35,10 +40,18 @@ export function CountdownBadge({ expiresAt }: { expiresAt: Date }) {
   }, [expiresAt]);
 
   return (
-    <div className={cn(
-      "inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md border border-white/10 shadow-lg",
-      isUrgent ? "bg-red-500/20 text-red-500 animate-pulse border-red-500/30" : "bg-emerald-500/20 text-emerald-500 border-emerald-500/30"
-    )}>
+    <div
+      role="status"
+      aria-live="polite"
+      aria-label={`Remaining time: ${timeLeft}`}
+      className={cn(
+        "inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md border shadow-lg transition-colors duration-500",
+        // Calm UI: 焦燥感を抑えたトーンで配置
+        urgencyLevel === "expired" && "bg-muted/50 text-muted-foreground border-border/30",
+        urgencyLevel === "warning" && "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25",
+        urgencyLevel === "normal" && "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25 border-white/10"
+      )}
+    >
       <Clock className="w-3.5 h-3.5" />
       <span>{timeLeft}</span>
     </div>
