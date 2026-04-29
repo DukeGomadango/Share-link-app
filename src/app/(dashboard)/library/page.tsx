@@ -182,12 +182,14 @@ function CampaignDockItem({
   campaign,
   disabled,
   assigning,
+  successPulse,
   onAssign,
   assignSelectedHint,
 }: {
   campaign: CampaignSummary;
   disabled: boolean;
   assigning: boolean;
+  successPulse: boolean;
   onAssign: () => void;
   assignSelectedHint: string;
 }) {
@@ -196,11 +198,29 @@ function CampaignDockItem({
   });
 
   return (
-    <button
+    <motion.button
       ref={setNodeRef}
       type="button"
+      initial={false}
+      animate={
+        successPulse
+          ? {
+              scale: [1, 1.02, 1],
+              boxShadow: [
+                "0 0 0 rgba(16,185,129,0)",
+                "0 0 0 6px rgba(16,185,129,0.18)",
+                "0 0 0 rgba(16,185,129,0)",
+              ],
+            }
+          : undefined
+      }
+      transition={{ duration: 0.42, ease: "easeOut" }}
       className={`w-full text-left p-3 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-        isOver ? "border-emerald-500 bg-emerald-500/20" : "border-border/60 hover:border-emerald-500/50 hover:bg-emerald-500/5"
+        isOver
+          ? "border-emerald-500 bg-emerald-500/20"
+          : successPulse
+          ? "border-emerald-500 bg-emerald-500/10"
+          : "border-border/60 hover:border-emerald-500/50 hover:bg-emerald-500/5"
       }`}
       disabled={disabled || assigning}
       onClick={onAssign}
@@ -210,7 +230,7 @@ function CampaignDockItem({
         {campaign.name}
       </p>
       <p className="text-xs text-muted-foreground mt-1">{assignSelectedHint}</p>
-    </button>
+    </motion.button>
   );
 }
 
@@ -231,6 +251,7 @@ export default function LibraryPage() {
   });
   const [draggedFileIds, setDraggedFileIds] = useState<string[]>([]);
   const [assigningCampaignIds, setAssigningCampaignIds] = useState<Set<string>>(new Set());
+  const [pulsedCampaignId, setPulsedCampaignId] = useState<string | null>(null);
   const [showUndoToast, setShowUndoToast] = useState(false);
   const { t, locale } = useTranslation();
 
@@ -330,6 +351,10 @@ export default function LibraryPage() {
     });
     setLastAssignResult(assignResult);
     setUndoSnapshot(assignResult.added > 0 ? snapshotForUndo : null);
+    if (assignResult.added > 0) {
+      setPulsedCampaignId(campaignId);
+      window.setTimeout(() => setPulsedCampaignId((prev) => (prev === campaignId ? null : prev)), 450);
+    }
     setAssigningCampaignIds((prev) => new Set(prev).add(campaignId));
 
     void fetch("/api/files/assign", {
@@ -545,6 +570,7 @@ export default function LibraryPage() {
                     campaign={campaign}
                     disabled={selectedCount === 0 && draggedFileIds.length === 0}
                     assigning={assigningCampaignIds.has(campaign.id)}
+                    successPulse={pulsedCampaignId === campaign.id}
                     assignSelectedHint={t.library.assignSelectedHint}
                     onAssign={() => assignSelectedToCampaign(campaign.id)}
                   />
@@ -558,14 +584,47 @@ export default function LibraryPage() {
 
           <DragOverlay>
             {draggedFileIds.length > 0 ? (
-              <div className="p-3 rounded-lg border border-emerald-500 bg-background/90 shadow-xl flex items-center space-x-2">
-                <GripVertical className="w-4 h-4 text-emerald-500" />
-                <span className="text-sm font-medium">
-                  {draggedFileIds.length > 1
-                    ? t.library.draggingAssets.replace("{count}", String(draggedFileIds.length))
-                    : files.find((file) => file.id === draggedFileIds[0])?.name ?? "Asset"}
-                </span>
-              </div>
+              draggedFileIds.length > 1 ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                  className="relative w-64 h-20"
+                >
+                  <motion.div
+                    animate={{ y: [0, -2, 0], rotate: [-2, -1, -2] }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-x-4 top-3 h-14 rounded-lg border border-border/70 bg-background/85"
+                  />
+                  <motion.div
+                    animate={{ y: [0, -3, 0], rotate: [2, 1, 2] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-x-2 top-1 h-14 rounded-lg border border-border/80 bg-background/90"
+                  />
+                  <motion.div
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-0 p-3 rounded-lg border border-emerald-500 bg-background/95 shadow-xl flex items-center space-x-2"
+                  >
+                    <GripVertical className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span className="text-sm font-medium line-clamp-1">
+                      {t.library.draggingAssets.replace("{count}", String(draggedFileIds.length))}
+                    </span>
+                  </motion.div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                  className="p-3 rounded-lg border border-emerald-500 bg-background/95 shadow-xl flex items-center space-x-2"
+                >
+                  <GripVertical className="w-4 h-4 text-emerald-500" />
+                  <span className="text-sm font-medium">
+                    {files.find((file) => file.id === draggedFileIds[0])?.name ?? "Asset"}
+                  </span>
+                </motion.div>
+              )
             ) : null}
           </DragOverlay>
         </DndContext>
