@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { AudioPlayer } from "@/components/shared/AudioPlayer";
 import { ImageViewer } from "@/components/shared/ImageViewer";
 import { CountdownBadge } from "@/components/shared/CountdownBadge";
@@ -13,6 +14,21 @@ interface ClaimContentViewProps {
   files: ClaimFile[];
   expiryDate: Date;
 }
+
+// 各ファイルカードの出現アニメーション
+const itemVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.97 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      delay: 0.15 + i * 0.12,
+      duration: 0.5,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  }),
+};
 
 export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
@@ -65,16 +81,28 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
   const allSelected = selectedFileIds.size === files.length && files.length > 0;
 
   return (
-    <div className="w-full space-y-6 animate-in slide-in-from-bottom-12 fade-in duration-700 py-6 pb-32">
-      <div className="flex justify-between items-start mb-2">
+    <div className="w-full space-y-6 py-6 pb-32">
+      {/* ヘッダー */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
+        className="flex justify-between items-start mb-2"
+      >
         <div>
           <h2 className="text-3xl font-bold text-foreground">A special delivery</h2>
           <p className="text-emerald-500 text-sm mt-1.5 font-medium tracking-wide">CONFIDENTIAL</p>
         </div>
         <CountdownBadge expiresAt={expiryDate} />
-      </div>
+      </motion.div>
 
-      <div className="flex items-center justify-between mb-4 border-b border-border/40 pb-4">
+      {/* 操作バー */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="flex items-center justify-between mb-4 border-b border-border/40 pb-4"
+      >
         <div className="flex items-center space-x-2">
           <span className="text-sm text-muted-foreground">
             {files.length} items
@@ -92,15 +120,20 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
             <><Square className="w-4 h-4 mr-2" /> Select All</>
           )}
         </Button>
-      </div>
+      </motion.div>
 
+      {/* ファイル一覧 - stagger付きの出現アニメーション */}
       <div className="space-y-10">
-        {files.map((file) => {
+        {files.map((file, index) => {
           const isSelected = selectedFileIds.has(file.id);
           
           return (
-            <div 
-              key={file.id} 
+            <motion.div
+              key={file.id}
+              custom={index}
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
               className={cn(
                 "relative group rounded-3xl transition-all duration-300 p-2",
                 isSelected 
@@ -108,21 +141,29 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
                   : "hover:bg-accent/50"
               )}
             >
-              <div 
+              {/* 選択チェックボックス */}
+              <motion.div
                 className="absolute -top-3 -left-3 z-20 cursor-pointer bg-background rounded-full p-0.5 shadow-sm"
                 onClick={() => toggleSelection(file.id)}
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.9 }}
               >
                 {isSelected ? (
                   <CheckCircle2 className="w-8 h-8 text-emerald-500 fill-emerald-500/20" />
                 ) : (
                   <div className="w-8 h-8 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center bg-background/50 backdrop-blur-sm group-hover:border-emerald-500/50 transition-colors" />
                 )}
-              </div>
+              </motion.div>
 
-              <div className="absolute -top-3 -right-3 z-20">
+              {/* ダウンロードボタン */}
+              <motion.div
+                className="absolute -top-3 -right-3 z-20"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+              >
                 <Button
                   size="icon"
-                  className="rounded-full shadow-lg bg-background border border-border text-foreground hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all hover:scale-110 h-10 w-10"
+                  className="rounded-full shadow-lg bg-background border border-border text-foreground hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all h-10 w-10"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDownloadSingle(file.id);
@@ -131,8 +172,9 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
                 >
                   <Download className="w-4 h-4" />
                 </Button>
-              </div>
+              </motion.div>
 
+              {/* ファイルプレビュー */}
               <div className="pt-2">
                 {file.type === "image" && (
                   <div className="space-y-3">
@@ -145,18 +187,25 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
                   <AudioPlayer src={file.src} title={file.title || "Audio File"} />
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>
       
+      {/* フッター */}
       <div className="pt-8 pb-4 text-center">
         <p className="text-xs text-muted-foreground/60">
           This link is unique to your device.<br/>If you lose access, please contact the sender.
         </p>
       </div>
 
-      <div className="fixed bottom-6 left-0 right-0 px-4 z-50 animate-in slide-in-from-bottom-10 flex justify-center pointer-events-none">
+      {/* 固定ダウンロードバー */}
+      <motion.div
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="fixed bottom-6 left-0 right-0 px-4 z-50 flex justify-center pointer-events-none"
+      >
         <div className="pointer-events-auto w-full max-w-sm glass rounded-full p-2 flex items-center justify-between border border-border shadow-2xl shadow-emerald-500/10">
           <div className="px-4 text-sm font-medium">
             {selectedFileIds.size > 0 ? (
@@ -180,7 +229,7 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
             )}
           </Button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
