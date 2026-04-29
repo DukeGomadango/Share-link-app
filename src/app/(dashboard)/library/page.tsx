@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   DndContext,
@@ -8,8 +8,6 @@ import {
   DragOverlay,
   DragStartEvent,
   PointerSensor,
-  useDraggable,
-  useDroppable,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -18,231 +16,24 @@ import {
   FileImage,
   FileAudio,
   File as FileIcon,
-  X,
-  Check,
   Plus,
   Layers,
-  Loader2,
   GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { useTranslation } from "@/lib/i18n";
 import { FileDropzone } from "@/components/shared/FileDropzone";
-import { AudioPlayer } from "@/components/shared/AudioPlayer";
-import { ImageViewer } from "@/components/shared/ImageViewer";
-
-interface AssetFile {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  createdAt: string;
-  url: string;
-  linkedCampaigns: string[];
-}
-
-interface CampaignSummary {
-  id: string;
-  name: string;
-}
-
-interface UndoAssignmentPayload {
-  linksByFileId: Record<string, string[]>;
-}
-
-interface AssignResult {
-  added: number;
-  skipped: number;
-  campaignName: string;
-}
-
-interface DraggableAssetCardProps {
-  file: AssetFile;
-  isSelected: boolean;
-  locale: string;
-  assigning: boolean;
-  selectAssetLabel: string;
-  deselectAssetLabel: string;
-  linkedCampaignsLabel: string;
-  noneLabel: string;
-  unassignedLabel: string;
-  assignToCampaignLabel: string;
-  formatSize: (bytes: number) => string;
-  getFileIcon: (type: string) => ReactNode;
-  onToggleSelection: (fileId: string) => void;
-  onPreview: (file: AssetFile) => void;
-  onOpenAssign: (fileId: string) => void;
-}
-
-function DraggableAssetCard({
-  file,
-  isSelected,
-  locale,
-  assigning,
-  selectAssetLabel,
-  deselectAssetLabel,
-  linkedCampaignsLabel,
-  noneLabel,
-  unassignedLabel,
-  assignToCampaignLabel,
-  formatSize,
-  getFileIcon,
-  onToggleSelection,
-  onPreview,
-  onOpenAssign,
-}: DraggableAssetCardProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `library-file-${file.id}`,
-    data: { fileId: file.id },
-  });
-
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
-    : undefined;
-
-  return (
-    <GlassCard
-      ref={setNodeRef}
-      style={style}
-      className={`relative group hover:border-emerald-500/50 transition-colors flex flex-col h-full cursor-pointer ${
-        isSelected ? "border-emerald-500" : ""
-      } ${isDragging ? "opacity-50" : ""}`}
-      onClick={() => onPreview(file)}
-    >
-      <div className="flex justify-between items-start mb-4">
-        <button
-          type="button"
-          aria-label={isSelected ? deselectAssetLabel : selectAssetLabel}
-          className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${
-            isSelected ? "bg-emerald-500 border-emerald-500 text-white" : "border-border hover:border-emerald-500"
-          }`}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleSelection(file.id);
-          }}
-        >
-          {isSelected ? <Check className="w-3.5 h-3.5" /> : null}
-        </button>
-        <button
-          type="button"
-          className="p-2 rounded-md border border-border/60 hover:border-emerald-500/50 text-muted-foreground hover:text-emerald-500"
-          onClick={(event) => event.stopPropagation()}
-          {...attributes}
-          {...listeners}
-          aria-label="Drag asset"
-        >
-          <GripVertical className="w-4 h-4" />
-        </button>
-        <div className="p-3 bg-muted rounded-xl flex items-center justify-center">{getFileIcon(file.type)}</div>
-      </div>
-
-      <div className="flex-1">
-        <h3 className="font-semibold text-sm line-clamp-2 mb-1" title={file.name}>
-          {file.name}
-        </h3>
-        <div className="flex justify-between text-xs text-muted-foreground mb-3">
-          <span>{formatSize(file.size)}</span>
-          <span>{new Date(file.createdAt).toLocaleDateString(locale === "ja" ? "ja-JP" : "en-US")}</span>
-        </div>
-
-        {file.linkedCampaigns.length === 0 ? (
-          <span className="inline-flex text-[10px] px-2 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-500 mb-3">
-            {unassignedLabel}
-          </span>
-        ) : null}
-
-        <div className="pt-3 border-t border-border/50">
-          <p className="text-xs font-semibold mb-1 text-emerald-500/80">{linkedCampaignsLabel}</p>
-          {file.linkedCampaigns.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {file.linkedCampaigns.map((c, i) => (
-                <span
-                  key={i}
-                  className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full inline-block"
-                >
-                  {c}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span className="text-xs text-muted-foreground">{noneLabel}</span>
-          )}
-        </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-3 w-full"
-          disabled={assigning}
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpenAssign(file.id);
-          }}
-        >
-          {assigning ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
-          {assignToCampaignLabel}
-        </Button>
-      </div>
-    </GlassCard>
-  );
-}
-
-function CampaignDockItem({
-  campaign,
-  disabled,
-  assigning,
-  successPulse,
-  onAssign,
-  assignSelectedHint,
-}: {
-  campaign: CampaignSummary;
-  disabled: boolean;
-  assigning: boolean;
-  successPulse: boolean;
-  onAssign: () => void;
-  assignSelectedHint: string;
-}) {
-  const { isOver, setNodeRef } = useDroppable({
-    id: `campaign-drop-${campaign.id}`,
-  });
-
-  return (
-    <motion.button
-      ref={setNodeRef}
-      type="button"
-      initial={false}
-      animate={
-        successPulse
-          ? {
-              scale: [1, 1.02, 1],
-              boxShadow: [
-                "0 0 0 rgba(16,185,129,0)",
-                "0 0 0 6px rgba(16,185,129,0.18)",
-                "0 0 0 rgba(16,185,129,0)",
-              ],
-            }
-          : undefined
-      }
-      transition={{ duration: 0.42, ease: "easeOut" }}
-      className={`w-full text-left p-3 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-        isOver
-          ? "border-emerald-500 bg-emerald-500/20"
-          : successPulse
-          ? "border-emerald-500 bg-emerald-500/10"
-          : "border-border/60 hover:border-emerald-500/50 hover:bg-emerald-500/5"
-      }`}
-      disabled={disabled || assigning}
-      onClick={onAssign}
-    >
-      <p className="text-sm font-medium line-clamp-1 flex items-center gap-2">
-        {assigning ? <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500" /> : null}
-        {campaign.name}
-      </p>
-      <p className="text-xs text-muted-foreground mt-1">{assignSelectedHint}</p>
-    </motion.button>
-  );
-}
+import { DraggableAssetCard } from "@/components/features/library/DraggableAssetCard";
+import { CampaignDockItem } from "@/components/features/library/CampaignDockItem";
+import { AssetPreviewModal } from "@/components/features/library/AssetPreviewModal";
+import { AssetAssignModal } from "@/components/features/library/AssetAssignModal";
+import {
+  AssetFile,
+  CampaignSummary,
+  UndoAssignmentPayload,
+  AssignResult,
+} from "@/components/features/library/types";
 
 export default function LibraryPage() {
   const [files, setFiles] = useState<AssetFile[]>([]);
@@ -296,12 +87,10 @@ export default function LibraryPage() {
   }, []);
 
   const handleFilesDropped = async (droppedFiles: File[]) => {
-    // 実際のアプリケーションでは、ここでFormDataを使用してサーバーにアップロードします
     console.log("Files ready to upload:", droppedFiles);
     try {
       const res = await fetch("/api/files", { method: "POST" });
       if (res.ok) {
-        // アップロード成功後、ファイルリストを再取得
         fetchFiles();
       }
     } catch (error) {
@@ -427,7 +216,6 @@ export default function LibraryPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(undoSnapshot),
     }).catch(() => {
-      // ローカル復元は済んでいるため、失敗時は無視してUXを優先する
     });
     setUndoSnapshot(null);
     setShowUndoToast(false);
@@ -650,85 +438,30 @@ export default function LibraryPage() {
         </DndContext>
       )}
 
-      {/* 簡易的なプレビューモーダル */}
-      {selectedFile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <div className="relative w-full max-w-2xl">
-            <Button
-              variant="outline"
-              size="icon"
-              className="absolute -top-12 right-0 rounded-full bg-background/50 hover:bg-background"
-              onClick={() => setSelectedFile(null)}
-            >
-              <X className="w-5 h-5" />
-            </Button>
-            
-            {selectedFile.type.startsWith("image/") ? (
-              <ImageViewer src={selectedFile.url} watermarkText="SAMPLE" />
-            ) : selectedFile.type.startsWith("audio/") ? (
-               <AudioPlayer src={selectedFile.url} title={selectedFile.name} />
-            ) : (
-              <GlassCard className="p-8 text-center text-muted-foreground">
-                <FileIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Preview not available for this file type.</p>
-              </GlassCard>
-            )}
-          </div>
-        </div>
-      )}
+      <AssetPreviewModal file={selectedFile} onClose={() => setSelectedFile(null)} />
 
-      {isAssignModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-          <GlassCard className="w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-1">{t.library.assignToCampaign}</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {t.library.selectedAssets.replace("{count}", String(selectedCount))}
-            </p>
-            <label className="text-sm font-medium mb-2 block">{t.library.searchCampaign}</label>
-            <input
-              value={campaignQuery}
-              onChange={(event) => setCampaignQuery(event.target.value)}
-              placeholder={t.library.searchCampaignPlaceholder}
-              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm mb-4"
-            />
-            <label className="text-sm font-medium mb-2 block">{t.library.selectCampaign}</label>
-            <select
-              value={assignTargetCampaignId}
-              onChange={(event) => setAssignTargetCampaignId(event.target.value)}
-              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
-            >
-              {filteredCampaigns.map((campaign) => (
-                <option key={campaign.id} value={campaign.id}>
-                  {campaign.name}
-                </option>
-              ))}
-            </select>
-            {filteredCampaigns.length === 0 ? (
-              <p className="text-xs text-muted-foreground mt-2">{t.library.noCampaignSearchResults}</p>
-            ) : null}
-            <div className="flex justify-end gap-2 mt-5">
-              <Button variant="outline" onClick={() => setIsAssignModalOpen(false)}>
-                {t.common.cancel}
-              </Button>
-              <Button
-                className="bg-emerald-500 text-white hover:bg-emerald-600"
-                onClick={() => assignSelectedToCampaign(assignTargetCampaignId)}
-                disabled={
-                  !assignTargetCampaignId ||
-                  selectedCount === 0 ||
-                  filteredCampaigns.length === 0 ||
-                  assigningCampaignIds.has(assignTargetCampaignId)
-                }
-              >
-                {assigningCampaignIds.has(assignTargetCampaignId) ? (
-                  <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
-                ) : null}
-                {t.library.assignNow}
-              </Button>
-            </div>
-          </GlassCard>
-        </div>
-      )}
+      <AssetAssignModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        selectedCount={selectedCount}
+        campaignQuery={campaignQuery}
+        onCampaignQueryChange={setCampaignQuery}
+        assignTargetCampaignId={assignTargetCampaignId}
+        onAssignTargetCampaignIdChange={setAssignTargetCampaignId}
+        filteredCampaigns={filteredCampaigns}
+        onAssign={assignSelectedToCampaign}
+        isAssigning={assigningCampaignIds.has(assignTargetCampaignId)}
+        labels={{
+          title: t.library.assignToCampaign,
+          selectedAssets: t.library.selectedAssets,
+          searchCampaign: t.library.searchCampaign,
+          searchPlaceholder: t.library.searchCampaignPlaceholder,
+          selectCampaign: t.library.selectCampaign,
+          noResults: t.library.noCampaignSearchResults,
+          cancel: t.common.cancel,
+          assignNow: t.library.assignNow,
+        }}
+      />
 
       <AnimatePresence>
         {showUndoToast ? (
