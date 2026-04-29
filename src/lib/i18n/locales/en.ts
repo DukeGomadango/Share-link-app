@@ -93,6 +93,14 @@ export const en: TranslationKeys = {
       kanban: "Board",
     },
     emptyColumn: "No campaigns in this status",
+    bulk: {
+      selectedCount: "{count} selected",
+      changeStatusTo: "Bulk status change:",
+      clearSelection: "Clear selection",
+      undo: "Undo",
+      undoMessage: "Updated {count} campaigns to {status}",
+    },
+    keyboardHint: "Use arrow keys / Enter for details / Esc to close / Cmd(Ctrl)+A to select all",
     quickFilters: {
       all: "All",
       needsAttention: "Needs attention",

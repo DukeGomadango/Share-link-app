@@ -91,6 +91,14 @@ export const ja = {
       kanban: "ボード",
     },
     emptyColumn: "このステータスのキャンペーンはありません",
+    bulk: {
+      selectedCount: "{count} 件を選択中",
+      changeStatusTo: "一括ステータス変更:",
+      clearSelection: "選択解除",
+      undo: "元に戻す",
+      undoMessage: "{count} 件を {status} に変更しました",
+    },
+    keyboardHint: "矢印キーで移動 / Enterで詳細 / Escで閉じる / Cmd(Ctrl)+Aで全選択",
     quickFilters: {
       all: "すべて",
       needsAttention: "注意が必要",

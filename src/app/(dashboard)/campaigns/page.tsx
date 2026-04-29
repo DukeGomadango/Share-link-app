@@ -40,6 +40,14 @@ export default function CampaignsPage() {
   const [activeFilter, setActiveFilter] = useState<QuickFilter>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [peekCampaign, setPeekCampaign] = useState<Campaign | null>(null);
+  const [selectedCampaignIds, setSelectedCampaignIds] = useState<Set<string>>(new Set());
+  const [focusedCampaignId, setFocusedCampaignId] = useState<string | null>(null);
+  const [lastSelectedCampaignId, setLastSelectedCampaignId] = useState<string | null>(null);
+  const [rangeHighlightedIds, setRangeHighlightedIds] = useState<Set<string>>(new Set());
+  const [bulkUndo, setBulkUndo] = useState<{
+    previousStatuses: Record<string, Campaign["status"]>;
+    nextStatus: Campaign["status"];
+  } | null>(null);
   const { t, locale } = useTranslation();
 
   useEffect(() => {
@@ -78,6 +86,18 @@ export default function CampaignsPage() {
     return campaign.status === activeFilter;
   });
 
+  const orderedVisibleCampaigns = [...visibleCampaigns].sort((a, b) => {
+    const aNeedsAttention = isNeedsAttention(a);
+    const bNeedsAttention = isNeedsAttention(b);
+    if (aNeedsAttention !== bNeedsAttention) return aNeedsAttention ? -1 : 1;
+
+    const aDueSoon = isDueSoon(a);
+    const bDueSoon = isDueSoon(b);
+    if (aDueSoon !== bDueSoon) return aDueSoon ? -1 : 1;
+
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
   const getStatusPillClass = (status: Campaign["status"]) => {
     if (status === "active") return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
     if (status === "completed") return "bg-sky-500/15 text-sky-400 border-sky-500/30";
@@ -86,7 +106,7 @@ export default function CampaignsPage() {
 
   const groupedCampaigns = STATUS_ORDER.reduce<Record<Campaign["status"], Campaign[]>>(
     (acc, status) => {
-      acc[status] = visibleCampaigns
+      acc[status] = orderedVisibleCampaigns
         .filter((campaign) => campaign.status === status)
         .sort((a, b) => {
           const aNeedsAttention = isNeedsAttention(a);
@@ -103,6 +123,157 @@ export default function CampaignsPage() {
     },
     { draft: [], active: [], completed: [] }
   );
+
+  const selectCampaignWithRange = (campaignId: string, useRange: boolean) => {
+    const highlightedInThisAction: string[] = [];
+    setSelectedCampaignIds((prev) => {
+      const next = new Set(prev);
+      const shouldSelect = !next.has(campaignId);
+      if (!useRange || !lastSelectedCampaignId) {
+        if (shouldSelect) next.add(campaignId);
+        else next.delete(campaignId);
+        return next;
+      }
+
+      const startIndex = orderedVisibleCampaigns.findIndex((campaign) => campaign.id === lastSelectedCampaignId);
+      const endIndex = orderedVisibleCampaigns.findIndex((campaign) => campaign.id === campaignId);
+      if (startIndex < 0 || endIndex < 0) {
+        if (shouldSelect) next.add(campaignId);
+        else next.delete(campaignId);
+        return next;
+      }
+      const [from, to] = startIndex < endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
+      for (let i = from; i <= to; i += 1) {
+        const id = orderedVisibleCampaigns[i]?.id;
+        if (!id) continue;
+        highlightedInThisAction.push(id);
+        if (shouldSelect) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+    if (useRange && highlightedInThisAction.length > 0) {
+      setRangeHighlightedIds(new Set(highlightedInThisAction));
+    } else {
+      setRangeHighlightedIds(new Set());
+    }
+    setLastSelectedCampaignId(campaignId);
+  };
+
+  const applyBulkStatus = (status: Campaign["status"]) => {
+    const previousStatuses: Record<string, Campaign["status"]> = {};
+    setCampaigns((prev) =>
+      prev.map((campaign) =>
+        selectedCampaignIds.has(campaign.id)
+          ? ((previousStatuses[campaign.id] = campaign.status), { ...campaign, status })
+          : campaign
+      )
+    );
+    setBulkUndo({ previousStatuses, nextStatus: status });
+    setSelectedCampaignIds(new Set());
+  };
+
+  const undoBulkStatus = () => {
+    if (!bulkUndo) return;
+    setCampaigns((prev) =>
+      prev.map((campaign) =>
+        bulkUndo.previousStatuses[campaign.id]
+          ? { ...campaign, status: bulkUndo.previousStatuses[campaign.id] }
+          : campaign
+      )
+    );
+    setBulkUndo(null);
+  };
+
+  const effectiveFocusedCampaignId =
+    focusedCampaignId && orderedVisibleCampaigns.some((campaign) => campaign.id === focusedCampaignId)
+      ? focusedCampaignId
+      : orderedVisibleCampaigns[0]?.id ?? null;
+
+  useEffect(() => {
+    if (!bulkUndo) return;
+    const timer = window.setTimeout(() => setBulkUndo(null), 5000);
+    return () => window.clearTimeout(timer);
+  }, [bulkUndo]);
+
+  useEffect(() => {
+    if (rangeHighlightedIds.size === 0) return;
+    const timer = window.setTimeout(() => setRangeHighlightedIds(new Set()), 900);
+    return () => window.clearTimeout(timer);
+  }, [rangeHighlightedIds]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName?.toLowerCase();
+      const isTypingField =
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select" ||
+        target?.isContentEditable;
+      if (isTypingField) return;
+
+      if (event.key === "Escape") {
+        if (peekCampaign) {
+          event.preventDefault();
+          setPeekCampaign(null);
+        }
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") {
+        event.preventDefault();
+        const visibleIds = orderedVisibleCampaigns.map((campaign) => campaign.id);
+        const allSelected =
+          visibleIds.length > 0 &&
+          visibleIds.every((id) => selectedCampaignIds.has(id));
+        if (allSelected) {
+          setSelectedCampaignIds((prev) => {
+            const next = new Set(prev);
+            visibleIds.forEach((id) => next.delete(id));
+            return next;
+          });
+        } else {
+          setSelectedCampaignIds((prev) => {
+            const next = new Set(prev);
+            visibleIds.forEach((id) => next.add(id));
+            return next;
+          });
+        }
+        return;
+      }
+
+      if (!effectiveFocusedCampaignId || orderedVisibleCampaigns.length === 0) return;
+
+      const currentIndex = orderedVisibleCampaigns.findIndex(
+        (campaign) => campaign.id === effectiveFocusedCampaignId
+      );
+      if (currentIndex < 0) return;
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        setPeekCampaign(orderedVisibleCampaigns[currentIndex]);
+        return;
+      }
+
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+
+      event.preventDefault();
+      const move = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
+      const nextIndex = Math.min(
+        orderedVisibleCampaigns.length - 1,
+        Math.max(0, currentIndex + move)
+      );
+      const nextCampaign = orderedVisibleCampaigns[nextIndex];
+      if (!nextCampaign) return;
+      setFocusedCampaignId(nextCampaign.id);
+      const targetCard = document.querySelector<HTMLElement>(`[data-campaign-id="${nextCampaign.id}"]`);
+      targetCard?.focus();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [effectiveFocusedCampaignId, orderedVisibleCampaigns, peekCampaign, selectedCampaignIds]);
 
   return (
     <div className="space-y-6 relative">
@@ -183,6 +354,7 @@ export default function CampaignsPage() {
                 ))}
               </div>
             </div>
+            <p className="mt-3 text-xs text-muted-foreground">{t.campaigns.keyboardHint}</p>
           </GlassCard>
 
           {viewMode === "list" ? (
@@ -190,11 +362,32 @@ export default function CampaignsPage() {
               {visibleCampaigns.map((campaign) => (
                 <GlassCard
                   key={campaign.id}
-                  className="relative group hover:border-emerald-500/50 transition-colors cursor-pointer"
+                  data-campaign-id={campaign.id}
+                  tabIndex={0}
+                  className={`relative group hover:border-emerald-500/50 transition-colors cursor-pointer outline-none ${
+                    effectiveFocusedCampaignId === campaign.id ? "ring-2 ring-emerald-500/50" : ""
+                  } ${
+                    rangeHighlightedIds.has(campaign.id) ? "ring-2 ring-sky-400/60" : ""
+                  }`}
                   onClick={() => setPeekCampaign(campaign)}
+                  onFocus={() => setFocusedCampaignId(campaign.id)}
                 >
+                  <label className="absolute left-4 top-4 z-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedCampaignIds.has(campaign.id)}
+                      onChange={(event) =>
+                        selectCampaignWithRange(
+                          campaign.id,
+                          Boolean((event.nativeEvent as MouseEvent).shiftKey)
+                        )
+                      }
+                      onClick={(event) => event.stopPropagation()}
+                      className="h-4 w-4 accent-emerald-500"
+                    />
+                  </label>
                   <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 pl-6">
                       <div
                         className={`p-2 rounded-md ${
                           campaign.status === "active"
@@ -270,10 +463,31 @@ export default function CampaignsPage() {
                     {groupedCampaigns[status].map((campaign) => (
                       <div
                         key={campaign.id}
-                        className="rounded-lg border border-border/70 bg-background/50 p-3 cursor-pointer hover:border-emerald-500/50 transition-colors"
+                        data-campaign-id={campaign.id}
+                        tabIndex={0}
+                        className={`rounded-lg border border-border/70 bg-background/50 p-3 cursor-pointer hover:border-emerald-500/50 transition-colors outline-none ${
+                          effectiveFocusedCampaignId === campaign.id ? "ring-2 ring-emerald-500/50" : ""
+                        } ${
+                          rangeHighlightedIds.has(campaign.id) ? "ring-2 ring-sky-400/60" : ""
+                        }`}
                         onClick={() => setPeekCampaign(campaign)}
+                        onFocus={() => setFocusedCampaignId(campaign.id)}
                       >
-                        <p className="text-sm font-medium line-clamp-1">{campaign.name}</p>
+                        <div className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedCampaignIds.has(campaign.id)}
+                            onChange={(event) =>
+                              selectCampaignWithRange(
+                                campaign.id,
+                                Boolean((event.nativeEvent as MouseEvent).shiftKey)
+                              )
+                            }
+                            onClick={(event) => event.stopPropagation()}
+                            className="mt-0.5 h-4 w-4 accent-emerald-500"
+                          />
+                          <p className="text-sm font-medium line-clamp-1">{campaign.name}</p>
+                        </div>
                         <p className="mt-1 text-xs text-muted-foreground">{formatDate(campaign.createdAt)}</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {isNeedsAttention(campaign) && (
@@ -304,6 +518,53 @@ export default function CampaignsPage() {
             </div>
           )}
         </>
+      )}
+
+      {selectedCampaignIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 w-[min(92vw,900px)] -translate-x-1/2 rounded-xl border border-white/10 bg-black/85 p-3 text-white shadow-2xl backdrop-blur">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm">
+              {t.campaigns.bulk.selectedCount.replace("{count}", String(selectedCampaignIds.size))}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-white/70">{t.campaigns.bulk.changeStatusTo}</span>
+              {STATUS_ORDER.map((status) => (
+                <Button
+                  key={status}
+                  size="sm"
+                  variant="outline"
+                  className="border-white/30 bg-transparent text-white hover:bg-white/15"
+                  onClick={() => applyBulkStatus(status)}
+                >
+                  {t.campaigns.status[status]}
+                </Button>
+              ))}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-white/80 hover:bg-white/10 hover:text-white"
+                onClick={() => setSelectedCampaignIds(new Set())}
+              >
+                {t.campaigns.bulk.clearSelection}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bulkUndo && (
+        <div className="fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-lg border border-border bg-background/95 px-4 py-3 shadow-xl backdrop-blur">
+          <div className="flex items-center gap-3">
+            <p className="text-sm">
+              {t.campaigns.bulk.undoMessage
+                .replace("{count}", String(Object.keys(bulkUndo.previousStatuses).length))
+                .replace("{status}", t.campaigns.status[bulkUndo.nextStatus])}
+            </p>
+            <Button size="sm" variant="outline" onClick={undoBulkStatus}>
+              {t.campaigns.bulk.undo}
+            </Button>
+          </div>
+        </div>
       )}
 
       <div
