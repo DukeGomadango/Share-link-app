@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/shared/GlassCard";
 import { AudioPlayer } from "@/components/shared/AudioPlayer";
 import { ImageViewer } from "@/components/shared/ImageViewer";
 import { AssetFile } from "./types";
+import { useTranslation } from "@/lib/i18n";
 
 interface AssetPreviewModalProps {
   file: AssetFile | null;
@@ -13,6 +14,7 @@ interface AssetPreviewModalProps {
 }
 
 export function AssetPreviewModal({ file, onClose }: AssetPreviewModalProps) {
+  const { t } = useTranslation();
   if (!file) return null;
 
   return (
@@ -34,7 +36,7 @@ export function AssetPreviewModal({ file, onClose }: AssetPreviewModalProps) {
         ) : (
           <GlassCard className="p-8 text-center text-muted-foreground">
             <FileIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Preview not available for this file type.</p>
+            <p>{t.library.previewNotAvailable}</p>
           </GlassCard>
         )}
       </div>

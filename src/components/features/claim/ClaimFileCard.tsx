@@ -1,12 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Download, CheckCircle2, FileImage, FileAudio } from "lucide-react";
+import { Download, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageViewer } from "@/components/shared/ImageViewer";
 import { AudioPlayer } from "@/components/shared/AudioPlayer";
 import { cn } from "@/lib/utils";
 import { ClaimFile } from "./types";
+
+import { useTranslation } from "@/lib/i18n";
 
 interface ClaimFileCardProps {
   file: ClaimFile;
@@ -37,6 +39,7 @@ export function ClaimFileCard({
   onToggle,
   onDownload,
 }: ClaimFileCardProps) {
+  const { t } = useTranslation();
   return (
     <motion.div
       custom={index}
@@ -77,7 +80,7 @@ export function ClaimFileCard({
             e.stopPropagation();
             onDownload(file.id);
           }}
-          title="Download File"
+          title={t.common.download}
         >
           <Download className="w-4 h-4" />
         </Button>
@@ -93,7 +96,7 @@ export function ClaimFileCard({
         )}
         
         {file.type === "audio" && (
-          <AudioPlayer src={file.src} title={file.title || "Audio File"} />
+          <AudioPlayer src={file.src} title={file.title || t.library.fileType.audio} />
         )}
       </div>
     </motion.div>

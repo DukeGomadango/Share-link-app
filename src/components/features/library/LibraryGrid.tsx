@@ -1,18 +1,29 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { DndContext, DragOverlay, SensorDescriptor, SensorOptions } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragOverlay,
+  DragEndEvent,
+  DragStartEvent,
+  SensorDescriptor,
+  SensorOptions,
+} from "@dnd-kit/core";
 import { Layers, GripVertical, FolderOpen } from "lucide-react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
 import { DraggableAssetCard } from "@/components/features/library/DraggableAssetCard";
 import { CampaignDockItem } from "@/components/features/library/CampaignDockItem";
+import { CampaignSearchDropZone } from "@/components/features/library/CampaignSearchDropZone";
 import { AssetFile, CampaignSummary } from "@/components/features/library/types";
 
 interface LibraryGridProps {
   files: AssetFile[];
   filteredFiles: AssetFile[];
   campaigns: CampaignSummary[];
+  recentCampaigns: CampaignSummary[];
   selectedFileIds: Set<string>;
   draggedFileIds: string[];
   assigningCampaignIds: Set<string>;
@@ -20,12 +31,13 @@ interface LibraryGridProps {
   unassignedCount: number;
   locale: string;
   sensors: SensorDescriptor<SensorOptions>[];
-  onDragStart: (event: any) => void;
-  onDragEnd: (event: any) => void;
+  onDragStart: (event: DragStartEvent) => void;
+  onDragEnd: (event: DragEndEvent) => void;
   onToggleSelection: (fileId: string) => void;
   onPreview: (file: AssetFile) => void;
   onOpenAssign: (fileId: string) => void;
   onAssignSelected: (campaignId: string) => void;
+  onOpenCommandDrop: () => void;
   labels: {
     noFilesTitle: string;
     noFilesDescription: string;
@@ -41,6 +53,9 @@ interface LibraryGridProps {
     unassignedCount: string;
     assignSelectedHint: string;
     noCampaignsFound: string;
+    noFilteredFiles: string;
+    dropToSearch: string;
+    dropToSearchHint: string;
   };
   formatSize: (bytes: number) => string;
   getFileIcon: (type: string) => React.ReactNode;
@@ -50,6 +65,7 @@ export function LibraryGrid({
   files,
   filteredFiles,
   campaigns,
+  recentCampaigns,
   selectedFileIds,
   draggedFileIds,
   assigningCampaignIds,
@@ -63,12 +79,38 @@ export function LibraryGrid({
   onPreview,
   onOpenAssign,
   onAssignSelected,
+  onOpenCommandDrop,
   labels,
   formatSize,
   getFileIcon,
 }: LibraryGridProps) {
   const isIntentDockOpen = draggedFileIds.length > 0;
   const selectedCount = selectedFileIds.size;
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [columnCount, setColumnCount] = useState(1);
+
+  useEffect(() => {
+    const updateColumns = () => {
+      const width = scrollRef.current?.clientWidth ?? window.innerWidth;
+      if (width >= 1280) setColumnCount(4);
+      else if (width >= 1024) setColumnCount(3);
+      else if (width >= 768) setColumnCount(2);
+      else setColumnCount(1);
+    };
+    updateColumns();
+    window.addEventListener("resize", updateColumns);
+    return () => window.removeEventListener("resize", updateColumns);
+  }, []);
+
+  const rowCount = Math.ceil(filteredFiles.length / columnCount);
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const rowVirtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 360,
+    overscan: 4,
+  });
+  const dockCampaigns = (recentCampaigns.length > 0 ? recentCampaigns : campaigns).slice(0, 5);
 
   if (files.length === 0) {
     return (
@@ -86,27 +128,58 @@ export function LibraryGrid({
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredFiles.map((file) => (
-          <DraggableAssetCard
-            key={file.id}
-            file={file}
-            isSelected={selectedFileIds.has(file.id)}
-            locale={locale}
-            assigning={assigningCampaignIds.size > 0}
-            selectAssetLabel={labels.selectAsset}
-            deselectAssetLabel={labels.deselectAsset}
-            linkedCampaignsLabel={labels.linkedCampaigns}
-            noneLabel={labels.none}
-            unassignedLabel={labels.unassigned}
-            assignToCampaignLabel={labels.assignToCampaign}
-            formatSize={formatSize}
-            getFileIcon={getFileIcon}
-            onToggleSelection={onToggleSelection}
-            onPreview={onPreview}
-            onOpenAssign={onOpenAssign}
-          />
-        ))}
+      <div ref={scrollRef} className="h-[68vh] overflow-auto pr-1">
+        {filteredFiles.length === 0 ? (
+          <GlassCard className="text-center py-16">
+            <p className="text-sm text-muted-foreground">{labels.noFilteredFiles}</p>
+          </GlassCard>
+        ) : (
+          <div
+            className="relative w-full"
+            style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const rowStartIndex = virtualRow.index * columnCount;
+              const rowItems = filteredFiles.slice(rowStartIndex, rowStartIndex + columnCount);
+              return (
+                <div
+                  key={virtualRow.key}
+                  className="absolute left-0 top-0 w-full px-1"
+                  style={{
+                    transform: `translateY(${virtualRow.start}px)`,
+                    height: `${virtualRow.size}px`,
+                  }}
+                >
+                  <div
+                    className="grid gap-6"
+                    style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
+                  >
+                    {rowItems.map((file) => (
+                      <DraggableAssetCard
+                        key={file.id}
+                        file={file}
+                        isSelected={selectedFileIds.has(file.id)}
+                        locale={locale}
+                        assigning={assigningCampaignIds.size > 0}
+                        selectAssetLabel={labels.selectAsset}
+                        deselectAssetLabel={labels.deselectAsset}
+                        linkedCampaignsLabel={labels.linkedCampaigns}
+                        noneLabel={labels.none}
+                        unassignedLabel={labels.unassigned}
+                        assignToCampaignLabel={labels.assignToCampaign}
+                        formatSize={formatSize}
+                        getFileIcon={getFileIcon}
+                        onToggleSelection={onToggleSelection}
+                        onPreview={onPreview}
+                        onOpenAssign={onOpenAssign}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <DragOverlay>
@@ -166,7 +239,7 @@ export function LibraryGrid({
                 {labels.unassignedCount.replace("{count}", String(unassignedCount))}
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {campaigns.map((campaign) => (
+                {dockCampaigns.map((campaign) => (
                   <CampaignDockItem
                     key={campaign.id}
                     campaign={campaign}
@@ -178,6 +251,12 @@ export function LibraryGrid({
                     onAssign={() => onAssignSelected(campaign.id)}
                   />
                 ))}
+                <CampaignSearchDropZone
+                  disabled={selectedCount === 0 && draggedFileIds.length === 0}
+                  onClick={onOpenCommandDrop}
+                  title={labels.dropToSearch}
+                  hint={labels.dropToSearchHint}
+                />
                 {campaigns.length === 0 ? (
                   <p className="text-sm text-muted-foreground">{labels.noCampaignsFound}</p>
                 ) : null}

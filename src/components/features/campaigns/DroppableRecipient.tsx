@@ -7,6 +7,7 @@ import { Copy, ExternalLink, Check, FileAudio, FileImage, X } from "lucide-react
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Recipient, FileItem } from "./types";
+import { useTranslation } from "@/lib/i18n";
 
 interface DroppableRecipientProps {
   recipient: Recipient;
@@ -21,6 +22,7 @@ export function DroppableRecipient({
   onRemoveFile,
   successPulse = false,
 }: DroppableRecipientProps) {
+  const { t } = useTranslation();
   const { isOver, setNodeRef } = useDroppable({
     id: `recipient-${recipient.id}`,
     data: { recipient },
@@ -73,7 +75,7 @@ export function DroppableRecipient({
             {recipient.name}
             {assignedFiles.length > 0 && (
               <span className="ml-2 text-[10px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 px-2 py-0.5 rounded-full">
-                {assignedFiles.length} files
+                {assignedFiles.length} {t.campaigns.files}
               </span>
             )}
           </h4>
@@ -93,7 +95,7 @@ export function DroppableRecipient({
                 e.stopPropagation();
                 handleCopyLink();
               }}
-              title="Copy Link"
+              title={t.campaigns.copyLink}
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             </Button>
@@ -102,7 +104,7 @@ export function DroppableRecipient({
               size="icon"
               asChild
               className="h-7 w-7 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 hover:border-blue-500/30"
-              title="Preview Link"
+              title={t.campaigns.previewLink}
             >
               <a href={recipient.link} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-3.5 h-3.5 ml-0.5 mb-0.5" />
@@ -156,12 +158,12 @@ export function DroppableRecipient({
               ))}
             </div>
             <div className="text-center pt-2 border-t border-emerald-500/20 border-dashed text-xs text-muted-foreground mt-1">
-              Drop more files here
+              {t.campaigns.dropMoreFiles}
             </div>
           </>
         ) : (
           <span className="opacity-70 flex items-center">
-            <Copy className="w-4 h-4 mr-2 opacity-50" /> Drop a file here
+            <Copy className="w-4 h-4 mr-2 opacity-50" /> {t.campaigns.dropFileHere}
           </span>
         )}
       </div>

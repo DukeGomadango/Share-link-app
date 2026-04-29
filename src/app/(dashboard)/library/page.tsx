@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FileImage, FileAudio, File as FileIcon } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { AssetPreviewModal } from "@/components/features/library/AssetPreviewModal";
 import { AssetAssignModal } from "@/components/features/library/AssetAssignModal";
+import { CommandDropPalette } from "@/components/features/library/CommandDropPalette";
 import { AssetFile } from "@/components/features/library/types";
 import { useLibrary } from "@/hooks/features/library/useLibrary";
 
@@ -22,8 +23,19 @@ export default function LibraryPage() {
   const {
     files,
     campaigns,
-    filter,
-    setFilter,
+    fileTypeFilter,
+    setFileTypeFilter,
+    searchQuery,
+    setSearchQuery,
+    unassignedOnly,
+    setUnassignedOnly,
+    sizeFilter,
+    setSizeFilter,
+    dateFilter,
+    setDateFilter,
+    selectedTag,
+    setSelectedTag,
+    smartTags,
     selectedFileIds,
     setSelectedFileIds,
     toggleSelection,
@@ -44,14 +56,34 @@ export default function LibraryPage() {
     selectedCount,
     unassignedCount,
     filteredCampaigns,
+    recentCampaigns,
+    isCommandDropOpen,
+    commandDropQuery,
+    setCommandDropQuery,
+    commandDropResults,
+    recentCampaignIds,
     sensors,
     handleFilesDropped,
     handleUndoAssign,
     handleDragStart,
     handleDragEnd,
     assignSelectedToCampaign,
-    assignFilesToCampaign,
+    openCommandDropForSelection,
+    closeCommandDrop,
+    assignFromCommandDrop,
   } = useLibrary();
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const isCmdOrCtrl = event.metaKey || event.ctrlKey;
+      if (isCmdOrCtrl && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        openCommandDropForSelection();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [openCommandDropForSelection]);
 
   const getFileIcon = (type: string) => {
     if (type.startsWith("image/")) return <FileImage className="w-8 h-8 text-blue-500" />;
@@ -85,19 +117,39 @@ export default function LibraryPage() {
       </div>
 
       <LibraryFilters
-        filter={filter}
-        setFilter={setFilter}
+        fileTypeFilter={fileTypeFilter}
+        onFileTypeFilterChange={setFileTypeFilter}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        unassignedOnly={unassignedOnly}
+        onUnassignedOnlyChange={setUnassignedOnly}
+        sizeFilter={sizeFilter}
+        onSizeFilterChange={setSizeFilter}
+        dateFilter={dateFilter}
+        onDateFilterChange={setDateFilter}
+        selectedTag={selectedTag}
+        smartTags={smartTags}
+        onSelectedTagChange={setSelectedTag}
         selectedCount={selectedCount}
         campaignsCount={campaigns.length}
         onClearSelection={() => setSelectedFileIds(new Set())}
+        onOpenCommandDrop={openCommandDropForSelection}
         onOpenAssignModal={() => {
           setAssignTargetCampaignId(campaigns[0]?.id ?? "");
           setCampaignQuery("");
           setIsAssignModalOpen(true);
         }}
         labels={{
-          filterType: t.library.filterType,
+          searchPlaceholder: t.library.searchAssetsPlaceholder,
+          filtersLabel: t.library.filtersLabel,
+          unassignedOnly: t.library.unassignedOnly,
+          sizeLabel: t.library.sizeLabel,
+          dateLabel: t.library.dateLabel,
+          tagLabel: t.library.tagLabel,
+          dateOptions: t.library.dateOptions,
+          sizeOptions: t.library.sizeOptions,
           fileType: t.library.fileType,
+          openCommandDrop: t.library.openCommandDrop,
           clearSelection: t.library.clearSelection,
           assignToCampaign: t.library.assignToCampaign,
         }}
@@ -107,6 +159,7 @@ export default function LibraryPage() {
         files={files}
         filteredFiles={filteredFiles}
         campaigns={campaigns}
+        recentCampaigns={recentCampaigns}
         selectedFileIds={selectedFileIds}
         draggedFileIds={draggedFileIds}
         assigningCampaignIds={assigningCampaignIds}
@@ -120,6 +173,7 @@ export default function LibraryPage() {
         onPreview={setSelectedFile}
         onOpenAssign={openAssignModalForFile}
         onAssignSelected={assignSelectedToCampaign}
+        onOpenCommandDrop={openCommandDropForSelection}
         formatSize={formatSize}
         getFileIcon={getFileIcon}
         labels={{
@@ -137,6 +191,9 @@ export default function LibraryPage() {
           unassignedCount: t.library.unassignedCount,
           assignSelectedHint: t.library.assignSelectedHint,
           noCampaignsFound: t.library.noCampaignsFound,
+          noFilteredFiles: t.library.noFilteredFiles,
+          dropToSearch: t.library.dropToSearch,
+          dropToSearchHint: t.library.dropToSearchHint,
         }}
       />
 
@@ -162,6 +219,30 @@ export default function LibraryPage() {
           noResults: t.library.noCampaignSearchResults,
           cancel: t.common.cancel,
           assignNow: t.library.assignNow,
+        }}
+      />
+
+      <CommandDropPalette
+        isOpen={isCommandDropOpen}
+        selectedCount={selectedCount}
+        query={commandDropQuery}
+        campaigns={commandDropResults}
+        recentCampaignIds={recentCampaignIds}
+        onQueryChange={setCommandDropQuery}
+        onClose={closeCommandDrop}
+        onAssign={assignFromCommandDrop}
+        labels={{
+          title: t.library.commandDropTitle,
+          subtitle: t.library.commandDropSubtitle,
+          placeholder: t.library.commandDropPlaceholder,
+          empty: t.library.commandDropEmpty,
+          shortcutsHint: t.library.commandDropShortcutsHint,
+          shortcutsTitle: t.library.commandDropShortcutsTitle,
+          shortcutMove: t.library.commandDropShortcutMove,
+          shortcutSelect: t.library.commandDropShortcutSelect,
+          shortcutClose: t.library.commandDropShortcutClose,
+          shortcutToggleHelp: t.library.commandDropShortcutToggleHelp,
+          recentBadge: t.library.commandDropRecentBadge,
         }}
       />
 

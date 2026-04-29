@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from "@/lib/i18n";
 
 interface FileDropzoneProps {
   onFilesDropped: (files: File[]) => void;
@@ -11,6 +12,7 @@ interface FileDropzoneProps {
 }
 
 export function FileDropzone({ onFilesDropped, className }: FileDropzoneProps) {
+  const { t } = useTranslation();
   const onDrop = useCallback((acceptedFiles: File[]) => {
     onFilesDropped(acceptedFiles);
   }, [onFilesDropped]);
@@ -59,10 +61,10 @@ export function FileDropzone({ onFilesDropped, className }: FileDropzoneProps) {
       </div>
 
       <p className="text-sm font-medium text-foreground">
-        {isDragActive ? "Drop files here... ✨" : "Drag & drop files here"}
+        {isDragActive ? t.library.uploadArea.drop : t.library.uploadArea.drag}
       </p>
       <p className="text-xs text-muted-foreground mt-2 text-center max-w-xs">
-        Supported formats: PNG, JPG, MP3, WAV. Max size: 50MB. (Watermarks automatically applied)
+        {t.library.uploadArea.description}
       </p>
     </div>
   );

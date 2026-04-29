@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 export function CountdownBadge({ expiresAt }: { expiresAt: Date }) {
+  const { t } = useTranslation();
   const [timeLeft, setTimeLeft] = useState("");
   const [urgencyLevel, setUrgencyLevel] = useState<"normal" | "warning" | "expired">("normal");
 
@@ -14,7 +16,7 @@ export function CountdownBadge({ expiresAt }: { expiresAt: Date }) {
       const difference = expiresAt.getTime() - now;
 
       if (difference <= 0) {
-        setTimeLeft("Expired");
+        setTimeLeft(t.countdown.expired);
         setUrgencyLevel("expired");
         return;
       }
@@ -30,14 +32,25 @@ export function CountdownBadge({ expiresAt }: { expiresAt: Date }) {
       const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
 
-      if (days > 0) setTimeLeft(`${days}d ${hours}h left`);
-      else setTimeLeft(`${hours}h ${minutes}m left`);
+      if (days > 0) {
+        setTimeLeft(
+          t.countdown.daysLeft
+            .replace("{days}", days.toString())
+            .replace("{hours}", hours.toString())
+        );
+      } else {
+        setTimeLeft(
+          t.countdown.hoursLeft
+            .replace("{hours}", hours.toString())
+            .replace("{minutes}", minutes.toString())
+        );
+      }
     };
 
     updateCountdown();
     const timer = setInterval(updateCountdown, 60000);
     return () => clearInterval(timer);
-  }, [expiresAt]);
+  }, [expiresAt, t.countdown]);
 
   return (
     <div

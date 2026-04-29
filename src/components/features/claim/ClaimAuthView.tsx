@@ -3,12 +3,14 @@
 import { Fingerprint } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 
 interface ClaimAuthViewProps {
   onVerify: () => void;
 }
 
 export function ClaimAuthView({ onVerify }: ClaimAuthViewProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-10">
       {/* 指紋アイコン: 穏やかなパルスで「ここをタップ」と誘導 */}
@@ -32,9 +34,9 @@ export function ClaimAuthView({ onVerify }: ClaimAuthViewProps) {
         transition={{ delay: 0.2, duration: 0.5 }}
         className="space-y-3"
       >
-        <h1 className="text-2xl font-bold tracking-tight">Secure Content</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t.claim.secureContent}</h1>
         <p className="text-muted-foreground/80 max-w-[250px] mx-auto text-sm leading-relaxed">
-          This gift is protected. Please verify your identity to access the contents.
+          {t.claim.authDescription}
         </p>
       </motion.div>
 
@@ -48,7 +50,7 @@ export function ClaimAuthView({ onVerify }: ClaimAuthViewProps) {
           className="rounded-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white px-8 h-14 text-lg backdrop-blur-md shadow-[0_0_20px_oklch(0.645_0.165_158.452/0.2)] border border-emerald-500/50 transition-all hover:scale-105"
         >
           <Fingerprint className="w-5 h-5 mr-3" />
-          Verify Identity
+          {t.claim.verifyIdentity}
         </Button>
       </motion.div>
     </div>

@@ -3,6 +3,7 @@
 import { Gift } from "lucide-react";
 import { motion } from "framer-motion";
 import { CountdownBadge } from "@/components/shared/CountdownBadge";
+import { useTranslation } from "@/lib/i18n";
 
 interface ClaimUnopenedViewProps {
   onOpen: () => void;
@@ -10,6 +11,7 @@ interface ClaimUnopenedViewProps {
 }
 
 export function ClaimUnopenedView({ onOpen, expiryDate }: ClaimUnopenedViewProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-12">
       <motion.div
@@ -20,9 +22,11 @@ export function ClaimUnopenedView({ onOpen, expiryDate }: ClaimUnopenedViewProps
       >
         <CountdownBadge expiresAt={expiryDate} />
         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-emerald-600">
-          You Received a Gift!
+          {t.claim.receivedGift}
         </h1>
-        <p className="text-muted-foreground/80 text-sm">From: Spring Voice Gacha 2026</p>
+        <p className="text-muted-foreground/80 text-sm">
+          {t.claim.from.replace("{sender}", "Spring Voice Gacha 2026")}
+        </p>
       </motion.div>
 
       {/* ギフトボックス: タップで「開封」する体験 */}
@@ -52,7 +56,7 @@ export function ClaimUnopenedView({ onOpen, expiryDate }: ClaimUnopenedViewProps
           animate={{ opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         >
-          Tap to Open
+          {t.claim.tapToOpen}
         </motion.p>
       </motion.button>
     </div>

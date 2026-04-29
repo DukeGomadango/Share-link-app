@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Check, FileImage, FileAudio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FileItem, LibraryFile } from "./types";
+import { useTranslation } from "@/lib/i18n";
 
 interface LibrarySelectModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function LibrarySelectModal({
   libraryFiles,
   onAddFiles,
 }: LibrarySelectModalProps) {
+  const { t } = useTranslation();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   if (!isOpen) return null;
@@ -58,9 +60,9 @@ export function LibrarySelectModal({
         >
           <X className="w-5 h-5" />
         </Button>
-        <h2 className="text-2xl font-bold mb-1">Select from Library</h2>
+        <h2 className="text-2xl font-bold mb-1">{t.campaigns.selectFromLibrary}</h2>
         <p className="text-sm text-muted-foreground mb-6">
-          Choose one or more files to add to this campaign.
+          {t.campaigns.selectFromLibraryDescription}
         </p>
 
         <div className="flex-1 overflow-y-auto mb-6 min-h-[300px] pr-2">
@@ -100,17 +102,14 @@ export function LibrarySelectModal({
 
         <div className="flex justify-end space-x-3 shrink-0 pt-4 border-t border-border/50">
           <Button variant="outline" className="glass" onClick={handleClose}>
-            Cancel
+            {t.common.cancel}
           </Button>
           <Button
             className="bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-500/20"
             disabled={selectedIds.size === 0}
             onClick={handleAdd}
           >
-            Add{" "}
-            {selectedIds.size > 0
-              ? `${selectedIds.size} File${selectedIds.size > 1 ? "s" : ""}`
-              : ""}
+            {t.campaigns.addCountFiles.replace("{count}", selectedIds.size.toString())}
           </Button>
         </div>
       </div>

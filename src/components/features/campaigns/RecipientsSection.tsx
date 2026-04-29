@@ -3,6 +3,7 @@
 import { Users, MailPlus } from "lucide-react";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 import { DroppableRecipient } from "@/components/features/campaigns/DroppableRecipient";
 import { Recipient, FileItem } from "@/components/features/campaigns/types";
 
@@ -19,16 +20,17 @@ export function RecipientsSection({
   pulsedRecipientId,
   onRemoveFile,
 }: RecipientsSectionProps) {
+  const { t } = useTranslation();
   return (
     <GlassCard className="flex flex-col overflow-hidden h-full">
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/50 shrink-0">
         <h2 className="text-lg font-semibold flex items-center">
           <Users className="w-5 h-5 mr-2 text-blue-500" />
-          Recipients
+          {t.campaigns.recipients}
         </h2>
         <Button variant="ghost" size="sm" className="h-8 text-emerald-500 hover:text-emerald-600">
           <MailPlus className="w-4 h-4 mr-1" />
-          Add Recipients
+          {t.campaigns.addRecipients}
         </Button>
       </div>
 

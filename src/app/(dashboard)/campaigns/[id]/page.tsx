@@ -14,7 +14,10 @@ import { useCampaignDetail } from "@/hooks/features/campaigns/useCampaignDetail"
 import { FilePoolSection } from "@/components/features/campaigns/FilePoolSection";
 import { RecipientsSection } from "@/components/features/campaigns/RecipientsSection";
 
+import { useTranslation } from "@/lib/i18n";
+
 export default function CampaignDetailPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const {
     files,
@@ -50,20 +53,20 @@ export default function CampaignDetailPage() {
       <div className="flex justify-between items-center shrink-0">
         <div>
           <div className="flex items-center space-x-2 text-sm text-emerald-500 mb-1">
-            <span className="uppercase tracking-wider font-semibold text-xs">Direct Campaign</span>
+            <span className="uppercase tracking-wider font-semibold text-xs">{t.campaigns.directCampaign}</span>
             <span>•</span>
             <span className="text-muted-foreground">{params.id as string}</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Campaign Flow</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t.campaigns.campaignFlow}</h1>
         </div>
         <div className="flex space-x-3">
           <Button variant="outline" className="glass">
             <Download className="w-4 h-4 mr-2" />
-            Export Links
+            {t.campaigns.exportLinks}
           </Button>
           <Button className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 shadow-lg">
             <LinkIcon className="w-4 h-4 mr-2" />
-            Generate All
+            {t.campaigns.generateAll}
           </Button>
         </div>
       </div>
@@ -92,7 +95,7 @@ export default function CampaignDetailPage() {
         <DragOverlay>
           {activeDragFile ? (
             draggedFileIds.length > 1 ? (
-              <StackedDragOverlay label={`${draggedFileIds.length} files selected`} />
+              <StackedDragOverlay label={t.campaigns.filesSelected.replace("{count}", draggedFileIds.length.toString())} />
             ) : (
               <div className="p-3 rounded-lg border border-emerald-500 bg-background/90 shadow-2xl flex items-center space-x-3 rotate-3 scale-105 cursor-grabbing">
                 <div className="p-2 bg-emerald-500/20 rounded-md text-emerald-500 shrink-0 relative overflow-hidden flex items-center justify-center w-10 h-10">

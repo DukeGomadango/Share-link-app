@@ -6,6 +6,7 @@ import { CountdownBadge } from "@/components/shared/CountdownBadge";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { ClaimFile } from "./types";
+import { useTranslation } from "@/lib/i18n";
 
 // サブコンポーネント
 import { ClaimFileCard } from "./ClaimFileCard";
@@ -17,6 +18,7 @@ interface ClaimContentViewProps {
 }
 
 export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
+  const { t } = useTranslation();
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -43,7 +45,7 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
     if (!file) return;
     
     console.log(`Downloading: ${file.filename}`);
-    alert(`「${file.filename}」のダウンロードを開始します`);
+    alert(t.claim.downloadSingle.replace("{filename}", file.filename));
   };
 
   const handleDownloadSelected = async () => {
@@ -54,8 +56,8 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
     setTimeout(() => {
       setIsDownloading(false);
       alert(isAll 
-        ? `全 ${count} 件のファイルをZIPでダウンロードします` 
-        : `選択した ${count} 件のファイルをダウンロードします`
+        ? t.claim.downloadZip.replace("{count}", count.toString())
+        : t.claim.downloadSelectedAlert.replace("{count}", count.toString())
       );
     }, 1000);
   };
@@ -72,8 +74,8 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
         className="flex justify-between items-start mb-2"
       >
         <div>
-          <h2 className="text-3xl font-bold text-foreground">A special delivery</h2>
-          <p className="text-emerald-500 text-sm mt-1.5 font-medium tracking-wide">CONFIDENTIAL</p>
+          <h2 className="text-3xl font-bold text-foreground">{t.claim.headerTitle}</h2>
+          <p className="text-emerald-500 text-sm mt-1.5 font-medium tracking-wide">{t.claim.headerSubtitle}</p>
         </div>
         <CountdownBadge expiresAt={expiryDate} />
       </motion.div>
@@ -100,8 +102,8 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
       
       {/* フッター */}
       <div className="pt-8 pb-4 text-center">
-        <p className="text-xs text-muted-foreground/60">
-          This link is unique to your device.<br/>If you lose access, please contact the sender.
+        <p className="text-xs text-muted-foreground/60 whitespace-pre-line">
+          {t.claim.expiryNotice}
         </p>
       </div>
 
@@ -115,9 +117,9 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
         <div className="pointer-events-auto w-full max-w-sm glass rounded-full p-2 flex items-center justify-between border border-border shadow-2xl shadow-emerald-500/10">
           <div className="px-4 text-sm font-medium">
             {selectedFileIds.size > 0 ? (
-              <span className="text-emerald-500">{selectedFileIds.size} Selected</span>
+              <span className="text-emerald-500">{t.claim.selectedCount.replace("{count}", selectedFileIds.size.toString())}</span>
             ) : (
-              <span className="text-muted-foreground">Download Complete Bundle</span>
+              <span className="text-muted-foreground">{t.claim.downloadBundle}</span>
             )}
           </div>
           <Button 
@@ -126,11 +128,11 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
             className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-6 shadow-[0_0_15px_oklch(0.645_0.165_158.452/0.3)] transition-all hover:scale-105"
           >
             {isDownloading ? (
-              <span className="animate-pulse">Preparing...</span>
+              <span className="animate-pulse">{t.claim.preparing}</span>
             ) : (
               <>
                 <Download className="w-4 h-4 mr-2" />
-                {selectedFileIds.size === 0 ? "Save All" : "Save Selected"}
+                {selectedFileIds.size === 0 ? t.claim.saveAll : t.claim.saveSelected}
               </>
             )}
           </Button>

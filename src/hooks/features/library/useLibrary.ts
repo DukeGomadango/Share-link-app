@@ -18,7 +18,12 @@ import {
 export function useLibrary() {
   const [files, setFiles] = useState<AssetFile[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
-  const [filter, setFilter] = useState<string>("all");
+  const [fileTypeFilter, setFileTypeFilter] = useState<"all" | "image" | "audio">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [unassignedOnly, setUnassignedOnly] = useState(false);
+  const [sizeFilter, setSizeFilter] = useState<"all" | "small" | "medium" | "large">("all");
+  const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
+  const [selectedTag, setSelectedTag] = useState("all");
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assignTargetCampaignId, setAssignTargetCampaignId] = useState<string>("");
@@ -34,6 +39,37 @@ export function useLibrary() {
   const [pulsedCampaignId, setPulsedCampaignId] = useState<string | null>(null);
   const [showUndoToast, setShowUndoToast] = useState(false);
   const [showAssignErrorToast, setShowAssignErrorToast] = useState(false);
+  const [recentCampaignIds, setRecentCampaignIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem("library:recent-campaign-ids");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+    } catch {
+      return [];
+    }
+  });
+  const [recentCampaignTouchedAtById, setRecentCampaignTouchedAtById] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem("library:recent-campaign-touched-at");
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return {};
+      const entries = Object.entries(parsed).filter(
+        ([key, value]) => typeof key === "string" && typeof value === "number"
+      );
+      return Object.fromEntries(entries);
+    } catch {
+      return {};
+    }
+  });
+  const [isCommandDropOpen, setIsCommandDropOpen] = useState(false);
+  const [commandDropQuery, setCommandDropQuery] = useState("");
+  const [pendingCommandDropFileIds, setPendingCommandDropFileIds] = useState<string[]>([]);
+  const [nowTs] = useState(() => Date.now());
+  const [commandDropOpenedAtTs, setCommandDropOpenedAtTs] = useState(() => Date.now());
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -69,6 +105,16 @@ export function useLibrary() {
     fetchCampaigns();
   }, [fetchFiles, fetchCampaigns]);
 
+  useEffect(() => {
+    window.localStorage.setItem("library:recent-campaign-ids", JSON.stringify(recentCampaignIds));
+  }, [recentCampaignIds]);
+  useEffect(() => {
+    window.localStorage.setItem(
+      "library:recent-campaign-touched-at",
+      JSON.stringify(recentCampaignTouchedAtById)
+    );
+  }, [recentCampaignTouchedAtById]);
+
   const handleFilesDropped = async (droppedFiles: File[]) => {
     console.log("Files ready to upload:", droppedFiles);
     try {
@@ -81,13 +127,57 @@ export function useLibrary() {
     }
   };
 
+  const inferSmartTags = useCallback((file: AssetFile) => {
+    const tags = new Set<string>();
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (file.type.startsWith("image/")) tags.add("image");
+    else if (file.type.startsWith("audio/")) tags.add("audio");
+    else tags.add("other");
+    if (ext) tags.add(ext);
+    if (file.size >= 10 * 1024 * 1024) tags.add("large");
+    if (file.linkedCampaigns.length === 0) tags.add("unassigned");
+    return Array.from(tags);
+  }, []);
+
+  const smartTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    files.forEach((file) => {
+      inferSmartTags(file).forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1));
+    });
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([tag]) => tag);
+  }, [files, inferSmartTags]);
+
   const filteredFiles = useMemo(() => {
-    return files.filter((f) => {
-      if (filter === "image") return f.type.startsWith("image/");
-      if (filter === "audio") return f.type.startsWith("audio/");
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    return files.filter((file) => {
+      if (fileTypeFilter === "image" && !file.type.startsWith("image/")) return false;
+      if (fileTypeFilter === "audio" && !file.type.startsWith("audio/")) return false;
+      if (unassignedOnly && file.linkedCampaigns.length > 0) return false;
+
+      if (sizeFilter !== "all") {
+        if (sizeFilter === "small" && file.size >= 1024 * 1024) return false;
+        if (sizeFilter === "medium" && (file.size < 1024 * 1024 || file.size >= 10 * 1024 * 1024)) return false;
+        if (sizeFilter === "large" && file.size < 10 * 1024 * 1024) return false;
+      }
+
+      if (dateFilter !== "all") {
+        const createdAt = new Date(file.createdAt).getTime();
+        const days = dateFilter === "7d" ? 7 : dateFilter === "30d" ? 30 : 90;
+        if (nowTs - createdAt > days * 24 * 60 * 60 * 1000) return false;
+      }
+
+      if (selectedTag !== "all" && !inferSmartTags(file).includes(selectedTag)) return false;
+
+      if (normalizedQuery) {
+        const haystack = `${file.name} ${file.linkedCampaigns.join(" ")}`.toLowerCase();
+        if (!haystack.includes(normalizedQuery)) return false;
+      }
       return true;
     });
-  }, [files, filter]);
+  }, [files, fileTypeFilter, unassignedOnly, sizeFilter, dateFilter, selectedTag, searchQuery, inferSmartTags, nowTs]);
 
   const selectedCount = selectedFileIds.size;
   const unassignedCount = useMemo(
@@ -100,6 +190,48 @@ export function useLibrary() {
     if (!normalizedQuery) return campaigns;
     return campaigns.filter((campaign) => campaign.name.toLowerCase().includes(normalizedQuery));
   }, [campaigns, campaignQuery]);
+
+  const commandDropResults = useMemo(() => {
+    const normalizedQuery = commandDropQuery.trim().toLowerCase();
+    const recentSet = new Set(recentCampaignIds);
+
+    const scored = campaigns
+      .filter((campaign) => {
+        if (!normalizedQuery) return true;
+        return campaign.name.toLowerCase().includes(normalizedQuery);
+      })
+      .map((campaign) => {
+        const lowerName = campaign.name.toLowerCase();
+        const touchedAt = recentCampaignTouchedAtById[campaign.id];
+        const ageHours =
+          typeof touchedAt === "number" ? (commandDropOpenedAtTs - touchedAt) / (1000 * 60 * 60) : null;
+        const recencyScore =
+          ageHours === null
+            ? 0
+            : recentSet.has(campaign.id)
+            ? 1200 * Math.exp(-ageHours / 24)
+            : 0;
+        const isStartsWith = normalizedQuery ? lowerName.startsWith(normalizedQuery) : false;
+        return {
+          campaign,
+          score: recencyScore + (isStartsWith ? 200 : 0),
+        };
+      })
+      .sort((a, b) => b.score - a.score || a.campaign.name.localeCompare(b.campaign.name));
+
+    return scored.map((item) => item.campaign);
+  }, [campaigns, commandDropQuery, recentCampaignIds, recentCampaignTouchedAtById, commandDropOpenedAtTs]);
+
+  const recentCampaigns = useMemo(() => {
+    const byId = new Map(campaigns.map((campaign) => [campaign.id, campaign]));
+    return recentCampaignIds.map((id) => byId.get(id)).filter((c): c is CampaignSummary => !!c).slice(0, 5);
+  }, [campaigns, recentCampaignIds]);
+
+  const rememberRecentCampaign = useCallback((campaignId: string) => {
+    const touchedAt = Date.now();
+    setRecentCampaignIds((prev) => [campaignId, ...prev.filter((id) => id !== campaignId)].slice(0, 10));
+    setRecentCampaignTouchedAtById((prev) => ({ ...prev, [campaignId]: touchedAt }));
+  }, []);
 
   const toggleSelection = (fileId: string) => {
     setSelectedFileIds((prev) => {
@@ -145,6 +277,7 @@ export function useLibrary() {
 
     setLastAssignResult(assignResult);
     setUndoSnapshot(assignResult.added > 0 ? snapshotForUndo : null);
+    rememberRecentCampaign(campaignId);
     
     if (assignResult.added > 0) {
       setPulsedCampaignId(campaignId);
@@ -187,7 +320,7 @@ export function useLibrary() {
     }
     setIsAssignModalOpen(false);
     setCampaignQuery("");
-  }, [campaigns]);
+  }, [campaigns, rememberRecentCampaign]);
 
   const assignSelectedToCampaign = (campaignId: string) => {
     assignFilesToCampaign(campaignId, Array.from(selectedFileIds), { clearSelection: true });
@@ -222,18 +355,57 @@ export function useLibrary() {
     const overId = event.over?.id.toString() ?? "";
     const dropSourceIds = draggedFileIds;
     setDraggedFileIds([]);
-    if (!overId.startsWith("campaign-drop-")) return;
     if (dropSourceIds.length === 0) return;
+    if (overId === "campaign-search-drop") {
+      setPendingCommandDropFileIds(dropSourceIds);
+      setCommandDropOpenedAtTs(Date.now());
+      setIsCommandDropOpen(true);
+      return;
+    }
+    if (!overId.startsWith("campaign-drop-")) return;
     const campaignId = overId.replace("campaign-drop-", "");
     const isSelectionDrag = dropSourceIds.length > 1 || selectedFileIds.has(dropSourceIds[0] ?? "");
     assignFilesToCampaign(campaignId, dropSourceIds, { clearSelection: isSelectionDrag });
   };
 
+  const openCommandDropForSelection = () => {
+    if (selectedFileIds.size === 0) return;
+    setPendingCommandDropFileIds(Array.from(selectedFileIds));
+    setCommandDropQuery("");
+    setCommandDropOpenedAtTs(Date.now());
+    setIsCommandDropOpen(true);
+  };
+
+  const closeCommandDrop = () => {
+    setIsCommandDropOpen(false);
+    setCommandDropQuery("");
+    setPendingCommandDropFileIds([]);
+  };
+
+  const assignFromCommandDrop = (campaignId: string) => {
+    if (!campaignId || pendingCommandDropFileIds.length === 0) return;
+    const shouldClearSelection =
+      pendingCommandDropFileIds.length > 1 || selectedFileIds.has(pendingCommandDropFileIds[0] ?? "");
+    assignFilesToCampaign(campaignId, pendingCommandDropFileIds, { clearSelection: shouldClearSelection });
+    closeCommandDrop();
+  };
+
   return {
     files,
     campaigns,
-    filter,
-    setFilter,
+    fileTypeFilter,
+    setFileTypeFilter,
+    searchQuery,
+    setSearchQuery,
+    unassignedOnly,
+    setUnassignedOnly,
+    sizeFilter,
+    setSizeFilter,
+    dateFilter,
+    setDateFilter,
+    selectedTag,
+    setSelectedTag,
+    smartTags,
     selectedFileIds,
     setSelectedFileIds,
     toggleSelection,
@@ -255,6 +427,12 @@ export function useLibrary() {
     selectedCount,
     unassignedCount,
     filteredCampaigns,
+    recentCampaigns,
+    isCommandDropOpen,
+    commandDropQuery,
+    setCommandDropQuery,
+    commandDropResults,
+    recentCampaignIds,
     sensors,
     handleFilesDropped,
     handleUndoAssign,
@@ -262,5 +440,8 @@ export function useLibrary() {
     handleDragEnd,
     assignSelectedToCampaign,
     assignFilesToCampaign,
+    openCommandDropForSelection,
+    closeCommandDrop,
+    assignFromCommandDrop,
   };
 }

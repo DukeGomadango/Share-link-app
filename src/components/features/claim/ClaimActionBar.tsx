@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { CheckSquare, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 
 interface ClaimActionBarProps {
   itemCount: number;
@@ -11,6 +12,7 @@ interface ClaimActionBarProps {
 }
 
 export function ClaimActionBar({ itemCount, allSelected, onSelectAll }: ClaimActionBarProps) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -20,7 +22,7 @@ export function ClaimActionBar({ itemCount, allSelected, onSelectAll }: ClaimAct
     >
       <div className="flex items-center space-x-2">
         <span className="text-sm text-muted-foreground">
-          {itemCount} items
+          {itemCount} {t.claim.items}
         </span>
       </div>
       <Button 
@@ -30,9 +32,9 @@ export function ClaimActionBar({ itemCount, allSelected, onSelectAll }: ClaimAct
         className="text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
       >
         {allSelected ? (
-          <><CheckSquare className="w-4 h-4 mr-2" /> Deselect All</>
+          <><CheckSquare className="w-4 h-4 mr-2" /> {t.claim.deselectAll}</>
         ) : (
-          <><Square className="w-4 h-4 mr-2" /> Select All</>
+          <><Square className="w-4 h-4 mr-2" /> {t.claim.selectAll}</>
         )}
       </Button>
     </motion.div>

@@ -6,6 +6,8 @@ import { FileDropzone } from "@/components/shared/FileDropzone";
 import { DraggableFileItem } from "@/components/features/campaigns/DraggableFileItem";
 import { FileItem } from "@/components/features/campaigns/types";
 
+import { useTranslation } from "@/lib/i18n";
+
 interface FilePoolSectionProps {
   files: FileItem[];
   selectedFileIds: Set<string>;
@@ -21,14 +23,17 @@ export function FilePoolSection({
   onFilesDropped,
   onOpenLibrary,
 }: FilePoolSectionProps) {
+  const { t } = useTranslation();
   return (
     <GlassCard className="flex flex-col overflow-hidden h-full">
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/50 shrink-0">
         <h2 className="text-lg font-semibold flex items-center">
           <FileAudio className="w-5 h-5 mr-2 text-emerald-500" />
-          File Pool
+          {t.campaigns.filePool}
         </h2>
-        <span className="text-xs bg-muted px-2 py-1 rounded-full">{files.length} items</span>
+        <span className="text-xs bg-muted px-2 py-1 rounded-full">
+          {files.length} {t.claim.items}
+        </span>
       </div>
 
       <div className="overflow-y-auto flex-1 pr-2 space-y-3 pb-20">
@@ -50,8 +55,8 @@ export function FilePoolSection({
             onClick={onOpenLibrary}
           >
             <FolderOpen className="w-10 h-10 mb-2 text-emerald-500" />
-            <p className="text-sm font-medium text-foreground">Add from Library</p>
-            <p className="text-xs text-muted-foreground mt-1 text-center">Select existing assets</p>
+            <p className="text-sm font-medium text-foreground">{t.campaigns.addFromLibrary}</p>
+            <p className="text-xs text-muted-foreground mt-1 text-center">{t.campaigns.selectExistingAssets}</p>
           </div>
         </div>
       </div>
