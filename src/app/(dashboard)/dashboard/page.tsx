@@ -15,16 +15,60 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import Link from "next/link";
 import type { DashboardOverviewStats } from "@/lib/stats/overview";
+import { CommandDropPalette } from "@/components/features/library/CommandDropPalette";
+import { LibraryToasts } from "@/components/features/library/LibraryToasts";
+import type { AssignResult, CampaignSummary } from "@/components/features/library/types";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardOverviewStats | null>(null);
+  const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
+  const [unassignedFileIds, setUnassignedFileIds] = useState<string[]>([]);
+  const [isCommandDropOpen, setIsCommandDropOpen] = useState(false);
+  const [commandDropQuery, setCommandDropQuery] = useState("");
+  const [recentCampaignIds, setRecentCampaignIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem("library:recent-campaign-ids");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((id): id is string => typeof id === "string").slice(0, 10);
+    } catch {
+      return [];
+    }
+  });
+  const [showAssignToast, setShowAssignToast] = useState(false);
+  const [showAssignErrorToast, setShowAssignErrorToast] = useState(false);
+  const [lastAssignResult, setLastAssignResult] = useState<AssignResult>({
+    added: 0,
+    skipped: 0,
+    campaignName: "",
+  });
   const { t } = useTranslation();
 
-  useEffect(() => {
+  const fetchStats = () => {
     fetch("/api/stats/overview")
       .then((r) => r.json())
       .then((data) => setStats(data))
       .catch((e) => console.error("Mock API fetch error:", e));
+  };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/campaigns")
+      .then((r) => r.json())
+      .then((data) =>
+        setCampaigns(
+          (data as Array<{ id: string; name: string }>).map((campaign) => ({
+            id: campaign.id,
+            name: campaign.name,
+          }))
+        )
+      )
+      .catch((e) => console.error("Failed to fetch campaigns:", e));
   }, []);
 
   const weeklyViews = stats?.weeklyViews ?? null;
@@ -35,6 +79,62 @@ export default function DashboardPage() {
     anomalyCount > 0
       ? "bg-amber-500/10 border-amber-500/20"
       : "bg-emerald-500/10 border-emerald-500/20";
+
+  const commandDropResults = campaigns.filter((campaign) =>
+    campaign.name.toLowerCase().includes(commandDropQuery.trim().toLowerCase())
+  );
+
+  const openQuickAssign = () => {
+    fetch("/api/files")
+      .then((r) => r.json())
+      .then((files) => {
+        const ids = (files as Array<{ id: string; linkedCampaigns: string[] }>)
+          .filter((file) => file.linkedCampaigns.length === 0)
+          .map((file) => file.id);
+        setUnassignedFileIds(ids);
+        if (ids.length === 0) return;
+        setCommandDropQuery("");
+        setIsCommandDropOpen(true);
+      })
+      .catch((e) => console.error("Failed to fetch files:", e));
+  };
+
+  const closeCommandDrop = () => {
+    setIsCommandDropOpen(false);
+    setCommandDropQuery("");
+  };
+
+  const assignFromCommandDrop = (campaignId: string) => {
+    const selectedCampaign = campaigns.find((campaign) => campaign.id === campaignId);
+    if (!selectedCampaign || unassignedFileIds.length === 0) return;
+    fetch("/api/files/assign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileIds: unassignedFileIds,
+        campaignName: selectedCampaign.name,
+      }),
+    })
+      .then(() => {
+        setLastAssignResult({
+          added: unassignedFileIds.length,
+          skipped: 0,
+          campaignName: selectedCampaign.name,
+        });
+        setShowAssignToast(true);
+        window.setTimeout(() => setShowAssignToast(false), 5000);
+        fetchStats();
+        const nextRecent = [campaignId, ...recentCampaignIds.filter((id) => id !== campaignId)].slice(0, 10);
+        setRecentCampaignIds(nextRecent);
+        window.localStorage.setItem("library:recent-campaign-ids", JSON.stringify(nextRecent));
+      })
+      .catch((e) => {
+        console.error("Failed to assign files:", e);
+        setShowAssignErrorToast(true);
+        window.setTimeout(() => setShowAssignErrorToast(false), 5000);
+      })
+      .finally(() => closeCommandDrop());
+  };
 
   return (
     <div className="space-y-6">
@@ -70,11 +170,14 @@ export default function DashboardPage() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </Button>
-            <Button asChild variant="outline" className="justify-between">
-              <Link href="/library">
-                {t.dashboard.actionAssignUnassigned}
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+            <Button
+              variant="outline"
+              className="justify-between"
+              disabled={(stats?.unassignedAssets ?? 0) === 0}
+              onClick={openQuickAssign}
+            >
+              {t.dashboard.actionAssignUnassigned}
+              <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
         </BentoItem>
@@ -184,6 +287,47 @@ export default function DashboardPage() {
           </div>
         </BentoItem>
       </BentoGrid>
+
+      <CommandDropPalette
+        isOpen={isCommandDropOpen}
+        selectedCount={unassignedFileIds.length}
+        query={commandDropQuery}
+        campaigns={commandDropResults}
+        recentCampaignIds={recentCampaignIds}
+        onQueryChange={setCommandDropQuery}
+        onClose={closeCommandDrop}
+        onAssign={assignFromCommandDrop}
+        labels={{
+          title: t.library.commandDropTitle,
+          subtitle: t.library.commandDropSubtitle,
+          placeholder: t.library.commandDropPlaceholder,
+          empty: t.library.commandDropEmpty,
+          shortcutsHint: t.library.commandDropShortcutsHint,
+          shortcutsTitle: t.library.commandDropShortcutsTitle,
+          shortcutMove: t.library.commandDropShortcutMove,
+          shortcutSelect: t.library.commandDropShortcutSelect,
+          shortcutClose: t.library.commandDropShortcutClose,
+          shortcutToggleHelp: t.library.commandDropShortcutToggleHelp,
+          recentBadge: t.library.commandDropRecentBadge,
+        }}
+      />
+
+      <LibraryToasts
+        showUndoToast={showAssignToast}
+        showAssignErrorToast={showAssignErrorToast}
+        lastAssignResult={lastAssignResult}
+        hasUndoSnapshot={false}
+        onUndo={() => {}}
+        labels={{
+          assignComplete: t.library.assignComplete,
+          assignTarget: t.library.assignTarget,
+          assignAdded: t.library.assignAdded,
+          assignSkipped: t.library.assignSkipped,
+          undo: t.library.undo,
+          assignRestoreErrorTitle: t.library.assignRestoreErrorTitle,
+          assignRestoreErrorBody: t.library.assignRestoreErrorBody,
+        }}
+      />
     </div>
   );
 }
