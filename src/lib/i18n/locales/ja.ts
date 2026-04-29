@@ -85,6 +85,27 @@ export const ja = {
     exportLinks: "リンクをエクスポート",
     generateAll: "すべて生成",
     filesSelected: "{count} 件のファイルを選択中",
+    searchPlaceholder: "キャンペーン名で検索",
+    views: {
+      list: "リスト",
+      kanban: "ボード",
+    },
+    emptyColumn: "このステータスのキャンペーンはありません",
+    quickFilters: {
+      all: "すべて",
+      needsAttention: "注意が必要",
+      dueSoon: "期限間近",
+      active: "公開中",
+      draft: "下書き",
+      completed: "完了",
+    },
+    peek: {
+      title: "キャンペーンの詳細",
+      recipients: "受取人",
+      createdAt: "作成日",
+      type: "タイプ",
+      close: "閉じる",
+    },
   },
   library: {
     title: "ライブラリ",

@@ -87,6 +87,27 @@ export const en: TranslationKeys = {
     exportLinks: "Export Links",
     generateAll: "Generate All",
     filesSelected: "{count} files selected",
+    searchPlaceholder: "Search campaigns",
+    views: {
+      list: "List",
+      kanban: "Board",
+    },
+    emptyColumn: "No campaigns in this status",
+    quickFilters: {
+      all: "All",
+      needsAttention: "Needs attention",
+      dueSoon: "Due soon",
+      active: "Active",
+      draft: "Draft",
+      completed: "Completed",
+    },
+    peek: {
+      title: "Campaign details",
+      recipients: "Recipients",
+      createdAt: "Created",
+      type: "Type",
+      close: "Close",
+    },
   },
   library: {
     title: "Library",
