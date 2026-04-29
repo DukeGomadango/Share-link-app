@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/shared/GlassCard";
+import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
 import { useTranslation } from "@/lib/i18n";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { DraggableAssetCard } from "@/components/features/library/DraggableAssetCard";
@@ -397,28 +398,10 @@ export default function LibraryPage() {
                   initial={{ opacity: 0, scale: 0.96, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ type: "spring", stiffness: 420, damping: 30 }}
-                  className="relative w-64 h-20"
                 >
-                  <motion.div
-                    animate={{ y: [0, -2, 0], rotate: [-2, -1, -2] }}
-                    transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-x-4 top-3 h-14 rounded-lg border border-border/70 bg-background/85"
+                  <StackedDragOverlay
+                    label={t.library.draggingAssets.replace("{count}", String(draggedFileIds.length))}
                   />
-                  <motion.div
-                    animate={{ y: [0, -3, 0], rotate: [2, 1, 2] }}
-                    transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-x-2 top-1 h-14 rounded-lg border border-border/80 bg-background/90"
-                  />
-                  <motion.div
-                    animate={{ y: [0, -4, 0] }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-0 p-3 rounded-lg border border-emerald-500 bg-background/95 shadow-xl flex items-center space-x-2"
-                  >
-                    <GripVertical className="w-4 h-4 text-emerald-500 shrink-0" />
-                    <span className="text-sm font-medium line-clamp-1">
-                      {t.library.draggingAssets.replace("{count}", String(draggedFileIds.length))}
-                    </span>
-                  </motion.div>
                 </motion.div>
               ) : (
                 <motion.div

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
+import { motion } from "framer-motion";
 import { Copy, ExternalLink, Check, FileAudio, FileImage, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -11,12 +12,14 @@ interface DroppableRecipientProps {
   recipient: Recipient;
   getFile: (id: string) => FileItem | undefined;
   onRemoveFile: (recipientId: string, fileId: string) => void;
+  successPulse?: boolean;
 }
 
 export function DroppableRecipient({
   recipient,
   getFile,
   onRemoveFile,
+  successPulse = false,
 }: DroppableRecipientProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: `recipient-${recipient.id}`,
@@ -38,11 +41,27 @@ export function DroppableRecipient({
     .filter((f): f is FileItem => f !== undefined);
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
+      initial={false}
+      animate={
+        successPulse
+          ? {
+              scale: [1, 1.02, 1],
+              boxShadow: [
+                "0 0 0 rgba(16,185,129,0)",
+                "0 0 0 6px rgba(16,185,129,0.18)",
+                "0 0 0 rgba(16,185,129,0)",
+              ],
+            }
+          : undefined
+      }
+      transition={{ duration: 0.42, ease: "easeOut" }}
       className={`p-4 rounded-xl border transition-all ${
         isOver
           ? "border-emerald-500 bg-emerald-500/10 scale-[1.02] shadow-emerald-500/20 shadow-lg"
+          : successPulse
+          ? "border-emerald-500 bg-emerald-500/10"
           : assignedFiles.length > 0
           ? "border-emerald-500/30 bg-emerald-500/5"
           : "border-border/50 bg-background/30 hover:border-border"
@@ -146,6 +165,6 @@ export function DroppableRecipient({
           </span>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

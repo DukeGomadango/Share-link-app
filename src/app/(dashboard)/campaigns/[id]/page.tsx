@@ -2,8 +2,18 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import { GlassCard } from "@/components/shared/GlassCard";
+import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { Link as LinkIcon, Download, Users, MailPlus, FolderOpen, FileAudio, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +41,9 @@ export default function CampaignDetailPage() {
   ]);
 
   const [activeDragFile, setActiveDragFile] = useState<FileItem | null>(null);
+  const [draggedFileIds, setDraggedFileIds] = useState<string[]>([]);
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
+  const [pulsedRecipientId, setPulsedRecipientId] = useState<string | null>(null);
 
   // ライブラリモーダル用状態
   const [showLibraryModal, setShowLibraryModal] = useState(false);
@@ -60,28 +73,55 @@ export default function CampaignDetailPage() {
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const file = active.data.current?.file;
-    if (file) setActiveDragFile(file);
+    if (!file) return;
+    setActiveDragFile(file);
+    const draggingSelection = selectedFileIds.has(file.id) && selectedFileIds.size > 1;
+    setDraggedFileIds(draggingSelection ? Array.from(selectedFileIds) : [file.id]);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDragFile(null);
+    const sourceFileIds = draggedFileIds;
+    setDraggedFileIds([]);
 
     if (over && over.id.toString().startsWith("recipient-")) {
-      const fileId = active.id.toString().replace("file-", "");
       const recipientId = over.id.toString().replace("recipient-", "");
+      const fallbackFileId = active.id.toString().replace("file-", "");
+      const fileIdsToAssign = sourceFileIds.length > 0 ? sourceFileIds : [fallbackFileId];
 
       setRecipients(prev => prev.map(r => {
         if (r.id === recipientId) {
-          const newFileIds = r.assignedFileIds.includes(fileId)
-            ? r.assignedFileIds
-            : [...r.assignedFileIds, fileId];
+          const newFileIds = [...r.assignedFileIds];
+          for (const fileId of fileIdsToAssign) {
+            if (!newFileIds.includes(fileId)) {
+              newFileIds.push(fileId);
+            }
+          }
           // 動くリンクへの遷移ができるようルートパスで生成
           return { ...r, assignedFileIds: newFileIds, link: r.link || `/claim/${Math.random().toString(36).substring(7)}` };
         }
         return r;
       }));
+      setPulsedRecipientId(recipientId);
+      window.setTimeout(() => setPulsedRecipientId((prev) => (prev === recipientId ? null : prev)), 450);
+      setSelectedFileIds(new Set());
     }
+  };
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
+  const toggleSelection = (fileId: string) => {
+    setSelectedFileIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(fileId)) next.delete(fileId);
+      else next.add(fileId);
+      return next;
+    });
   };
 
   return (
@@ -107,7 +147,7 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
 
           {/* 左カラム: ファイルプール */}
@@ -122,7 +162,12 @@ export default function CampaignDetailPage() {
 
             <div className="overflow-y-auto flex-1 pr-2 space-y-3 pb-20">
               {files.map(file => (
-                <DraggableFileItem key={file.id} file={file} />
+                <DraggableFileItem
+                  key={file.id}
+                  file={file}
+                  isSelected={selectedFileIds.has(file.id)}
+                  onToggleSelection={toggleSelection}
+                />
               ))}
 
               <div className="flex gap-4 pt-4 border-t border-dashed border-border mt-6">
@@ -172,6 +217,7 @@ export default function CampaignDetailPage() {
                   recipient={recipient}
                   getFile={(id) => files.find(f => f.id === id)}
                   onRemoveFile={handleRemoveFile}
+                  successPulse={pulsedRecipientId === recipient.id}
                 />
               ))}
             </div>
@@ -182,20 +228,24 @@ export default function CampaignDetailPage() {
         {/* ドラッグ中のオーバーレイ表示 */}
         <DragOverlay>
           {activeDragFile ? (
-            <div className="p-3 rounded-lg border border-emerald-500 bg-background/90 shadow-2xl flex items-center space-x-3 rotate-3 scale-105 cursor-grabbing">
-              <div className="p-2 bg-emerald-500/20 rounded-md text-emerald-500 shrink-0 relative overflow-hidden flex items-center justify-center w-10 h-10">
-                {activeDragFile.type === "image" && activeDragFile.previewUrl ? (
-                  <Image src={activeDragFile.previewUrl} alt={activeDragFile.name} fill className="object-cover" unoptimized />
-                ) : activeDragFile.type === "audio" ? (
-                  <FileAudio className="w-5 h-5" />
-                ) : (
-                  <FileImage className="w-5 h-5" />
-                )}
+            draggedFileIds.length > 1 ? (
+              <StackedDragOverlay label={`${draggedFileIds.length} files selected`} />
+            ) : (
+              <div className="p-3 rounded-lg border border-emerald-500 bg-background/90 shadow-2xl flex items-center space-x-3 rotate-3 scale-105 cursor-grabbing">
+                <div className="p-2 bg-emerald-500/20 rounded-md text-emerald-500 shrink-0 relative overflow-hidden flex items-center justify-center w-10 h-10">
+                  {activeDragFile.type === "image" && activeDragFile.previewUrl ? (
+                    <Image src={activeDragFile.previewUrl} alt={activeDragFile.name} fill className="object-cover" unoptimized />
+                  ) : activeDragFile.type === "audio" ? (
+                    <FileAudio className="w-5 h-5" />
+                  ) : (
+                    <FileImage className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-sm font-medium line-clamp-1">{activeDragFile.name}</p>
+                </div>
               </div>
-              <div className="overflow-hidden">
-                <p className="text-sm font-medium line-clamp-1">{activeDragFile.name}</p>
-              </div>
-            </div>
+            )
           ) : null}
         </DragOverlay>
       </DndContext>
