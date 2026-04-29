@@ -34,7 +34,7 @@ export default function DashboardPage() {
       </div>
 
       <BentoGrid>
-        <BentoItem className="md:col-span-1 bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
+        <BentoItem colSpan={1} className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-emerald-500/20 rounded-full">
               <Gift className="w-6 h-6 text-emerald-500" />
@@ -46,7 +46,7 @@ export default function DashboardPage() {
           </div>
         </BentoItem>
 
-        <BentoItem className="md:col-span-1">
+        <BentoItem colSpan={1}>
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-blue-500/20 rounded-full">
               <Users className="w-6 h-6 text-blue-500" />
@@ -58,7 +58,8 @@ export default function DashboardPage() {
           </div>
         </BentoItem>
 
-        <BentoItem className="md:col-span-1">
+        {/* 重要指標: 開封率をワイドカードで強調 (Exaggerated Visual Hierarchy) */}
+        <BentoItem colSpan={1} className="bg-gradient-to-br from-purple-500/10 to-transparent border-purple-500/20">
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-purple-500/20 rounded-full">
               <MousePointerClick className="w-6 h-6 text-purple-500" />
@@ -72,7 +73,7 @@ export default function DashboardPage() {
           </div>
         </BentoItem>
 
-        <BentoItem className="md:col-span-2 md:row-span-2 min-h-[300px]">
+        <BentoItem colSpan={2} rowSpan={2} className="min-h-[300px]">
           <h3 className="text-lg font-semibold mb-4 text-foreground/80">
             {t.dashboard.recentActivity}
           </h3>
@@ -82,7 +83,7 @@ export default function DashboardPage() {
           </div>
         </BentoItem>
 
-        <BentoItem className="md:col-span-1 min-h-[300px] flex flex-col">
+        <BentoItem colSpan={1} className="min-h-[300px]">
           <h3 className="text-lg font-semibold mb-4 text-foreground/80">
             {t.dashboard.quickLinks}
           </h3>
