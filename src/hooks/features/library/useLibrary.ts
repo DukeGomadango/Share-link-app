@@ -38,6 +38,7 @@ export function useLibrary() {
     recentCampaignIds,
     commandDropResults,
     recentCampaigns,
+    filteredCampaigns,
     rememberRecentCampaign,
     setCommandDropOpenedAtTs,
   } = useLibraryCampaigns();
