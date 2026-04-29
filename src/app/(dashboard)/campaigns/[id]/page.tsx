@@ -1,127 +1,48 @@
 "use client";
 
-import { useState } from "react";
 import { useParams } from "next/navigation";
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import { GlassCard } from "@/components/shared/GlassCard";
-import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
-import { FileDropzone } from "@/components/shared/FileDropzone";
-import { Link as LinkIcon, Download, Users, MailPlus, FolderOpen, FileAudio, FileImage } from "lucide-react";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
+import { Link as LinkIcon, Download, FileAudio, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
-import { FileItem, Recipient, LibraryFile } from "@/components/features/campaigns/types";
-import { DraggableFileItem } from "@/components/features/campaigns/DraggableFileItem";
-import { DroppableRecipient } from "@/components/features/campaigns/DroppableRecipient";
+import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
 import { LibrarySelectModal } from "@/components/features/campaigns/LibrarySelectModal";
+import { useCampaignDetail } from "@/hooks/features/campaigns/useCampaignDetail";
+
+// サブコンポーネント
+import { FilePoolSection } from "@/components/features/campaigns/FilePoolSection";
+import { RecipientsSection } from "@/components/features/campaigns/RecipientsSection";
 
 export default function CampaignDetailPage() {
   const params = useParams();
+  const {
+    files,
+    recipients,
+    activeDragFile,
+    draggedFileIds,
+    selectedFileIds,
+    pulsedRecipientId,
+    showLibraryModal,
+    setShowLibraryModal,
+    libraryFiles,
+    sensors,
+    fetchLibraryFiles,
+    handleRemoveFile,
+    toggleSelection,
+    handleDragStart,
+    handleDragEnd,
+    addFilesToPool,
+  } = useCampaignDetail();
 
-  // モックデータ状態
-  const [files, setFiles] = useState<FileItem[]>([
-    { id: "f1", name: "good_morning_voice.wav", type: "audio" },
-    { id: "f2", name: "special_photo.jpg", type: "image", previewUrl: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=200&auto=format&fit=crop" },
-    { id: "f3", name: "thank_you_message.wav", type: "audio" },
-  ]);
-
-  const [recipients, setRecipients] = useState<Recipient[]>([
-    { id: "r1", name: "Fan A", email: "fan.a@example.com", assignedFileIds: [] },
-    { id: "r2", name: "Fan B", email: "fan.b@example.com", assignedFileIds: [] },
-    { id: "r3", name: "Fan C", email: "fan.c@example.com", assignedFileIds: [] },
-  ]);
-
-  const [activeDragFile, setActiveDragFile] = useState<FileItem | null>(null);
-  const [draggedFileIds, setDraggedFileIds] = useState<string[]>([]);
-  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
-  const [pulsedRecipientId, setPulsedRecipientId] = useState<string | null>(null);
-
-  // ライブラリモーダル用状態
-  const [showLibraryModal, setShowLibraryModal] = useState(false);
-  const [libraryFiles, setLibraryFiles] = useState<LibraryFile[]>([]);
-
-  const fetchLibraryFiles = () => {
-    fetch("/api/files")
-      .then((r) => r.json())
-      .then((data) => setLibraryFiles(data))
-      .catch((e) => console.error(e));
-  };
-
-  const handleRemoveFile = (recipientId: string, fileId: string) => {
-    setRecipients((prev) =>
-      prev.map((r) => {
-        if (r.id === recipientId) {
-          return {
-            ...r,
-            assignedFileIds: r.assignedFileIds.filter((id) => id !== fileId),
-          };
-        }
-        return r;
-      })
-    );
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const file = active.data.current?.file;
-    if (!file) return;
-    setActiveDragFile(file);
-    const draggingSelection = selectedFileIds.has(file.id) && selectedFileIds.size > 1;
-    setDraggedFileIds(draggingSelection ? Array.from(selectedFileIds) : [file.id]);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveDragFile(null);
-    const sourceFileIds = draggedFileIds;
-    setDraggedFileIds([]);
-
-    if (over && over.id.toString().startsWith("recipient-")) {
-      const recipientId = over.id.toString().replace("recipient-", "");
-      const fallbackFileId = active.id.toString().replace("file-", "");
-      const fileIdsToAssign = sourceFileIds.length > 0 ? sourceFileIds : [fallbackFileId];
-
-      setRecipients(prev => prev.map(r => {
-        if (r.id === recipientId) {
-          const newFileIds = [...r.assignedFileIds];
-          for (const fileId of fileIdsToAssign) {
-            if (!newFileIds.includes(fileId)) {
-              newFileIds.push(fileId);
-            }
-          }
-          // 動くリンクへの遷移ができるようルートパスで生成
-          return { ...r, assignedFileIds: newFileIds, link: r.link || `/claim/${Math.random().toString(36).substring(7)}` };
-        }
-        return r;
-      }));
-      setPulsedRecipientId(recipientId);
-      window.setTimeout(() => setPulsedRecipientId((prev) => (prev === recipientId ? null : prev)), 450);
-      setSelectedFileIds(new Set());
-    }
-  };
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor)
-  );
-
-  const toggleSelection = (fileId: string) => {
-    setSelectedFileIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(fileId)) next.delete(fileId);
-      else next.add(fileId);
-      return next;
-    });
+  const handleFilesDropped = (newFiles: File[]) => {
+    const newItems = newFiles.map((f, i) => ({
+      id: `f-new-${Date.now()}-${i}`,
+      name: f.name,
+      type: f.type.startsWith('audio') ? "audio" as const : "image" as const,
+      previewUrl: f.type.startsWith('image') ? URL.createObjectURL(f) : undefined
+    }));
+    addFilesToPool(newItems);
   };
 
   return (
@@ -149,83 +70,25 @@ export default function CampaignDetailPage() {
 
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+          <FilePoolSection
+            files={files}
+            selectedFileIds={selectedFileIds}
+            onToggleSelection={toggleSelection}
+            onFilesDropped={handleFilesDropped}
+            onOpenLibrary={() => {
+              setShowLibraryModal(true);
+              fetchLibraryFiles();
+            }}
+          />
 
-          {/* 左カラム: ファイルプール */}
-          <GlassCard className="flex flex-col overflow-hidden h-full">
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/50 shrink-0">
-              <h2 className="text-lg font-semibold flex items-center">
-                <FileAudio className="w-5 h-5 mr-2 text-emerald-500" />
-                File Pool
-              </h2>
-              <span className="text-xs bg-muted px-2 py-1 rounded-full">{files.length} items</span>
-            </div>
-
-            <div className="overflow-y-auto flex-1 pr-2 space-y-3 pb-20">
-              {files.map(file => (
-                <DraggableFileItem
-                  key={file.id}
-                  file={file}
-                  isSelected={selectedFileIds.has(file.id)}
-                  onToggleSelection={toggleSelection}
-                />
-              ))}
-
-              <div className="flex gap-4 pt-4 border-t border-dashed border-border mt-6">
-                <div className="flex-1">
-                  <FileDropzone onFilesDropped={(newFiles) => {
-                    const newItems = newFiles.map((f, i) => ({
-                      id: `f-new-${Date.now()}-${i}`,
-                      name: f.name,
-                      type: f.type.startsWith('audio') ? "audio" as const : "image" as const,
-                      previewUrl: f.type.startsWith('image') ? URL.createObjectURL(f) : undefined
-                    }));
-                    setFiles([...files, ...newItems]);
-                  }} />
-                </div>
-                <div
-                  className="flex-1 border-2 border-dashed border-border/50 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all hover:border-emerald-500/50 hover:bg-emerald-500/5"
-                  onClick={() => {
-                    setShowLibraryModal(true);
-                    fetchLibraryFiles();
-                  }}
-                >
-                  <FolderOpen className="w-10 h-10 mb-2 text-emerald-500" />
-                  <p className="text-sm font-medium text-foreground">Add from Library</p>
-                  <p className="text-xs text-muted-foreground mt-1 text-center">Select existing assets</p>
-                </div>
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* 右カラム: 宛先カード */}
-          <GlassCard className="flex flex-col overflow-hidden h-full">
-            <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/50 shrink-0">
-              <h2 className="text-lg font-semibold flex items-center">
-                <Users className="w-5 h-5 mr-2 text-blue-500" />
-                Recipients
-              </h2>
-              <Button variant="ghost" size="sm" className="h-8 text-emerald-500 hover:text-emerald-600">
-                <MailPlus className="w-4 h-4 mr-1" />
-                Add Recipients
-              </Button>
-            </div>
-
-            <div className="overflow-y-auto flex-1 pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-max pb-20">
-              {recipients.map(recipient => (
-                <DroppableRecipient
-                  key={recipient.id}
-                  recipient={recipient}
-                  getFile={(id) => files.find(f => f.id === id)}
-                  onRemoveFile={handleRemoveFile}
-                  successPulse={pulsedRecipientId === recipient.id}
-                />
-              ))}
-            </div>
-          </GlassCard>
-
+          <RecipientsSection
+            recipients={recipients}
+            files={files}
+            pulsedRecipientId={pulsedRecipientId}
+            onRemoveFile={handleRemoveFile}
+          />
         </div>
 
-        {/* ドラッグ中のオーバーレイ表示 */}
         <DragOverlay>
           {activeDragFile ? (
             draggedFileIds.length > 1 ? (
@@ -254,7 +117,7 @@ export default function CampaignDetailPage() {
         isOpen={showLibraryModal}
         onClose={() => setShowLibraryModal(false)}
         libraryFiles={libraryFiles}
-        onAddFiles={(newFiles) => setFiles((prev) => [...prev, ...newFiles])}
+        onAddFiles={(newFiles) => addFilesToPool(newFiles)}
       />
     </div>
   );

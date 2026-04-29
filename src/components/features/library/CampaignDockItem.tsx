@@ -10,6 +10,7 @@ interface CampaignDockItemProps {
   disabled: boolean;
   assigning: boolean;
   successPulse: boolean;
+  compact?: boolean;
   onAssign: () => void;
   assignSelectedHint: string;
 }
@@ -19,6 +20,7 @@ export function CampaignDockItem({
   disabled,
   assigning,
   successPulse,
+  compact = false,
   onAssign,
   assignSelectedHint,
 }: CampaignDockItemProps) {
@@ -44,7 +46,7 @@ export function CampaignDockItem({
           : undefined
       }
       transition={{ duration: 0.42, ease: "easeOut" }}
-      className={`w-full text-left p-3 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+      className={`${compact ? "w-[180px] min-w-[180px]" : "w-full"} text-left p-3 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
         isOver
           ? "border-emerald-500 bg-emerald-500/20"
           : successPulse
