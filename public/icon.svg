@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Dango Share Link Icon</title>
+  <desc id="desc">Emerald glass icon with a minimal link-plane motif.</desc>
+  <style>
+    :root {
+      --primary: oklch(0.645 0.165 158.452);
+      --glass: oklch(1 0 0 / 0.8);
+      --rim: oklch(1 0 0 / 0.32);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary: oklch(0.645 0.165 158.452);
+        --glass: oklch(1 0 0 / 0.86);
+        --rim: oklch(1 0 0 / 0.38);
+      }
+    }
+  </style>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="var(--primary)" />
+  <rect x="4.5" y="4.5" width="55" height="55" rx="15.5" fill="none" stroke="var(--rim)" />
+  <path
+    d="M18 19c0-2.2 1.8-4 4-4h22c2.2 0 4 1.8 4 4v7c-11-1.8-20.6 1.1-30 8z"
+    fill="var(--glass)"
+  />
+  <path
+    d="M17 42.5c7-9.4 16.2-14 27.8-12.8M36.8 26.8l8.2 2.3-3.7 7.6M17 42.5l11.4 0.6"
+    fill="none"
+    stroke="var(--glass)"
+    stroke-width="5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
