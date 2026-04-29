@@ -77,6 +77,7 @@ export const en: TranslationKeys = {
     assignTarget: "Target campaign: {campaign}",
     assignAdded: "Added: {count}",
     assignSkipped: "Skipped (already linked): {count}",
+    draggingAssets: "Dragging {count} assets",
     undoHint: "Use undo if this was accidental",
     undo: "Undo",
   },

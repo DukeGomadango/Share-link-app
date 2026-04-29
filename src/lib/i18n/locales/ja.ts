@@ -75,6 +75,7 @@ export const ja = {
     assignTarget: "対象キャンペーン: {campaign}",
     assignAdded: "追加: {count} 件",
     assignSkipped: "スキップ（既に紐づけ済み）: {count} 件",
+    draggingAssets: "{count} 件の素材をドラッグ中",
     undoHint: "誤操作の場合は取り消しできます",
     undo: "取り消す",
   },

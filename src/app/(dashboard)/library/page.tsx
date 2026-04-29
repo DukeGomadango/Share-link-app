@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable } from "@dnd-kit/core";
 import {
   FolderOpen,
   FileImage,
@@ -10,6 +12,8 @@ import {
   Check,
   Plus,
   Layers,
+  Loader2,
+  GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/shared/GlassCard";
@@ -43,6 +47,173 @@ interface AssignResult {
   campaignName: string;
 }
 
+interface DraggableAssetCardProps {
+  file: AssetFile;
+  isSelected: boolean;
+  locale: string;
+  assigning: boolean;
+  selectAssetLabel: string;
+  deselectAssetLabel: string;
+  linkedCampaignsLabel: string;
+  noneLabel: string;
+  unassignedLabel: string;
+  assignToCampaignLabel: string;
+  formatSize: (bytes: number) => string;
+  getFileIcon: (type: string) => ReactNode;
+  onToggleSelection: (fileId: string) => void;
+  onPreview: (file: AssetFile) => void;
+  onOpenAssign: (fileId: string) => void;
+}
+
+function DraggableAssetCard({
+  file,
+  isSelected,
+  locale,
+  assigning,
+  selectAssetLabel,
+  deselectAssetLabel,
+  linkedCampaignsLabel,
+  noneLabel,
+  unassignedLabel,
+  assignToCampaignLabel,
+  formatSize,
+  getFileIcon,
+  onToggleSelection,
+  onPreview,
+  onOpenAssign,
+}: DraggableAssetCardProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `library-file-${file.id}`,
+    data: { fileId: file.id },
+  });
+
+  const style = transform
+    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
+    : undefined;
+
+  return (
+    <GlassCard
+      ref={setNodeRef}
+      style={style}
+      className={`relative group hover:border-emerald-500/50 transition-colors flex flex-col h-full cursor-pointer ${
+        isSelected ? "border-emerald-500" : ""
+      } ${isDragging ? "opacity-50" : ""}`}
+      onClick={() => onPreview(file)}
+    >
+      <div className="flex justify-between items-start mb-4">
+        <button
+          type="button"
+          aria-label={isSelected ? deselectAssetLabel : selectAssetLabel}
+          className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${
+            isSelected ? "bg-emerald-500 border-emerald-500 text-white" : "border-border hover:border-emerald-500"
+          }`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleSelection(file.id);
+          }}
+        >
+          {isSelected ? <Check className="w-3.5 h-3.5" /> : null}
+        </button>
+        <button
+          type="button"
+          className="p-2 rounded-md border border-border/60 hover:border-emerald-500/50 text-muted-foreground hover:text-emerald-500"
+          onClick={(event) => event.stopPropagation()}
+          {...attributes}
+          {...listeners}
+          aria-label="Drag asset"
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+        <div className="p-3 bg-muted rounded-xl flex items-center justify-center">{getFileIcon(file.type)}</div>
+      </div>
+
+      <div className="flex-1">
+        <h3 className="font-semibold text-sm line-clamp-2 mb-1" title={file.name}>
+          {file.name}
+        </h3>
+        <div className="flex justify-between text-xs text-muted-foreground mb-3">
+          <span>{formatSize(file.size)}</span>
+          <span>{new Date(file.createdAt).toLocaleDateString(locale === "ja" ? "ja-JP" : "en-US")}</span>
+        </div>
+
+        {file.linkedCampaigns.length === 0 ? (
+          <span className="inline-flex text-[10px] px-2 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-500 mb-3">
+            {unassignedLabel}
+          </span>
+        ) : null}
+
+        <div className="pt-3 border-t border-border/50">
+          <p className="text-xs font-semibold mb-1 text-emerald-500/80">{linkedCampaignsLabel}</p>
+          {file.linkedCampaigns.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {file.linkedCampaigns.map((c, i) => (
+                <span
+                  key={i}
+                  className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full inline-block"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs text-muted-foreground">{noneLabel}</span>
+          )}
+        </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 w-full"
+          disabled={assigning}
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenAssign(file.id);
+          }}
+        >
+          {assigning ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+          {assignToCampaignLabel}
+        </Button>
+      </div>
+    </GlassCard>
+  );
+}
+
+function CampaignDockItem({
+  campaign,
+  disabled,
+  assigning,
+  onAssign,
+  assignSelectedHint,
+}: {
+  campaign: CampaignSummary;
+  disabled: boolean;
+  assigning: boolean;
+  onAssign: () => void;
+  assignSelectedHint: string;
+}) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `campaign-drop-${campaign.id}`,
+  });
+
+  return (
+    <button
+      ref={setNodeRef}
+      type="button"
+      className={`w-full text-left p-3 rounded-lg border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+        isOver ? "border-emerald-500 bg-emerald-500/20" : "border-border/60 hover:border-emerald-500/50 hover:bg-emerald-500/5"
+      }`}
+      disabled={disabled || assigning}
+      onClick={onAssign}
+    >
+      <p className="text-sm font-medium line-clamp-1 flex items-center gap-2">
+        {assigning ? <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500" /> : null}
+        {campaign.name}
+      </p>
+      <p className="text-xs text-muted-foreground mt-1">{assignSelectedHint}</p>
+    </button>
+  );
+}
+
 export default function LibraryPage() {
   const [files, setFiles] = useState<AssetFile[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
@@ -58,6 +229,8 @@ export default function LibraryPage() {
     skipped: 0,
     campaignName: "",
   });
+  const [draggedFileIds, setDraggedFileIds] = useState<string[]>([]);
+  const [assigningCampaignIds, setAssigningCampaignIds] = useState<Set<string>>(new Set());
   const [showUndoToast, setShowUndoToast] = useState(false);
   const { t, locale } = useTranslation();
 
@@ -123,10 +296,14 @@ export default function LibraryPage() {
     });
   };
 
-  const assignSelectedToCampaign = (campaignId: string) => {
+  const assignFilesToCampaign = (
+    campaignId: string,
+    sourceFileIds: string[],
+    options?: { clearSelection?: boolean }
+  ) => {
     const targetCampaign = campaigns.find((campaign) => campaign.id === campaignId);
-    if (!targetCampaign || selectedFileIds.size === 0) return;
-    const selectedIds = new Set(selectedFileIds);
+    if (!targetCampaign || sourceFileIds.length === 0) return;
+    const selectedIds = new Set(sourceFileIds);
     let snapshotForUndo: UndoAssignmentPayload = { linksByFileId: {} };
     const assignResult: AssignResult = { added: 0, skipped: 0, campaignName: targetCampaign.name };
 
@@ -153,6 +330,7 @@ export default function LibraryPage() {
     });
     setLastAssignResult(assignResult);
     setUndoSnapshot(assignResult.added > 0 ? snapshotForUndo : null);
+    setAssigningCampaignIds((prev) => new Set(prev).add(campaignId));
 
     void fetch("/api/files/assign", {
       method: "POST",
@@ -170,13 +348,25 @@ export default function LibraryPage() {
         })
       );
       setShowUndoToast(false);
+    }).finally(() => {
+      setAssigningCampaignIds((prev) => {
+        const next = new Set(prev);
+        next.delete(campaignId);
+        return next;
+      });
     });
 
     setShowUndoToast(true);
     window.setTimeout(() => setShowUndoToast(false), 5000);
-    setSelectedFileIds(new Set());
+    if (options?.clearSelection !== false) {
+      setSelectedFileIds(new Set());
+    }
     setIsAssignModalOpen(false);
     setCampaignQuery("");
+  };
+
+  const assignSelectedToCampaign = (campaignId: string) => {
+    assignFilesToCampaign(campaignId, Array.from(selectedFileIds), { clearSelection: true });
   };
 
   const handleUndoAssign = () => {
@@ -203,6 +393,24 @@ export default function LibraryPage() {
     setAssignTargetCampaignId(campaigns[0]?.id ?? "");
     setCampaignQuery("");
     setIsAssignModalOpen(true);
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const fileId = event.active.data.current?.fileId;
+    if (typeof fileId !== "string") return;
+    const shouldDragSelection = selectedFileIds.has(fileId) && selectedFileIds.size > 1;
+    setDraggedFileIds(shouldDragSelection ? Array.from(selectedFileIds) : [fileId]);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const overId = event.over?.id.toString() ?? "";
+    const dropSourceIds = draggedFileIds;
+    setDraggedFileIds([]);
+    if (!overId.startsWith("campaign-drop-")) return;
+    if (dropSourceIds.length === 0) return;
+    const campaignId = overId.replace("campaign-drop-", "");
+    const isSelectionDrag = dropSourceIds.length > 1 || selectedFileIds.has(dropSourceIds[0] ?? "");
+    assignFilesToCampaign(campaignId, dropSourceIds, { clearSelection: isSelectionDrag });
   };
 
   const getFileIcon = (type: string) => {
@@ -292,125 +500,75 @@ export default function LibraryPage() {
           </p>
         </GlassCard>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredFiles.map((file) => {
-              const isSelected = selectedFileIds.has(file.id);
-              return (
-                <GlassCard
+        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredFiles.map((file) => (
+                <DraggableAssetCard
                   key={file.id}
-                  className={`relative group hover:border-emerald-500/50 transition-colors flex flex-col h-full cursor-pointer ${
-                    isSelected ? "border-emerald-500" : ""
-                  }`}
-                  onClick={() => setSelectedFile(file)}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <button
-                      type="button"
-                      aria-label={isSelected ? t.library.deselectAsset : t.library.selectAsset}
-                      className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${
-                        isSelected
-                          ? "bg-emerald-500 border-emerald-500 text-white"
-                          : "border-border hover:border-emerald-500"
-                      }`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        toggleSelection(file.id);
-                      }}
-                    >
-                      {isSelected ? <Check className="w-3.5 h-3.5" /> : null}
-                    </button>
-                    <div className="p-3 bg-muted rounded-xl flex items-center justify-center">
-                      {getFileIcon(file.type)}
-                    </div>
-                  </div>
+                  file={file}
+                  isSelected={selectedFileIds.has(file.id)}
+                  locale={locale}
+                  assigning={assigningCampaignIds.size > 0}
+                  selectAssetLabel={t.library.selectAsset}
+                  deselectAssetLabel={t.library.deselectAsset}
+                  linkedCampaignsLabel={t.library.linkedCampaigns}
+                  noneLabel={t.library.none}
+                  unassignedLabel={t.library.unassigned}
+                  assignToCampaignLabel={t.library.assignToCampaign}
+                  formatSize={formatSize}
+                  getFileIcon={getFileIcon}
+                  onToggleSelection={toggleSelection}
+                  onPreview={setSelectedFile}
+                  onOpenAssign={openAssignModalForFile}
+                />
+              ))}
+            </div>
 
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm line-clamp-2 mb-1" title={file.name}>
-                      {file.name}
-                    </h3>
-                    <div className="flex justify-between text-xs text-muted-foreground mb-3">
-                      <span>{formatSize(file.size)}</span>
-                      <span>
-                        {new Date(file.createdAt).toLocaleDateString(locale === "ja" ? "ja-JP" : "en-US")}
-                      </span>
-                    </div>
-
-                    {file.linkedCampaigns.length === 0 ? (
-                      <span className="inline-flex text-[10px] px-2 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-500 mb-3">
-                        {t.library.unassigned}
-                      </span>
-                    ) : null}
-
-                    <div className="pt-3 border-t border-border/50">
-                      <p className="text-xs font-semibold mb-1 text-emerald-500/80">
-                        {t.library.linkedCampaigns}
-                      </p>
-                      {file.linkedCampaigns.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {file.linkedCampaigns.map((c, i) => (
-                            <span
-                              key={i}
-                              className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full inline-block"
-                            >
-                              {c}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">{t.library.none}</span>
-                      )}
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 w-full"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openAssignModalForFile(file.id);
-                      }}
-                    >
-                      {t.library.assignToCampaign}
-                    </Button>
-                  </div>
-                </GlassCard>
-              );
-            })}
+            <GlassCard className="sticky top-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold flex items-center">
+                  <Layers className="w-4 h-4 mr-2 text-emerald-500" />
+                  {t.library.campaignDock}
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  {t.library.selectedAssets.replace("{count}", String(selectedCount))}
+                </span>
+              </div>
+              <div className="mb-4 text-xs text-muted-foreground">
+                {t.library.unassignedCount.replace("{count}", String(unassignedCount))}
+              </div>
+              <div className="space-y-2">
+                {campaigns.map((campaign) => (
+                  <CampaignDockItem
+                    key={campaign.id}
+                    campaign={campaign}
+                    disabled={selectedCount === 0 && draggedFileIds.length === 0}
+                    assigning={assigningCampaignIds.has(campaign.id)}
+                    assignSelectedHint={t.library.assignSelectedHint}
+                    onAssign={() => assignSelectedToCampaign(campaign.id)}
+                  />
+                ))}
+                {campaigns.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t.library.noCampaignsFound}</p>
+                ) : null}
+              </div>
+            </GlassCard>
           </div>
 
-          <GlassCard className="sticky top-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold flex items-center">
-                <Layers className="w-4 h-4 mr-2 text-emerald-500" />
-                {t.library.campaignDock}
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                {t.library.selectedAssets.replace("{count}", String(selectedCount))}
-              </span>
-            </div>
-            <div className="mb-4 text-xs text-muted-foreground">
-              {t.library.unassignedCount.replace("{count}", String(unassignedCount))}
-            </div>
-            <div className="space-y-2">
-              {campaigns.map((campaign) => (
-                <button
-                  key={campaign.id}
-                  type="button"
-                  className="w-full text-left p-3 rounded-lg border border-border/60 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={selectedCount === 0}
-                  onClick={() => assignSelectedToCampaign(campaign.id)}
-                >
-                  <p className="text-sm font-medium line-clamp-1">{campaign.name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{t.library.assignSelectedHint}</p>
-                </button>
-              ))}
-              {campaigns.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t.library.noCampaignsFound}</p>
-              ) : null}
-            </div>
-          </GlassCard>
-        </div>
+          <DragOverlay>
+            {draggedFileIds.length > 0 ? (
+              <div className="p-3 rounded-lg border border-emerald-500 bg-background/90 shadow-xl flex items-center space-x-2">
+                <GripVertical className="w-4 h-4 text-emerald-500" />
+                <span className="text-sm font-medium">
+                  {draggedFileIds.length > 1
+                    ? t.library.draggingAssets.replace("{count}", String(draggedFileIds.length))
+                    : files.find((file) => file.id === draggedFileIds[0])?.name ?? "Asset"}
+                </span>
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {/* 簡易的なプレビューモーダル */}
@@ -476,8 +634,16 @@ export default function LibraryPage() {
               <Button
                 className="bg-emerald-500 text-white hover:bg-emerald-600"
                 onClick={() => assignSelectedToCampaign(assignTargetCampaignId)}
-                disabled={!assignTargetCampaignId || selectedCount === 0 || filteredCampaigns.length === 0}
+                disabled={
+                  !assignTargetCampaignId ||
+                  selectedCount === 0 ||
+                  filteredCampaigns.length === 0 ||
+                  assigningCampaignIds.has(assignTargetCampaignId)
+                }
               >
+                {assigningCampaignIds.has(assignTargetCampaignId) ? (
+                  <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                ) : null}
                 {t.library.assignNow}
               </Button>
             </div>
@@ -485,28 +651,35 @@ export default function LibraryPage() {
         </div>
       )}
 
-      {showUndoToast && (
-        <div className="fixed right-4 bottom-4 z-[60] w-full max-w-sm rounded-xl border border-border bg-background/95 backdrop-blur-sm shadow-xl p-4">
-          <p className="text-sm font-medium">{t.library.assignComplete}</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t.library.assignTarget
-              .replace("{campaign}", lastAssignResult.campaignName || "-")}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t.library.assignAdded.replace("{count}", String(lastAssignResult.added))}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {t.library.assignSkipped.replace("{count}", String(lastAssignResult.skipped))}
-          </p>
-          {undoSnapshot ? (
-            <div className="mt-3 flex justify-end">
-              <Button variant="outline" size="sm" onClick={handleUndoAssign}>
-                {t.library.undo}
-              </Button>
-            </div>
-          ) : null}
-        </div>
-      )}
+      <AnimatePresence>
+        {showUndoToast ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8 }}
+            className="fixed right-4 bottom-4 z-[60] w-full max-w-sm rounded-xl border border-border bg-background/95 backdrop-blur-sm shadow-xl p-4"
+          >
+            <p className="text-sm font-medium">{t.library.assignComplete}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t.library.assignTarget.replace("{campaign}", lastAssignResult.campaignName || "-")}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t.library.assignAdded.replace("{count}", String(lastAssignResult.added))}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t.library.assignSkipped.replace("{count}", String(lastAssignResult.skipped))}
+            </p>
+            {undoSnapshot ? (
+              <div className="mt-3 flex justify-end">
+                <Button variant="outline" size="sm" onClick={handleUndoAssign}>
+                  {t.library.undo}
+                </Button>
+              </div>
+            ) : null}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
