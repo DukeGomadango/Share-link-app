@@ -2,7 +2,17 @@
 
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import {
   FolderOpen,
   FileImage,
@@ -253,7 +263,15 @@ export default function LibraryPage() {
   const [assigningCampaignIds, setAssigningCampaignIds] = useState<Set<string>>(new Set());
   const [pulsedCampaignId, setPulsedCampaignId] = useState<string | null>(null);
   const [showUndoToast, setShowUndoToast] = useState(false);
+  const [showAssignErrorToast, setShowAssignErrorToast] = useState(false);
   const { t, locale } = useTranslation();
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const fetchFiles = () => {
     fetch("/api/files")
@@ -373,6 +391,8 @@ export default function LibraryPage() {
         })
       );
       setShowUndoToast(false);
+      setShowAssignErrorToast(true);
+      window.setTimeout(() => setShowAssignErrorToast(false), 5000);
     }).finally(() => {
       setAssigningCampaignIds((prev) => {
         const next = new Set(prev);
@@ -525,7 +545,7 @@ export default function LibraryPage() {
           </p>
         </GlassCard>
       ) : (
-        <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredFiles.map((file) => (
@@ -736,6 +756,20 @@ export default function LibraryPage() {
                 </Button>
               </div>
             ) : null}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showAssignErrorToast ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.8 }}
+            className="fixed right-4 bottom-4 z-[60] w-full max-w-sm rounded-xl border border-red-500/50 bg-red-500/10 backdrop-blur-sm shadow-xl p-4"
+          >
+            <p className="text-sm font-medium text-red-600">{t.library.assignRestoreErrorTitle}</p>
+            <p className="text-xs text-red-700 mt-1">{t.library.assignRestoreErrorBody}</p>
           </motion.div>
         ) : null}
       </AnimatePresence>

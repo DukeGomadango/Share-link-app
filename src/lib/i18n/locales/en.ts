@@ -80,6 +80,8 @@ export const en: TranslationKeys = {
     draggingAssets: "Dragging {count} assets",
     undoHint: "Use undo if this was accidental",
     undo: "Undo",
+    assignRestoreErrorTitle: "Assignment was reverted due to a network error",
+    assignRestoreErrorBody: "The latest linked state has been restored. Please try again in a moment.",
   },
   settings: {
     title: "Settings",

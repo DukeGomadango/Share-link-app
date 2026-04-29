@@ -78,6 +78,8 @@ export const ja = {
     draggingAssets: "{count} 件の素材をドラッグ中",
     undoHint: "誤操作の場合は取り消しできます",
     undo: "取り消す",
+    assignRestoreErrorTitle: "通信エラーで追加を取り消しました",
+    assignRestoreErrorBody: "最新の紐づけ状態を復元しました。時間をおいて再度お試しください。",
   },
   settings: {
     title: "設定",
