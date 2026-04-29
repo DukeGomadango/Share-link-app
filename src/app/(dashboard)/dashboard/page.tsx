@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BentoGrid, BentoItem } from "@/components/shared/BentoGrid";
 import {
   AlertTriangle,
@@ -15,16 +15,19 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import Link from "next/link";
 import type { DashboardOverviewStats } from "@/lib/stats/overview";
-import { CommandDropPalette } from "@/components/features/library/CommandDropPalette";
 import { LibraryToasts } from "@/components/features/library/LibraryToasts";
 import type { AssignResult, CampaignSummary } from "@/components/features/library/types";
+import { useCommandPaletteStore } from "@/stores/commandPaletteStore";
+import { useRegisterCommandPaletteSource } from "@/hooks/features/library/useRegisterCommandPaletteSource";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardOverviewStats | null>(null);
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
   const [unassignedFileIds, setUnassignedFileIds] = useState<string[]>([]);
-  const [isCommandDropOpen, setIsCommandDropOpen] = useState(false);
-  const [commandDropQuery, setCommandDropQuery] = useState("");
+  const commandDropQuery = useCommandPaletteStore((state) => state.query);
+  const openCommandDrop = useCommandPaletteStore((state) => state.open);
+  const closeCommandDropState = useCommandPaletteStore((state) => state.close);
+  const setCommandDropQuery = useCommandPaletteStore((state) => state.setQuery);
   const [recentCampaignIds, setRecentCampaignIds] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
     try {
@@ -46,16 +49,16 @@ export default function DashboardPage() {
   });
   const { t } = useTranslation();
 
-  const fetchStats = () => {
+  const fetchStats = useCallback(() => {
     fetch("/api/stats/overview")
       .then((r) => r.json())
       .then((data) => setStats(data))
       .catch((e) => console.error("Mock API fetch error:", e));
-  };
+  }, []);
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [fetchStats]);
 
   useEffect(() => {
     fetch("/api/campaigns")
@@ -84,7 +87,7 @@ export default function DashboardPage() {
     campaign.name.toLowerCase().includes(commandDropQuery.trim().toLowerCase())
   );
 
-  const openQuickAssign = () => {
+  const openQuickAssign = useCallback(() => {
     fetch("/api/files")
       .then((r) => r.json())
       .then((files) => {
@@ -94,17 +97,17 @@ export default function DashboardPage() {
         setUnassignedFileIds(ids);
         if (ids.length === 0) return;
         setCommandDropQuery("");
-        setIsCommandDropOpen(true);
+        openCommandDrop();
       })
       .catch((e) => console.error("Failed to fetch files:", e));
-  };
+  }, [openCommandDrop, setCommandDropQuery]);
 
-  const closeCommandDrop = () => {
-    setIsCommandDropOpen(false);
+  const closeCommandDrop = useCallback(() => {
+    closeCommandDropState();
     setCommandDropQuery("");
-  };
+  }, [closeCommandDropState, setCommandDropQuery]);
 
-  const assignFromCommandDrop = (campaignId: string) => {
+  const assignFromCommandDrop = useCallback((campaignId: string) => {
     const selectedCampaign = campaigns.find((campaign) => campaign.id === campaignId);
     if (!selectedCampaign || unassignedFileIds.length === 0) return;
     fetch("/api/files/assign", {
@@ -134,7 +137,28 @@ export default function DashboardPage() {
         window.setTimeout(() => setShowAssignErrorToast(false), 5000);
       })
       .finally(() => closeCommandDrop());
-  };
+  }, [campaigns, unassignedFileIds, fetchStats, recentCampaignIds, closeCommandDrop]);
+
+  useRegisterCommandPaletteSource({
+    selectedCount: unassignedFileIds.length,
+    campaigns: commandDropResults,
+    recentCampaignIds,
+    labels: {
+      title: t.library.commandDropTitle,
+      subtitle: t.library.commandDropSubtitle,
+      placeholder: t.library.commandDropPlaceholder,
+      empty: t.library.commandDropEmpty,
+      shortcutsHint: t.library.commandDropShortcutsHint,
+      shortcutsTitle: t.library.commandDropShortcutsTitle,
+      shortcutMove: t.library.commandDropShortcutMove,
+      shortcutSelect: t.library.commandDropShortcutSelect,
+      shortcutClose: t.library.commandDropShortcutClose,
+      shortcutToggleHelp: t.library.commandDropShortcutToggleHelp,
+      recentBadge: t.library.commandDropRecentBadge,
+    },
+    onAssign: assignFromCommandDrop,
+    onOpenRequest: openQuickAssign,
+  });
 
   return (
     <div className="space-y-6">
@@ -287,30 +311,6 @@ export default function DashboardPage() {
           </div>
         </BentoItem>
       </BentoGrid>
-
-      <CommandDropPalette
-        isOpen={isCommandDropOpen}
-        selectedCount={unassignedFileIds.length}
-        query={commandDropQuery}
-        campaigns={commandDropResults}
-        recentCampaignIds={recentCampaignIds}
-        onQueryChange={setCommandDropQuery}
-        onClose={closeCommandDrop}
-        onAssign={assignFromCommandDrop}
-        labels={{
-          title: t.library.commandDropTitle,
-          subtitle: t.library.commandDropSubtitle,
-          placeholder: t.library.commandDropPlaceholder,
-          empty: t.library.commandDropEmpty,
-          shortcutsHint: t.library.commandDropShortcutsHint,
-          shortcutsTitle: t.library.commandDropShortcutsTitle,
-          shortcutMove: t.library.commandDropShortcutMove,
-          shortcutSelect: t.library.commandDropShortcutSelect,
-          shortcutClose: t.library.commandDropShortcutClose,
-          shortcutToggleHelp: t.library.commandDropShortcutToggleHelp,
-          recentBadge: t.library.commandDropRecentBadge,
-        }}
-      />
 
       <LibraryToasts
         showUndoToast={showAssignToast}

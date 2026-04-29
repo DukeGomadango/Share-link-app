@@ -1,5 +1,7 @@
 import { DashboardSidebar } from "@/components/layouts/DashboardSidebar";
 import { OnboardingTour } from "@/components/features/onboarding/OnboardingTour";
+import { GlobalCommandPaletteHotkey } from "@/components/features/library/GlobalCommandPaletteHotkey";
+import { GlobalCommandPaletteRoot } from "@/components/features/library/GlobalCommandPaletteRoot";
 
 export default function DashboardLayout({
   children,
@@ -12,6 +14,8 @@ export default function DashboardLayout({
       <main className="scrollbar-prominent flex-1 overflow-y-auto p-4 md:p-8 relative">
         {children}
         <OnboardingTour />
+        <GlobalCommandPaletteHotkey />
+        <GlobalCommandPaletteRoot />
       </main>
     </div>
   );

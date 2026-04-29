@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FileImage, FileAudio, File as FileIcon } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { AssetPreviewModal } from "@/components/features/library/AssetPreviewModal";
 import { AssetAssignModal } from "@/components/features/library/AssetAssignModal";
-import { CommandDropPalette } from "@/components/features/library/CommandDropPalette";
 import { AssetFile } from "@/components/features/library/types";
 import { useLibrary } from "@/hooks/features/library/useLibrary";
+import { useRegisterCommandPaletteSource } from "@/hooks/features/library/useRegisterCommandPaletteSource";
 
 // サブコンポーネント
 import { LibraryHeader } from "@/components/features/library/LibraryHeader";
@@ -57,9 +57,6 @@ export default function LibraryPage() {
     unassignedCount,
     filteredCampaigns,
     recentCampaigns,
-    isCommandDropOpen,
-    commandDropQuery,
-    setCommandDropQuery,
     commandDropResults,
     recentCampaignIds,
     sensors,
@@ -69,21 +66,29 @@ export default function LibraryPage() {
     handleDragEnd,
     assignSelectedToCampaign,
     openCommandDropForSelection,
-    closeCommandDrop,
     assignFromCommandDrop,
   } = useLibrary();
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      const isCmdOrCtrl = event.metaKey || event.ctrlKey;
-      if (isCmdOrCtrl && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        openCommandDropForSelection();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [openCommandDropForSelection]);
+  useRegisterCommandPaletteSource({
+    selectedCount,
+    campaigns: commandDropResults,
+    recentCampaignIds,
+    labels: {
+      title: t.library.commandDropTitle,
+      subtitle: t.library.commandDropSubtitle,
+      placeholder: t.library.commandDropPlaceholder,
+      empty: t.library.commandDropEmpty,
+      shortcutsHint: t.library.commandDropShortcutsHint,
+      shortcutsTitle: t.library.commandDropShortcutsTitle,
+      shortcutMove: t.library.commandDropShortcutMove,
+      shortcutSelect: t.library.commandDropShortcutSelect,
+      shortcutClose: t.library.commandDropShortcutClose,
+      shortcutToggleHelp: t.library.commandDropShortcutToggleHelp,
+      recentBadge: t.library.commandDropRecentBadge,
+    },
+    onAssign: assignFromCommandDrop,
+    onOpenRequest: openCommandDropForSelection,
+  });
 
   const getFileIcon = (type: string) => {
     if (type.startsWith("image/")) return <FileImage className="w-8 h-8 text-blue-500" />;
@@ -219,30 +224,6 @@ export default function LibraryPage() {
           noResults: t.library.noCampaignSearchResults,
           cancel: t.common.cancel,
           assignNow: t.library.assignNow,
-        }}
-      />
-
-      <CommandDropPalette
-        isOpen={isCommandDropOpen}
-        selectedCount={selectedCount}
-        query={commandDropQuery}
-        campaigns={commandDropResults}
-        recentCampaignIds={recentCampaignIds}
-        onQueryChange={setCommandDropQuery}
-        onClose={closeCommandDrop}
-        onAssign={assignFromCommandDrop}
-        labels={{
-          title: t.library.commandDropTitle,
-          subtitle: t.library.commandDropSubtitle,
-          placeholder: t.library.commandDropPlaceholder,
-          empty: t.library.commandDropEmpty,
-          shortcutsHint: t.library.commandDropShortcutsHint,
-          shortcutsTitle: t.library.commandDropShortcutsTitle,
-          shortcutMove: t.library.commandDropShortcutMove,
-          shortcutSelect: t.library.commandDropShortcutSelect,
-          shortcutClose: t.library.commandDropShortcutClose,
-          shortcutToggleHelp: t.library.commandDropShortcutToggleHelp,
-          recentBadge: t.library.commandDropRecentBadge,
         }}
       />
 
