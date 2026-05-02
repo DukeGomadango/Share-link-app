@@ -22,3 +22,19 @@ export type LibraryFile = {
   url: string;
   linkedCampaigns: string[];
 };
+
+export interface Campaign {
+  id: string;
+  name: string;
+  status: "active" | "draft" | "completed";
+  type: string;
+  createdAt: string;
+  stats: {
+    totalFiles: number;
+    assignedRecipients: number;
+    openRate: number;
+  };
+}
+
+export type QuickFilter = "all" | "needsAttention" | "dueSoon" | Campaign["status"];
+export type ViewMode = "list" | "kanban";
