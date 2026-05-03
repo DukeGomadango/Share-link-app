@@ -199,6 +199,83 @@ export const claims = pgTable(
   ]
 );
 
+/**
+ * リスナー本人（匿名 ID）。WebAuthn の user handle と対応。
+ */
+export const listenerIdentities = pgTable(
+  "listener_identities",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    linkedRecipientId: uuid("linked_recipient_id").references(() => recipients.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index("listener_identities_workspace_id_idx").on(t.workspaceId)]
+);
+
+export const webauthnCredentials = pgTable(
+  "webauthn_credentials",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    listenerIdentityId: uuid("listener_identity_id")
+      .notNull()
+      .references(() => listenerIdentities.id, { onDelete: "cascade" }),
+    credentialId: text("credential_id").notNull().unique(),
+    publicKey: text("public_key").notNull(),
+    counter: integer("counter").notNull().default(0),
+    transports: jsonb("transports").$type<string[]>().default([]).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("webauthn_credentials_listener_identity_id_idx").on(t.listenerIdentityId),
+  ]
+);
+
+export const webauthnChallenges = pgTable(
+  "webauthn_challenges",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    challenge: text("challenge").notNull(),
+    purpose: text("purpose").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    /** registration 時に必ずセット（どの claim に紐づく登録か） */
+    claimId: uuid("claim_id").references(() => claims.id, { onDelete: "cascade" }),
+    listenerIdentityId: uuid("listener_identity_id").references(() => listenerIdentities.id, {
+      onDelete: "cascade",
+    }),
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index("webauthn_challenges_expires_at_idx").on(t.expiresAt)]
+);
+
+/** 初回 WebAuthn 登録完了時に claim と listener を紐付け */
+export const claimIdentityLinks = pgTable(
+  "claim_identity_links",
+  {
+    claimId: uuid("claim_id")
+      .primaryKey()
+      .references(() => claims.id, { onDelete: "cascade" }),
+    listenerIdentityId: uuid("listener_identity_id")
+      .notNull()
+      .references(() => listenerIdentities.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index("claim_identity_links_listener_id_idx").on(t.listenerIdentityId)]
+);
+
 /** だんご等の外部統合 Bearer（平文保存しない。`token_hash` のみ） */
 export const integrationAccessTokens = pgTable(
   "integration_access_tokens",

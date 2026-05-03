@@ -3,7 +3,17 @@
 import { useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 import { motion } from "framer-motion";
-import { Copy, ExternalLink, Check, FileAudio, FileImage, X, AlertCircle, Plus } from "lucide-react";
+import {
+  Copy,
+  ExternalLink,
+  Check,
+  FileAudio,
+  FileImage,
+  X,
+  AlertCircle,
+  Plus,
+  KeyRound,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
@@ -101,6 +111,16 @@ export function DroppableRecipient({
                 準備完了
               </Badge>
             )}
+            {recipient.passkeyVerified ? (
+              <Badge
+                variant="outline"
+                className="text-[9px] h-4 px-1.5 border-sky-500/40 text-sky-700 bg-sky-500/10 font-bold uppercase tracking-tighter"
+                title="パスキーで本人確認済み（参考情報です）"
+              >
+                <KeyRound className="w-2.5 h-2.5 mr-1" />
+                認証済
+              </Badge>
+            ) : null}
           </div>
           {"listenerNote" in recipient && (recipient as { listenerNote?: string }).listenerNote ? (
             <p className="text-[11px] text-muted-foreground line-clamp-2 opacity-80">

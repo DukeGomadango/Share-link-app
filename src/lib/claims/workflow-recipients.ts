@@ -5,6 +5,7 @@ import {
   campaignAssets,
   campaignRecipientSlots,
   campaigns,
+  claimIdentityLinks,
   claims,
 } from "@/db/schema";
 
@@ -15,6 +16,8 @@ export type WorkflowRecipientRow = {
   listenerNote: string | null;
   effectiveCampaignAssetId: string | null;
   distributionMode: string;
+  /** claim と listener_identity が WebAuthn で紐づいている */
+  passkeyVerified: boolean;
 };
 
 /**
@@ -90,7 +93,9 @@ export async function fetchWorkflowRecipientsForCampaign(
           .where(inArray(campaignRecipientSlots.id, slotIdList));
 
   const seen = new Set<string>();
-  const out: WorkflowRecipientRow[] = [];
+  const out: Array<
+    Omit<WorkflowRecipientRow, "passkeyVerified">
+  > = [];
 
   const push = (
     claimRow: typeof claims.$inferSelect,
@@ -121,5 +126,18 @@ export async function fetchWorkflowRecipientsForCampaign(
     push(r.claim, r.slot, assetId);
   }
 
-  return out;
+  const claimIds = out.map((o) => o.claimId);
+  const linkRows =
+    claimIds.length === 0
+      ? []
+      : await db
+          .select({ claimId: claimIdentityLinks.claimId })
+          .from(claimIdentityLinks)
+          .where(inArray(claimIdentityLinks.claimId, claimIds));
+  const linked = new Set(linkRows.map((r) => r.claimId));
+
+  return out.map((row) => ({
+    ...row,
+    passkeyVerified: linked.has(row.claimId),
+  }));
 }

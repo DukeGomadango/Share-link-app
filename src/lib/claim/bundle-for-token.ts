@@ -7,6 +7,7 @@ import {
   campaignAssets,
   campaignRecipientSlots,
   campaigns,
+  claimIdentityLinks,
   claims,
 } from "@/db/schema";
 
@@ -14,6 +15,8 @@ export type ClaimBundleResponse = {
   expiryIso: string;
   /** ライバー未割当・ファイルなし（リスナーは待機ポーリング） */
   pending?: boolean;
+  /** この claim にパスキー（WebAuthn）が紐づいている */
+  passkeyLinked?: boolean;
   files: Array<{
     id: string;
     type: "image" | "audio";
@@ -81,10 +84,18 @@ export async function buildClaimBundleForSecret(
     campaignRow[0]?.expiresAt ??
     new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
+  const passkeyRows = await db
+    .select({ claimId: claimIdentityLinks.claimId })
+    .from(claimIdentityLinks)
+    .where(eq(claimIdentityLinks.claimId, hit.claim.id))
+    .limit(1);
+  const passkeyLinked = Boolean(passkeyRows[0]);
+
   if (!effectiveAssetId) {
     return {
       expiryIso: expiry.toISOString(),
       pending: true,
+      passkeyLinked,
       files: [],
     };
   }
@@ -117,6 +128,7 @@ export async function buildClaimBundleForSecret(
     return {
       expiryIso: expiry.toISOString(),
       pending: true,
+      passkeyLinked,
       files: [],
     };
   }
@@ -139,6 +151,7 @@ export async function buildClaimBundleForSecret(
 
   return {
     expiryIso: exp.toISOString(),
+    passkeyLinked,
     files: [
       {
         id: bundle.ca.id,

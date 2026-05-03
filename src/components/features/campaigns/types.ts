@@ -17,6 +17,8 @@ export type WorkflowRecipient = {
   assignedFileIds?: string[];
   link?: string;
   claimSecret?: string;
+  /** パスキー登録により本人確認済み（補助情報） */
+  passkeyVerified?: boolean;
 };
 
 /** @deprecated WorkflowRecipient を優先（後方互換の別名） */

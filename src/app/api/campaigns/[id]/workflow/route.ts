@@ -106,6 +106,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
         ? undefined
         : `/claim/${encodeURIComponent(row.claimSecret)}`,
     claimSecret: row.claimSecret,
+    passkeyVerified: row.passkeyVerified,
   }));
 
   return NextResponse.json({
