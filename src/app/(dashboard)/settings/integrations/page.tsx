@@ -29,6 +29,7 @@ export default function IntegrationsSettingsPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- マウント時 GET（refresh は async）
     void refresh();
   }, [refresh]);
 

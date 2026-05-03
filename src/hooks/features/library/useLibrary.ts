@@ -100,7 +100,7 @@ export function useLibrary() {
   const setCommandDropQuery = useCommandPaletteStore((state) => state.setQuery);
 
   const assignSelectedToCampaign = (campaignId: string) => {
-    assignFilesToCampaign(campaignId, Array.from(selectedFileIds), { clearSelection: true });
+    assignFilesToCampaign(campaignId, Array.from(selectedFileIds));
     setSelectedFileIds(new Set());
   };
 

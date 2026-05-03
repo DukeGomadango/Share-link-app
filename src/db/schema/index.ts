@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -64,7 +65,34 @@ export const campaigns = pgTable(
   (t) => [index("campaigns_workspace_id_idx").on(t.workspaceId)]
 );
 
-/** 種類単位マスター（HTTPS URL のみ／実体ストレージと分離） */
+/** ワークスペースのライブラリ実体（Supabase Storage のオブジェクトと 1:1） */
+export const assets = pgTable(
+  "assets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    bucket: text("bucket").notNull().default("assets"),
+    objectKey: text("object_key").notNull(),
+    originalFilename: text("original_filename").notNull(),
+    mimeType: text("mime_type").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("assets_bucket_object_key_uidx").on(t.bucket, t.objectKey),
+    index("assets_workspace_id_idx").on(t.workspaceId),
+  ]
+);
+
+/**
+ * キャンペーンに紐づく配布アイテム（種類マスタ）。
+ * - `asset_id` あり: ライブラリアップロード由来（Storage・署名 URL で配布）
+ * - `asset_url` のみ: レガシー／外部 HTTPS URL
+ */
 export const campaignAssets = pgTable(
   "campaign_assets",
   {
@@ -73,12 +101,16 @@ export const campaignAssets = pgTable(
       .notNull()
       .references(() => campaigns.id, { onDelete: "cascade" }),
     label: text("label"),
-    assetUrl: text("asset_url").notNull(),
+    assetId: uuid("asset_id").references(() => assets.id, { onDelete: "restrict" }),
+    assetUrl: text("asset_url"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
-  (t) => [index("campaign_assets_campaign_id_idx").on(t.campaignId)]
+  (t) => [
+    index("campaign_assets_campaign_id_idx").on(t.campaignId),
+    uniqueIndex("campaign_assets_campaign_asset_uidx").on(t.campaignId, t.assetId),
+  ]
 );
 
 export const claims = pgTable(

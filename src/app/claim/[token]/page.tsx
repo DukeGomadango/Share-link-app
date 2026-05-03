@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ClaimAuthView } from "@/components/features/claim/ClaimAuthView";
 import { ClaimUnopenedView } from "@/components/features/claim/ClaimUnopenedView";
 import { ClaimContentView } from "@/components/features/claim/ClaimContentView";
-import { mockClaimFiles } from "@/components/features/claim/types";
+import type { ClaimFile } from "@/components/features/claim/types";
 
-// 共通のページ遷移バリアント（Calm UI: 控えめだが心地よい遷移）
 const pageVariants = {
   initial: { opacity: 0, scale: 0.96, y: 12 },
   enter: {
@@ -16,7 +16,7 @@ const pageVariants = {
     y: 0,
     transition: {
       duration: 0.5,
-      ease: [0.22, 1, 0.36, 1] as const, // easeOutQuint - 滑らかな減速
+      ease: [0.22, 1, 0.36, 1] as const,
     },
   },
   exit: {
@@ -25,12 +25,11 @@ const pageVariants = {
     y: -8,
     transition: {
       duration: 0.3,
-      ease: [0.4, 0, 1, 1] as const, // easeInQuad - 控えめな加速
+      ease: [0.4, 0, 1, 1] as const,
     },
   },
 };
 
-// 開封時の特別なバリアント（「プレゼントの箱を開ける」感覚）
 const unboxVariants = {
   initial: { opacity: 0, scale: 0.9, rotateX: -8 },
   enter: {
@@ -55,26 +54,76 @@ const unboxVariants = {
 };
 
 export default function ClaimPage() {
+  const params = useParams<{ token: string }>();
+  const token = typeof params?.token === "string" ? params.token : "";
+
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isOpened, setIsOpened] = useState(false);
+  const [bundle, setBundle] = useState<{
+    expiryIso: string;
+    files: ClaimFile[];
+  } | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimLoading, setClaimLoading] = useState(false);
 
-  // モック: 有効期限を3日後に設定
-  const expiryDate = new Date();
-  expiryDate.setDate(expiryDate.getDate() + 3);
+  useEffect(() => {
+    if (!isOpened || !token) return;
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setClaimLoading(true);
+      setClaimError(null);
+      try {
+        const r = await fetch(`/api/claim/${encodeURIComponent(token)}`);
+        if (!r.ok) throw new Error(String(r.status));
+        const data = (await r.json()) as {
+          expiryIso: string;
+          files: Array<{
+            id: string;
+            type: string;
+            src: string;
+            filename: string;
+            title: string;
+          }>;
+        };
+        const files: ClaimFile[] = data.files.map((f) => ({
+          id: f.id,
+          type: f.type === "audio" ? "audio" : "image",
+          src: f.src,
+          filename: f.filename,
+          title: f.title,
+        }));
+        if (!cancelled) setBundle({ expiryIso: data.expiryIso, files });
+      } catch {
+        if (!cancelled) setClaimError("読み込みに失敗しました");
+      } finally {
+        if (!cancelled) setClaimLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpened, token]);
 
   const handleAuth = () => {
-    // パスキー（WebAuthn）認証のモック
     setTimeout(() => {
       setIsAuthenticated(true);
     }, 800);
   };
 
-  // 現在のフェーズキーを計算（AnimatePresence 用）
   const phaseKey = !isAuthenticated ? "auth" : !isOpened ? "unopened" : "content";
+
+  const expiryDate = bundle
+    ? new Date(bundle.expiryIso)
+    : (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 3);
+        return d;
+      })();
 
   return (
     <AnimatePresence mode="wait">
-      {/* 1. 未認証フロー */}
       {phaseKey === "auth" && (
         <motion.div
           key="auth"
@@ -88,7 +137,6 @@ export default function ClaimPage() {
         </motion.div>
       )}
 
-      {/* 2. 開封前のワクワク演出フロー */}
       {phaseKey === "unopened" && (
         <motion.div
           key="unopened"
@@ -98,14 +146,10 @@ export default function ClaimPage() {
           exit="exit"
           className="w-full"
         >
-          <ClaimUnopenedView
-            onOpen={() => setIsOpened(true)}
-            expiryDate={expiryDate}
-          />
+          <ClaimUnopenedView onOpen={() => setIsOpened(true)} expiryDate={expiryDate} />
         </motion.div>
       )}
 
-      {/* 3. コンテンツ閲覧フロー（開封アニメーション） */}
       {phaseKey === "content" && (
         <motion.div
           key="content"
@@ -116,10 +160,15 @@ export default function ClaimPage() {
           className="w-full"
           style={{ perspective: "1200px" }}
         >
-          <ClaimContentView
-            files={mockClaimFiles}
-            expiryDate={expiryDate}
-          />
+          {claimError && (
+            <p className="text-center text-destructive py-8 text-sm">{claimError}</p>
+          )}
+          {claimLoading && !claimError && (
+            <p className="text-center text-muted-foreground py-8 text-sm">読み込み中…</p>
+          )}
+          {!claimLoading && bundle && !claimError && (
+            <ClaimContentView files={bundle.files} expiryDate={new Date(bundle.expiryIso)} />
+          )}
         </motion.div>
       )}
     </AnimatePresence>

@@ -15,8 +15,11 @@ export function useLibraryFiles() {
 
   const fetchFiles = useCallback(() => {
     fetch("/api/files")
-      .then((r) => r.json())
-      .then((data) => setFiles(data))
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((data) => setFiles(data as AssetFile[]))
       .catch((e) => console.error("Failed to fetch files:", e));
   }, []);
 
@@ -24,16 +27,74 @@ export function useLibraryFiles() {
     fetchFiles();
   }, [fetchFiles]);
 
-  const handleFilesDropped = async (droppedFiles: File[]) => {
-    console.log("Files ready to upload:", droppedFiles);
-    try {
-      const res = await fetch("/api/files", { method: "POST" });
-      if (res.ok) {
-        fetchFiles();
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
+  const uploadSingle = useCallback(async (file: File) => {
+    const init = await fetch("/api/files/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: file.name,
+        size: file.size,
+        contentType: file.type || "application/octet-stream",
+      }),
+    });
+    if (!init.ok) {
+      const err = await init.json().catch(() => ({}));
+      throw new Error(
+        typeof err?.message === "string" ? err.message : `upload-url failed: ${init.status}`
+      );
     }
+    const meta = (await init.json()) as {
+      uploadUrl: string;
+      assetId: string;
+      objectKey: string;
+      contentType: string;
+      token?: string;
+    };
+
+    const putHeaders: Record<string, string> = {
+      "Content-Type": meta.contentType || file.type || "application/octet-stream",
+    };
+    if (meta.token) {
+      putHeaders.Authorization = `Bearer ${meta.token}`;
+    }
+
+    const put = await fetch(meta.uploadUrl, {
+      method: "PUT",
+      body: file,
+      headers: putHeaders,
+    });
+    if (!put.ok) {
+      throw new Error(`storage upload failed: ${put.status}`);
+    }
+
+    const reg = await fetch("/api/files/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        assetId: meta.assetId,
+        objectKey: meta.objectKey,
+        originalFilename: file.name,
+        sizeBytes: file.size,
+        mimeType: file.type || "application/octet-stream",
+      }),
+    });
+    if (!reg.ok) {
+      const err = await reg.json().catch(() => ({}));
+      throw new Error(
+        typeof err?.error === "string" ? err.error : `register failed: ${reg.status}`
+      );
+    }
+  }, []);
+
+  const handleFilesDropped = async (droppedFiles: File[]) => {
+    for (const file of droppedFiles) {
+      try {
+        await uploadSingle(file);
+      } catch (error) {
+        console.error("Upload error:", error);
+      }
+    }
+    fetchFiles();
   };
 
   const inferSmartTags = useCallback((file: AssetFile) => {
@@ -68,7 +129,8 @@ export function useLibraryFiles() {
 
       if (sizeFilter !== "all") {
         if (sizeFilter === "small" && file.size >= 1024 * 1024) return false;
-        if (sizeFilter === "medium" && (file.size < 1024 * 1024 || file.size >= 10 * 1024 * 1024)) return false;
+        if (sizeFilter === "medium" && (file.size < 1024 * 1024 || file.size >= 10 * 1024 * 1024))
+          return false;
         if (sizeFilter === "large" && file.size < 10 * 1024 * 1024) return false;
       }
 
@@ -86,7 +148,17 @@ export function useLibraryFiles() {
       }
       return true;
     });
-  }, [files, fileTypeFilter, unassignedOnly, sizeFilter, dateFilter, selectedTag, searchQuery, inferSmartTags, nowTs]);
+  }, [
+    files,
+    fileTypeFilter,
+    unassignedOnly,
+    sizeFilter,
+    dateFilter,
+    selectedTag,
+    searchQuery,
+    inferSmartTags,
+    nowTs,
+  ]);
 
   const unassignedCount = useMemo(
     () => files.filter((file) => file.linkedCampaigns.length === 0).length,
@@ -112,5 +184,6 @@ export function useLibraryFiles() {
     selectedTag,
     setSelectedTag,
     handleFilesDropped,
+    refreshFiles: fetchFiles,
   };
 }

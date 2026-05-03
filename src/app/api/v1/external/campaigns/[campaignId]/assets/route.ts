@@ -1,7 +1,8 @@
 import { and, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { campaignAssets, campaigns } from "@/db/schema";
+import { assets as libraryAssets, campaignAssets, campaigns } from "@/db/schema";
+import { createSignedReadUrl } from "@/lib/assets/signed-urls";
 import { resolveIntegrationBearer } from "@/lib/external-auth";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 
@@ -34,27 +35,45 @@ export async function GET(request: Request, ctx: RouteParams) {
     });
   }
 
-  const assets = await db
+  const rows = await db
     .select({
       id: campaignAssets.id,
       campaignId: campaignAssets.campaignId,
       label: campaignAssets.label,
       assetUrl: campaignAssets.assetUrl,
+      assetId: campaignAssets.assetId,
       createdAt: campaignAssets.createdAt,
+      libBucket: libraryAssets.bucket,
+      libObjectKey: libraryAssets.objectKey,
     })
     .from(campaignAssets)
+    .leftJoin(libraryAssets, eq(campaignAssets.assetId, libraryAssets.id))
     .where(eq(campaignAssets.campaignId, campaignId));
+
+  const mapped = await Promise.all(
+    rows.map(async (a) => {
+      let resolved: string | null = a.assetUrl?.trim() || null;
+      if (a.libBucket && a.libObjectKey) {
+        const u = await createSignedReadUrl(a.libBucket, a.libObjectKey);
+        if (u) {
+          resolved = u;
+        }
+      }
+      return {
+        id: a.id,
+        campaign_id: a.campaignId,
+        label: a.label,
+        asset_url: resolved,
+        library_asset_id: a.assetId,
+        created_at: a.createdAt.toISOString(),
+      };
+    })
+  );
 
   return jsonWithCors(
     {
       campaign_id: campaignId,
-      assets: assets.map((a) => ({
-        id: a.id,
-        campaign_id: a.campaignId,
-        label: a.label,
-        asset_url: a.assetUrl,
-        created_at: a.createdAt.toISOString(),
-      })),
+      assets: mapped,
     },
     request
   );

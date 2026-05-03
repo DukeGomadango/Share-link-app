@@ -13,7 +13,7 @@ import { useCommandPaletteStore } from "@/stores/commandPaletteStore";
 interface UseLibraryDndProps {
   selectedFileIds: Set<string>;
   setSelectedFileIds: (ids: Set<string>) => void;
-  assignFilesToCampaign: (campaignId: string, fileIds: string[], options?: { clearSelection?: boolean }) => void;
+  assignFilesToCampaign: (campaignId: string, fileIds: string[]) => void;
   setCommandDropOpenedAtTs: (ts: number) => void;
   setCampaignQuery: (q: string) => void;
 }
@@ -61,7 +61,7 @@ export function useLibraryDnd({
     if (!overId.startsWith("campaign-drop-")) return;
     const campaignId = overId.replace("campaign-drop-", "");
     const isSelectionDrag = dropSourceIds.length > 1 || selectedFileIds.has(dropSourceIds[0] ?? "");
-    assignFilesToCampaign(campaignId, dropSourceIds, { clearSelection: isSelectionDrag });
+    assignFilesToCampaign(campaignId, dropSourceIds);
     
     if (isSelectionDrag) {
       setSelectedFileIds(new Set());
@@ -86,7 +86,7 @@ export function useLibraryDnd({
     if (!campaignId || pendingCommandDropFileIds.length === 0) return;
     const shouldClearSelection =
       pendingCommandDropFileIds.length > 1 || selectedFileIds.has(pendingCommandDropFileIds[0] ?? "");
-    assignFilesToCampaign(campaignId, pendingCommandDropFileIds, { clearSelection: shouldClearSelection });
+    assignFilesToCampaign(campaignId, pendingCommandDropFileIds);
     
     if (shouldClearSelection) {
       setSelectedFileIds(new Set());

@@ -96,8 +96,8 @@ export default function NewCampaignPage() {
       const campaign = await res.json();
       router.push(`/campaigns/${campaign.id}`);
       router.refresh();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "作成に失敗しました");
       setLoading(false);
     }
   }

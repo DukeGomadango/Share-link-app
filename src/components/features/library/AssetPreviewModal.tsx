@@ -30,9 +30,9 @@ export function AssetPreviewModal({ file, onClose }: AssetPreviewModalProps) {
         </Button>
         
         {file.type.startsWith("image/") ? (
-          <ImageViewer src={file.url} watermarkText="SAMPLE" />
+          <ImageViewer src={file.previewUrl || file.url} watermarkText="SAMPLE" />
         ) : file.type.startsWith("audio/") ? (
-           <AudioPlayer src={file.url} title={file.name} />
+           <AudioPlayer src={file.previewUrl || file.url} title={file.name} />
         ) : (
           <GlassCard className="p-8 text-center text-muted-foreground">
             <FileIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />

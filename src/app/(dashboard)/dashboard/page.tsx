@@ -20,8 +20,18 @@ import type { AssignResult, CampaignSummary } from "@/components/features/librar
 import { useCommandPaletteStore } from "@/stores/commandPaletteStore";
 import { useRegisterCommandPaletteSource } from "@/hooks/features/library/useRegisterCommandPaletteSource";
 
+function StatSkeleton({ className }: { className?: string }) {
+  return (
+    <span
+      className={`inline-block h-9 min-w-[3ch] rounded-md bg-muted animate-pulse ${className ?? ""}`}
+      aria-hidden
+    />
+  );
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardOverviewStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
   const [unassignedFileIds, setUnassignedFileIds] = useState<string[]>([]);
   const commandDropQuery = useCommandPaletteStore((state) => state.query);
@@ -49,15 +59,23 @@ export default function DashboardPage() {
   });
   const { t } = useTranslation();
 
-  const fetchStats = useCallback(() => {
-    fetch("/api/stats/overview")
-      .then((r) => r.json())
-      .then((data) => setStats(data))
-      .catch((e) => console.error("Mock API fetch error:", e));
+  const fetchStats = useCallback(async () => {
+    await Promise.resolve();
+    setStatsLoading(true);
+    try {
+      const r = await fetch("/api/stats/overview");
+      const data = (await r.json()) as DashboardOverviewStats;
+      setStats(data);
+    } catch (e) {
+      console.error("Dashboard stats fetch error:", e);
+    } finally {
+      setStatsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    fetchStats();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- マウント時 GET（fetchStats は async）
+    void fetchStats();
   }, [fetchStats]);
 
   useEffect(() => {
@@ -115,7 +133,7 @@ export default function DashboardPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         fileIds: unassignedFileIds,
-        campaignName: selectedCampaign.name,
+        campaignId,
       }),
     })
       .then(() => {
@@ -213,7 +231,9 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t.dashboard.activeCampaigns}</p>
-              <h2 className="text-3xl font-bold">{stats?.activeCampaigns ?? "-"}</h2>
+              <h2 className="text-3xl font-bold">
+                {statsLoading ? <StatSkeleton /> : stats?.activeCampaigns ?? "-"}
+              </h2>
             </div>
           </div>
         </BentoItem>
@@ -225,7 +245,9 @@ export default function DashboardPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{t.dashboard.totalDistributed}</p>
-              <h2 className="text-3xl font-bold">{stats?.totalDistributed ?? "-"}</h2>
+              <h2 className="text-3xl font-bold">
+                {statsLoading ? <StatSkeleton /> : stats?.totalDistributed ?? "-"}
+              </h2>
             </div>
           </div>
         </BentoItem>
@@ -238,7 +260,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm text-muted-foreground">{t.dashboard.openRate}</p>
               <h2 className="text-3xl font-bold">
-                {stats ? `${stats.openRate}%` : "-"}
+                {statsLoading ? <StatSkeleton /> : stats ? `${stats.openRate}%` : "-"}
               </h2>
             </div>
           </div>

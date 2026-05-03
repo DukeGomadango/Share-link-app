@@ -41,25 +41,26 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
   };
 
   const handleDownloadSingle = (fileId: string) => {
-    const file = files.find(f => f.id === fileId);
-    if (!file) return;
-    
-    console.log(`Downloading: ${file.filename}`);
-    alert(t.claim.downloadSingle.replace("{filename}", file.filename));
+    const file = files.find((f) => f.id === fileId);
+    if (!file?.src) return;
+    window.open(file.src, "_blank", "noopener,noreferrer");
   };
 
   const handleDownloadSelected = async () => {
-    const count = selectedFileIds.size === 0 ? files.length : selectedFileIds.size;
-    const isAll = selectedFileIds.size === 0;
-
+    const targets =
+      selectedFileIds.size === 0
+        ? files
+        : files.filter((f) => selectedFileIds.has(f.id));
     setIsDownloading(true);
-    setTimeout(() => {
+    try {
+      for (const f of targets) {
+        if (f.src) {
+          window.open(f.src, "_blank", "noopener,noreferrer");
+        }
+      }
+    } finally {
       setIsDownloading(false);
-      alert(isAll 
-        ? t.claim.downloadZip.replace("{count}", count.toString())
-        : t.claim.downloadSelectedAlert.replace("{count}", count.toString())
-      );
-    }, 1000);
+    }
   };
 
   const allSelected = selectedFileIds.size === files.length && files.length > 0;
