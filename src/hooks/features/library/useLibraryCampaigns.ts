@@ -32,7 +32,7 @@ export function useLibraryCampaigns() {
       const entries = Object.entries(parsed).filter(
         ([key, value]) => typeof key === "string" && typeof value === "number"
       );
-      return Object.fromEntries(entries);
+      return Object.fromEntries(entries) as Record<string, number>;
     } catch {
       return {};
     }
@@ -122,6 +122,7 @@ export function useLibraryCampaigns() {
     recentCampaignIds,
     commandDropResults,
     recentCampaigns,
+    filteredCampaigns,
     rememberRecentCampaign,
     setCommandDropOpenedAtTs,
   };

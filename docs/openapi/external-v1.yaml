@@ -1,0 +1,150 @@
+openapi: 3.1.0
+info:
+  title: だんごエコシステム — file-share 外部 API（v1）
+  version: "1.0.0"
+  description: |
+    Step E で実装する公開エンドポイントの契約（Step A の固定ソース）。
+    認証は `Authorization: Bearer <integration_access_token>`。
+    チャンク再送は `Idempotency-Key`（同一 Integration・メソッド・パス・キーで直前レスポンスを返す）。
+servers:
+  - url: https://share.example.com
+    description: 本番（例）
+  - url: https://staging-share.example.com
+    description: ステージング（例）
+
+tags:
+  - name: campaigns
+  - name: claims
+
+paths:
+  /api/v1/external/campaigns:
+    get:
+      tags: [campaigns]
+      summary: ワークスペース配下のキャンペーン一覧（Integration スコープ `campaigns:read`）
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CampaignSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/v1/external/issue-claims:
+    post:
+      tags: [claims]
+      summary: 受取リンクのバッチ発行（最大 50 件）
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueClaimsRequest"
+      responses:
+        "200":
+          description: 原則常に 200。失敗行は results[].ok=false。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssueClaimsResponse"
+        "400":
+          description: JSON 破損・認可コンテキスト不正などリクエスト全体が無効
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Integration Access Token
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: |
+        同一チャンクのネットワーク再送時に付与。`(Integration, メソッド, パス, キー)` が同一なら前回レスポンスを返す。
+        ペイロードが変わる場合は別キーを必須とする（OpenAPI 禁則として運用）。
+
+  responses:
+    Unauthorized:
+      description: Bearer 欠落／無効／失効
+    Forbidden:
+      description: スコープ不足または他ワークスペースのリソース
+
+  schemas:
+    CampaignSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, archived]
+
+    IssueClaimsRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/IssueClaimItem"
+
+    IssueClaimItem:
+      type: object
+      required: [campaign_asset_id, external_transaction_id]
+      properties:
+        campaign_asset_id:
+          type: string
+          format: uuid
+        external_transaction_id:
+          type: string
+          description: DB UNIQUE。同一キーは既存 Claim URL を返す（べき等）。
+        recipient_display_name:
+          type: string
+          nullable: true
+
+    IssueClaimsResponse:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/IssueClaimResultRow"
+
+    IssueClaimResultRow:
+      type: object
+      required: [external_transaction_id, ok]
+      properties:
+        external_transaction_id:
+          type: string
+        ok:
+          type: boolean
+        claim_url:
+          type: string
+          format: uri
+          nullable: true
+        error:
+          type: string
+          nullable: true
+          description: 行単位のエラー（例：403/404 相当のコードと短文）

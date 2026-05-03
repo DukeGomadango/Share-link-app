@@ -22,6 +22,7 @@ export const en: TranslationKeys = {
     campaigns: "Campaigns",
     library: "Library",
     settings: "Settings",
+    integrations: "Integrations",
     version: "v2.0 MVP",
   },
   dashboard: {
@@ -115,6 +116,12 @@ export const en: TranslationKeys = {
       createdAt: "Created",
       type: "Type",
       close: "Close",
+    },
+    new: {
+      title: "Create campaign",
+      subtitle: "Give it a name (direct distribution only in this phase).",
+      nameLabel: "Campaign name",
+      submit: "Create",
     },
   },
   library: {
@@ -217,6 +224,37 @@ export const en: TranslationKeys = {
       emailNote: "Contact support to change your email address.",
       saveChanges: "Save Changes",
     },
+    integrationsLink: {
+      heading: "External integrations",
+      description: "Manage Bearer tokens for tools like the Dango app.",
+      open: "Open integrations",
+    },
+  },
+  integrations: {
+    title: "External integrations (Dango tools)",
+    subtitle: "Issue and revoke integration tokens for this workspace.",
+    backToSettings: "Back to settings",
+    listHeading: "Active tokens",
+    empty: "No integration tokens yet.",
+    labelPlaceholder: "Note (optional)",
+    issueToken: "Issue token",
+    issuedOnce:
+      "This token is shown only once. Copy it and store it securely. Treat it as a secret.",
+    revoke: "Revoke",
+    scopesLine: "Scopes: {scopes}",
+    authorizeTitle: "Approve integration",
+    authorizeSubtitle: "An external app wants to connect. Review and approve.",
+    consentLead: "The Dango tools app requests the following",
+    consentRead: "Read campaigns and file (asset) listings",
+    consentIssue: "Issue recipient claim links",
+    scopesDetail: "Details (machine-readable scopes)",
+    approve: "Approve and continue",
+    deny: "Cancel",
+    missingParams: "client_id or redirect_uri is missing",
+    redirectNote:
+      "After approval, a one-time token is appended to the redirect_uri query string.",
+    clientIdLabel: "Client ID",
+    redirectLabel: "Redirect URI",
   },
   auth: {
     login: {

@@ -140,18 +140,37 @@ export function useCampaigns() {
     setLastSelectedCampaignId(campaignId);
   }, [lastSelectedCampaignId, orderedVisibleCampaigns]);
 
-  const applyBulkStatus = useCallback((status: Campaign["status"]) => {
-    const previousStatuses: Record<string, Campaign["status"]> = {};
-    setCampaigns((prev) =>
-      prev.map((campaign) =>
-        selectedCampaignIds.has(campaign.id)
-          ? ((previousStatuses[campaign.id] = campaign.status), { ...campaign, status })
-          : campaign
-      )
-    );
-    setBulkUndo({ previousStatuses, nextStatus: status });
-    setSelectedCampaignIds(new Set());
-  }, [selectedCampaignIds]);
+  const applyBulkStatus = useCallback(
+    async (status: Campaign["status"]) => {
+      const ids = Array.from(selectedCampaignIds);
+      if (ids.length === 0) return;
+
+      const previousStatuses: Record<string, Campaign["status"]> = {};
+      campaigns.forEach((c) => {
+        if (selectedCampaignIds.has(c.id)) {
+          previousStatuses[c.id] = c.status;
+        }
+      });
+
+      try {
+        const res = await fetch("/api/campaigns/bulk", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids, status }),
+        });
+        if (!res.ok) {
+          throw new Error(`bulk status ${res.status}`);
+        }
+        const data = (await res.json()) as { campaigns: Campaign[] };
+        setCampaigns(data.campaigns);
+        setBulkUndo({ previousStatuses, nextStatus: status });
+        setSelectedCampaignIds(new Set());
+      } catch (e) {
+        console.error(e);
+      }
+    },
+    [campaigns, selectedCampaignIds]
+  );
 
   const undoBulkStatus = useCallback(() => {
     if (!bulkUndo) return;

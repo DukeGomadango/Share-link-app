@@ -20,6 +20,7 @@ export const ja = {
     campaigns: "キャンペーン",
     library: "ライブラリ",
     settings: "設定",
+    integrations: "連携",
     version: "v2.0 MVP",
   },
   dashboard: {
@@ -113,6 +114,12 @@ export const ja = {
       createdAt: "作成日",
       type: "タイプ",
       close: "閉じる",
+    },
+    new: {
+      title: "キャンペーンを作成",
+      subtitle: "名前を付けて作成します（配布はダイレクト配布のみ）。",
+      nameLabel: "キャンペーン名",
+      submit: "作成する",
     },
   },
   library: {
@@ -215,6 +222,36 @@ export const ja = {
       emailNote: "メールアドレスの変更はサポートにお問い合わせください。",
       saveChanges: "変更を保存",
     },
+    integrationsLink: {
+      heading: "外部連携",
+      description: "だんごツールなどとの Bearer 連携トークンを管理します。",
+      open: "連携を開く",
+    },
+  },
+  integrations: {
+    title: "外部連携（だんごツール）",
+    subtitle: "このワークスペース向けの連携トークンを発行・解除できます。",
+    backToSettings: "設定に戻る",
+    listHeading: "発行済みトークン",
+    empty: "連携トークンはまだありません。",
+    labelPlaceholder: "メモ（任意）",
+    issueToken: "トークンを発行",
+    issuedOnce:
+      "このトークンは一度だけ表示されます。コピーして安全に保管してください。機密として扱ってください。",
+    revoke: "解除",
+    scopesLine: "スコープ: {scopes}",
+    authorizeTitle: "連携の確認",
+    authorizeSubtitle: "外部アプリからの連携リクエストです。内容を確認して許可してください。",
+    consentLead: "だんごツールが次の操作を求めています",
+    consentRead: "キャンペーンとファイル（アセット）の一覧を参照する",
+    consentIssue: "受取用リンクを発行する",
+    scopesDetail: "詳細（機械可読スコープ）",
+    approve: "許可して続ける",
+    deny: "キャンセル",
+    missingParams: "client_id または redirect_uri が不足しています",
+    redirectNote: "許可後、指定の redirect_uri にワンタイムトークンがクエリで付与されます。",
+    clientIdLabel: "クライアント ID",
+    redirectLabel: "リダイレクト先",
   },
   auth: {
     login: {

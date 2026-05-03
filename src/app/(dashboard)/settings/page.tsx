@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
@@ -53,6 +54,22 @@ export default function SettingsPage() {
             </div>
             <LanguageToggle />
           </div>
+        </GlassCard>
+      </div>
+
+      <div className="border-t border-border/50 my-8" />
+
+      {/* 外部連携 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1 space-y-2">
+          <h3 className="font-semibold text-lg">{t.settings.integrationsLink.heading}</h3>
+          <p className="text-sm text-muted-foreground">{t.settings.integrationsLink.description}</p>
+        </div>
+        <GlassCard className="md:col-span-2 flex flex-wrap items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">{t.integrations.subtitle}</p>
+          <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shrink-0" asChild>
+            <Link href="/settings/integrations">{t.settings.integrationsLink.open}</Link>
+          </Button>
         </GlassCard>
       </div>
 

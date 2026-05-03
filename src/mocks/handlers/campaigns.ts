@@ -3,11 +3,11 @@ import { http, HttpResponse } from 'msw';
 export const mockCampaigns = [
   {
     id: "camp-1",
-    name: "春の特別ボイスガチャ",
+    name: "春の特別ボイス配布",
     status: "active",
-    type: "gacha",
+    type: "direct",
     createdAt: "2026-04-15T12:00:00Z",
-    stats: { totalFiles: 20, assignedRecipients: 15, openRate: 80.5 }
+    stats: { totalFiles: 20, assignedRecipients: 15, openRate: 80.5 },
   },
   {
     id: "camp-2",
@@ -15,8 +15,8 @@ export const mockCampaigns = [
     status: "draft",
     type: "direct",
     createdAt: "2026-04-18T10:00:00Z",
-    stats: { totalFiles: 5, assignedRecipients: 0, openRate: 0 }
-  }
+    stats: { totalFiles: 5, assignedRecipients: 0, openRate: 0 },
+  },
 ];
 
 export const campaignHandlers = [
