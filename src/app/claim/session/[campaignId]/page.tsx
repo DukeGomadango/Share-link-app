@@ -26,9 +26,9 @@ export default function ClaimSessionByCampaignPage() {
     files: ClaimFile[];
   } | null>(null);
   const [noSession, setNoSession] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [isOpened, setIsOpened] = useState(false);
   const prevPendingRef = useRef<boolean | undefined>(undefined);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchSession = useCallback(async () => {
     if (!campaignId) return;
@@ -88,6 +88,7 @@ export default function ClaimSessionByCampaignPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- マウント時にセッション取得（非同期）
     void fetchSession();
   }, [fetchSession]);
+
 
   useEffect(() => {
     const p = bundle?.pending;

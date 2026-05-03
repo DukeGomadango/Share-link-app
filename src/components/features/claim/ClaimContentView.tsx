@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ClaimContentViewProps {
   files: ClaimFile[];
@@ -127,18 +128,29 @@ export function ClaimContentView({ files, expiryDate, campaignName }: ClaimConte
         onSelectAll={selectAll} 
       />
 
-      {/* ファイル一覧 */}
-      <div className="space-y-10">
-        {files.map((file, index) => (
-          <ClaimFileCard
-            key={file.id}
-            file={file}
-            index={index}
-            isSelected={selectedFileIds.has(file.id)}
-            onToggle={toggleSelection}
-            onDownload={handleDownloadSingle}
-          />
-        ))}
+      {/* ファイル一覧 (Bento Grid) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+        {files.map((file, index) => {
+          // Bentoロジック: 最初のアイテム、または特定のインデックスで横幅を広げる
+          const isLarge = index === 0 && file.type === "image";
+          
+          return (
+            <div 
+              key={file.id} 
+              className={cn(
+                isLarge ? "md:col-span-2 lg:col-span-2" : "col-span-1"
+              )}
+            >
+              <ClaimFileCard
+                file={file}
+                index={index}
+                isSelected={selectedFileIds.has(file.id)}
+                onToggle={toggleSelection}
+                onDownload={handleDownloadSingle}
+              />
+            </div>
+          );
+        })}
       </div>
       
       {/* フッター */}

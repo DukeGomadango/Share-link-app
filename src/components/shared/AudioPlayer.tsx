@@ -57,7 +57,7 @@ export function AudioPlayer({ src, title }: { src: string; title: string }) {
   };
 
   return (
-    <div className="w-full glass p-5 rounded-3xl relative overflow-hidden group">
+    <div className="w-full bg-black/[0.02] border border-black/[0.05] p-5 rounded-3xl relative overflow-hidden group">
       {/* ネオンエフェクト装飾 */}
       <div className={`absolute top-0 left-0 h-1 bg-emerald-500 transition-all duration-300 ease-linear shadow-[0_0_10px_#10B981]`} style={{ width: `${progress}%` }} />
       
