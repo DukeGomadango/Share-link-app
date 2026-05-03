@@ -41,3 +41,13 @@ OAuth／連携同意 UI では **アプリ名＋上記の平易文**のみを既
 - **CORS**: だんごオリジンからの `Authorization` 付きリクエストを明示許可（Step E）。
 - **CSP**: だんご側 `connect-src` に file-share API オリジンを追加（統合フェーズ）。
 - **乱発**: Integration 単位レートを主軸、IP は緩い上限（Step E）。
+
+## 実装メモ（Step E・file-share のみ）
+
+| 項目 | 内容 |
+|------|------|
+| 認証 | `Authorization: Bearer` → `integration_access_tokens.token_hash` に一致する行（SHA-256） |
+| CORS | `EXTERNAL_CORS_ORIGINS`（カンマ区切り）。未設定時は開発用 localhost 系のみ |
+| Idempotency | `integration_idempotency_keys` に JSON レスポンスを保存。キーは `(integration_token_id, route_key, idempotency_key_hash)` |
+| エンドポイント | `GET /api/v1/external/campaigns`、`GET /api/v1/external/campaigns/:campaignId/assets`、`POST /api/v1/external/issue-claims` |
+| 429 / レート | 本リポの Phase 1 では未実装（KV 等で後付け可能） |

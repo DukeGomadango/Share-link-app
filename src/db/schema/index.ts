@@ -1,10 +1,12 @@
 import {
   index,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -109,5 +111,34 @@ export const integrationAccessTokens = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (t) => [index("integration_access_tokens_workspace_id_idx").on(t.workspaceId)]
+  (t) => [
+    index("integration_access_tokens_workspace_id_idx").on(t.workspaceId),
+    uniqueIndex("integration_access_tokens_token_hash_idx").on(t.tokenHash),
+  ]
+);
+
+/** 外部 API `Idempotency-Key` のレスポンスキャッシュ（短 TTL） */
+export const integrationIdempotencyKeys = pgTable(
+  "integration_idempotency_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    integrationTokenId: uuid("integration_token_id")
+      .notNull()
+      .references(() => integrationAccessTokens.id, { onDelete: "cascade" }),
+    routeKey: text("route_key").notNull(),
+    idempotencyKeyHash: text("idempotency_key_hash").notNull(),
+    responseBody: jsonb("response_body").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("integration_idempotency_unique").on(
+      t.integrationTokenId,
+      t.routeKey,
+      t.idempotencyKeyHash
+    ),
+    index("integration_idempotency_expires_at_idx").on(t.expiresAt),
+  ]
 );

@@ -36,6 +36,41 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
 
+  /api/v1/external/campaigns/{campaignId}/assets:
+    get:
+      tags: [campaigns]
+      summary: キャンペーン配下のアセット一覧（`campaigns:read`）
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [campaign_id, assets]
+                properties:
+                  campaign_id:
+                    type: string
+                    format: uuid
+                  assets:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CampaignAssetRow"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: キャンペーン不在または他ワークスペース
+
   /api/v1/external/issue-claims:
     post:
       tags: [claims]
@@ -98,6 +133,25 @@ components:
         status:
           type: string
           enum: [draft, active, archived]
+
+    CampaignAssetRow:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        campaign_id:
+          type: string
+          format: uuid
+        label:
+          type: string
+          nullable: true
+        asset_url:
+          type: string
+        created_at:
+          type: string
+          format: date-time
 
     IssueClaimsRequest:
       type: object
