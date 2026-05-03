@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
 import { Button } from "@/components/ui/button";
+import { Sparkles, Fingerprint, User, MessageSquare, ChevronRight } from "lucide-react";
 
 export default function PublicReceivePage() {
   const params = useParams<{ publicToken: string }>();
@@ -144,89 +145,132 @@ export default function PublicReceivePage() {
   if (!bootReady) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center p-6 bg-gradient-to-b from-background to-muted/30">
-        <p className="text-sm text-muted-foreground">確認中…</p>
+        <p className="text-sm animate-pulse text-muted-foreground">認証情報を確認中…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center p-6 bg-gradient-to-b from-background to-muted/30">
+    <div className="min-h-[100dvh] flex items-center justify-center p-6 relative overflow-hidden bg-[#fafafa]">
+      {/* Premium Texture Overlay */}
+      <div className="fixed inset-0 opacity-[0.02] pointer-events-none z-50 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+      
+      {/* Decorative Gradients */}
+      <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-sky-500/5 blur-[120px] rounded-full pointer-events-none" />
+
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md rounded-3xl border border-border/60 bg-card/80 backdrop-blur-xl p-8 shadow-xl space-y-6"
+        transition={{ type: "spring", damping: 25, stiffness: 120 }}
+        className="w-full max-w-md relative z-10"
       >
-        <div className="space-y-1">
-          <h1 className="text-xl font-bold tracking-tight">受付チェックイン</h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            初回は表示名とメモ（任意）を入力してください。前回すでにこのキャンペーンでパスキー登録済みの場合は、下の「パスキーで続ける」だけで受け取りページへ進めます。
-          </p>
-        </div>
-        <form onSubmit={(e) => void submit(e)} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="recv-name" className="text-sm font-medium">
-              表示名 <span className="text-destructive">*</span>
-            </label>
-            <input
-              id="recv-name"
-              className="w-full rounded-2xl border border-border/60 bg-background px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-              maxLength={200}
-              autoComplete="nickname"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="配布で使う名前"
-            />
+        <div className="rounded-[2.5rem] border border-white bg-white/70 backdrop-blur-3xl p-8 md:p-10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] space-y-8">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-black uppercase tracking-wider">
+              <Sparkles className="w-3 h-3" />
+              Welcome to Gift Station
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-foreground">受付チェックイン</h1>
+            <p className="text-sm text-muted-foreground leading-relaxed font-medium">
+              ライバーがあなたを待っています。<br />
+              受け取りに使う名前を教えてください。
+            </p>
           </div>
-          <div className="space-y-1.5">
-            <label htmlFor="recv-note" className="text-sm font-medium">
-              識別メモ（任意）
-            </label>
-            <input
-              id="recv-note"
-              className="w-full rounded-2xl border border-border/60 bg-background px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-              maxLength={300}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="@ · 通称 など"
-            />
+
+          <form onSubmit={(e) => void submit(e)} className="space-y-6">
+            <div className="space-y-4">
+              <div className="group space-y-2">
+                <label htmlFor="recv-name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1 flex items-center gap-2">
+                  <User className="w-3 h-3" />
+                  表示名 (必須)
+                </label>
+                <div className="relative">
+                  <input
+                    id="recv-name"
+                    className="w-full rounded-2xl border border-black/[0.05] bg-white/50 px-5 py-4 text-sm font-bold outline-none ring-offset-background transition-all placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500/40"
+                    maxLength={200}
+                    autoComplete="nickname"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="ニックネームを入力"
+                  />
+                </div>
+              </div>
+
+              <div className="group space-y-2">
+                <label htmlFor="recv-note" className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1 flex items-center gap-2">
+                  <MessageSquare className="w-3 h-3" />
+                  識別メモ (任意)
+                </label>
+                <input
+                  id="recv-note"
+                  className="w-full rounded-2xl border border-black/[0.05] bg-white/50 px-5 py-4 text-sm font-bold outline-none ring-offset-background transition-all placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500/40"
+                  maxLength={300}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="@TwitterID / 通称など"
+                />
+              </div>
+            </div>
+
+            {error ? (
+              <motion.p 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-xs font-bold text-destructive border border-destructive/20 rounded-2xl px-4 py-3 bg-destructive/5 text-center"
+              >
+                {error}
+              </motion.p>
+            ) : null}
+
+            <Button
+              type="submit"
+              disabled={busy || !displayName.trim()}
+              className="w-full h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-base font-black shadow-xl shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+            >
+              {busy ? "送信中…" : "チェックインして待機へ"}
+            </Button>
+          </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-black/[0.05]" />
+            </div>
+            <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest">
+              <span className="bg-white/80 px-4 text-muted-foreground">or use your passkey</span>
+            </div>
           </div>
-          {error ? (
-            <p className="text-sm text-destructive border border-destructive/30 rounded-xl px-3 py-2 bg-destructive/5">
-              {error}
-            </p>
-          ) : null}
-          <Button
-            type="submit"
-            disabled={busy || !displayName.trim()}
-            className="w-full rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white"
-          >
-            {busy ? "送信中…" : "チェックインして待機へ"}
-          </Button>
-        </form>
-        <div className="border-t border-border/50 pt-5 space-y-2">
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            同じ端末で前回パスキー登録済みなら、認証後にチェックインを省略できます。リスナー用のログイン状態が残っている場合は、ページを開いただけで進むこともあります。
-          </p>
-          {passkeyError ? (
-            <p className="text-xs text-destructive border border-destructive/30 rounded-xl px-3 py-2 bg-destructive/5">
-              {passkeyError}
-            </p>
-          ) : null}
-          {passkeyHint ? (
-            <p className="text-xs text-emerald-600 border border-emerald-500/20 rounded-xl px-3 py-2 bg-emerald-500/5">
-              {passkeyHint}
-            </p>
-          ) : null}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full rounded-2xl"
-            disabled={passkeyBusy}
-            onClick={() => void passkeyLogin()}
-          >
-            {passkeyBusy ? "認証中…" : "パスキーで続ける（チェックイン省略）"}
-          </Button>
+
+          <div className="space-y-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-14 rounded-2xl border-black/[0.05] bg-white/50 text-sm font-bold hover:bg-white hover:border-emerald-500/20 transition-all group"
+              disabled={passkeyBusy}
+              onClick={() => void passkeyLogin()}
+            >
+              <Fingerprint className="w-5 h-5 mr-3 text-emerald-500" />
+              {passkeyBusy ? "認証中…" : "パスキーで続ける"}
+              <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+            </Button>
+
+            {passkeyError ? (
+              <p className="text-[10px] text-destructive text-center font-bold px-4">
+                {passkeyError}
+              </p>
+            ) : null}
+            {passkeyHint ? (
+              <p className="text-[10px] text-emerald-600 text-center font-bold px-4 leading-relaxed">
+                {passkeyHint}
+              </p>
+            ) : null}
+          </div>
         </div>
+
+        <p className="text-center mt-8 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">
+          Powered by Gift Station 2026
+        </p>
       </motion.div>
     </div>
   );
