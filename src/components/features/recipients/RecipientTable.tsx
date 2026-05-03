@@ -28,6 +28,7 @@ interface RecipientTableProps {
   onSelectAll: () => void;
   onSelectRecipient: (id: string) => void;
   onRowClick: (recipient: Recipient) => void;
+  onAssign: (recipient: Recipient) => void;
 }
 
 export function RecipientTable({ 
@@ -35,7 +36,8 @@ export function RecipientTable({
   selectedRecipientIds, 
   onSelectAll, 
   onSelectRecipient, 
-  onRowClick 
+  onRowClick,
+  onAssign
 }: RecipientTableProps) {
   const isAllSelected = recipients.length > 0 && selectedRecipientIds.size === recipients.length;
 
@@ -52,9 +54,8 @@ export function RecipientTable({
             </th>
             <th className="p-5 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">受取人</th>
             <th className="p-5 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">ID / タグ</th>
-            <th className="p-5 text-xs font-bold uppercase tracking-wider text-muted-foreground/70 text-center">ステータス</th>
             <th className="p-5 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">最終更新</th>
-            <th className="p-5 w-12"></th>
+            <th className="p-5 text-right pr-8 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">操作</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/20">
@@ -77,15 +78,35 @@ export function RecipientTable({
                 <td className="p-5">
                   <div className="flex items-center gap-4">
                     <UserAvatar name={recipient.name} size="md" />
-                    <div>
-                      <div className="font-black text-sm text-foreground group-hover:text-emerald-600 transition-colors flex items-center gap-1.5">
-                        {recipient.name}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-black text-sm text-foreground group-hover:text-emerald-600 transition-colors">
+                          {recipient.name}
+                        </span>
                         {recipient.passkeyVerified && (
-                          <Shield className="w-3 h-3 text-sky-500" fill="currentColor" fillOpacity={0.1} />
+                          <Shield className="w-3 h-3 text-sky-500 fill-sky-500/10" />
+                        )}
+                        {recipient.status === "waiting" ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" title="Waiting" />
+                        ) : recipient.status === "verified" ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-sky-500" title="Verified" />
+                        ) : (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Claimed" />
                         )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5 font-medium">
-                        ID: {recipient.id.toUpperCase()}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                          ID: {recipient.id.toUpperCase().slice(0, 8)}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {recipient.status === "waiting" ? (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-amber-500/20 text-amber-600 bg-amber-500/5 font-bold uppercase">Waiting</Badge>
+                          ) : recipient.status === "verified" ? (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-sky-500/20 text-sky-600 bg-sky-500/5 font-bold uppercase">Verified</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-emerald-500/20 text-emerald-600 bg-emerald-500/5 font-bold uppercase">Claimed</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -117,33 +138,7 @@ export function RecipientTable({
                     </div>
                   </div>
                 </td>
-                <td className="p-5">
-                  <div className="flex flex-col items-center">
-                    {recipient.status === "waiting" ? (
-                      <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] font-bold uppercase tracking-widest px-3">
-                        Waiting
-                      </Badge>
-                    ) : recipient.status === "verified" ? (
-                      <Badge className="bg-sky-500/10 text-sky-600 border-sky-500/20 text-[10px] font-bold uppercase tracking-widest px-3">
-                        Verified
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-bold uppercase tracking-widest px-3">
-                        Claimed
-                      </Badge>
-                    )}
-                    
-                    {/* Hover Actions */}
-                    <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] font-bold text-emerald-600 hover:bg-emerald-500/10">
-                        <Plus className="w-3 h-3 mr-1" /> Assign
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] font-bold text-muted-foreground">
-                        <History className="w-3 h-3 mr-1" /> Log
-                      </Button>
-                    </div>
-                  </div>
-                </td>
+
                 <td className="p-5 text-sm text-muted-foreground">
                   <div className="flex flex-col">
                     <span className="text-xs font-medium">{new Date(recipient.updatedAt).toLocaleDateString()}</span>
@@ -151,24 +146,48 @@ export function RecipientTable({
                   </div>
                 </td>
                 <td className="p-5" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreHorizontal className="w-4 h-4" />
+                  <div className="flex items-center justify-end gap-2">
+                    <div className="opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 px-3 text-xs font-bold border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/10 shadow-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAssign(recipient);
+                        }}
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" />
+                        割り当て
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>編集</DropdownMenuItem>
-                      <DropdownMenuItem>タグを編集</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">削除</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </div>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem className="text-xs font-medium">
+                          <History className="w-3.5 h-3.5 mr-2 opacity-60" />
+                          履歴を表示
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-xs font-medium">
+                          編集
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-xs font-medium text-destructive hover:text-destructive hover:bg-destructive/10">
+                          削除
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={6} className="p-20 text-center">
+              <td colSpan={5} className="p-20 text-center">
                 <div className="flex flex-col items-center justify-center space-y-4 opacity-40">
                   <div className="p-4 rounded-full bg-muted">
                     <Users className="w-10 h-10" />

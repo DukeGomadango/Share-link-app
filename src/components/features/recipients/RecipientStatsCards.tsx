@@ -20,6 +20,7 @@ interface RecipientStatsCardsProps {
       verified: { value: string; isUp: boolean };
       claimed: { value: string; isRate: boolean };
     };
+    total: number;
     breakdown: {
       waitingRate: number;
       verifiedRate: number;
@@ -116,23 +117,28 @@ export function RecipientStatsCards({ stats, activeFilter, setActiveFilter }: Re
                 )}>
                   <item.icon className="w-5 h-5" />
                 </div>
-                <div className="flex flex-col items-end">
-                  <span className={cn(
-                    "text-3xl font-black tracking-tighter transition-colors",
-                    isActive ? "" : "text-foreground"
-                  )}>
-                    {item.count}
-                  </span>
-                  {item.trend && (
-                    <div className={cn(
-                      "flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1",
-                      "isRate" in item.trend && item.trend.isRate ? "bg-emerald-500/10 text-emerald-600" : "bg-sky-500/10 text-sky-600"
+                  <div className="flex flex-col items-end">
+                    <span className={cn(
+                      "text-3xl font-black tracking-tighter transition-colors",
+                      isActive ? "" : "text-foreground"
                     )}>
-                      {"isUp" in item.trend && item.trend.isUp && <TrendingUp className="w-2.5 h-2.5 mr-0.5" />}
-                      {item.trend.value}
+                      {item.count}
+                    </span>
+                    <div className="flex flex-col items-end mt-0.5">
+                      <span className="text-[9px] font-bold opacity-60 uppercase tracking-tighter">
+                        {item.count} of {stats.total} total
+                      </span>
+                      {item.trend && (
+                        <div className={cn(
+                          "flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1",
+                          "isRate" in item.trend && item.trend.isRate ? "bg-emerald-500/10 text-emerald-600" : "bg-sky-500/10 text-sky-600"
+                        )}>
+                          {"isUp" in item.trend && item.trend.isUp && <TrendingUp className="w-2.5 h-2.5 mr-0.5" />}
+                          {item.trend.value}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
               </div>
 
               <div className="space-y-1">
@@ -141,7 +147,7 @@ export function RecipientStatsCards({ stats, activeFilter, setActiveFilter }: Re
               </div>
 
               <div className="mt-6 space-y-2">
-                <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden">
+                <div className="h-1 w-full bg-muted/30 rounded-full overflow-hidden">
                   <div 
                     className={cn(
                       "h-full transition-all duration-1000 ease-out rounded-full",

@@ -14,6 +14,7 @@ import { RecipientDetailDrawer } from "@/components/features/recipients/Recipien
 import { RecipientStatsCards } from "@/components/features/recipients/RecipientStatsCards";
 import { RecipientTable } from "@/components/features/recipients/RecipientTable";
 import { RecipientBulkActions } from "@/components/features/recipients/RecipientBulkActions";
+import { QuickAssignModal } from "@/components/features/recipients/QuickAssignModal";
 import type { Recipient } from "@/components/features/campaigns/types";
 import { useState } from "react";
 
@@ -37,6 +38,7 @@ export default function RecipientsPage() {
   } = useRecipients();
   const { t } = useTranslation();
   const [detailRecipient, setDetailRecipient] = useState<Recipient | null>(null);
+  const [assignRecipient, setAssignRecipient] = useState<Recipient | null>(null);
 
   const handleRowClick = (recipient: Recipient) => {
     setDetailRecipient(recipient);
@@ -55,6 +57,17 @@ export default function RecipientsPage() {
   const handleCreateRecipient = () => {
     const newRecipient = addRecipient();
     setDetailRecipient(newRecipient);
+  };
+
+  const handleAssign = (recipient: Recipient) => {
+    setAssignRecipient(recipient);
+  };
+
+  const handleQuickAssign = (recipientId: string, fileId: string) => {
+    // 実際にはここで API を呼び出して紐付けを行う
+    console.log(`Assigning file ${fileId} to recipient ${recipientId}`);
+    window.alert(`受取人 ${recipientId} にファイル ${fileId} を割り当てました。`);
+    setAssignRecipient(null);
   };
 
   return (
@@ -139,6 +152,7 @@ export default function RecipientsPage() {
         onSelectAll={selectAll}
         onSelectRecipient={selectRecipient}
         onRowClick={handleRowClick}
+        onAssign={handleAssign}
       />
 
       {/* Floating Bulk Action Bar */}
@@ -149,7 +163,7 @@ export default function RecipientsPage() {
         onClearSelection={selectAll}
       />
 
-      {/* Drawer */}
+      {/* Detail Drawer */}
       <RecipientDetailDrawer 
         recipient={detailRecipient} 
         isOpen={!!detailRecipient} 
@@ -157,6 +171,14 @@ export default function RecipientsPage() {
         onUpdateTags={updateRecipientTags}
         onUpdateInfo={updateRecipientInfo}
         existingTags={allUniqueTags}
+      />
+
+      {/* Quick Assign Modal */}
+      <QuickAssignModal 
+        recipient={assignRecipient}
+        isOpen={!!assignRecipient}
+        onClose={() => setAssignRecipient(null)}
+        onAssign={handleQuickAssign}
       />
     </div>
   );
