@@ -58,11 +58,18 @@ export const campaigns = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     securityLevel: text("security_level").default("standard").notNull(),
     useOtp: boolean("use_otp").default(false).notNull(),
+    /** `per_link`: 従来の個別URL発行 / `reception`: 共通受付URL＋チェックイン */
+    distributionMode: text("distribution_mode").default("per_link").notNull(),
+    /** `/receive/[token]` 用。公開UUIDより推測されにくいランダムトークン */
+    publicReceptionToken: text("public_reception_token"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
-  (t) => [index("campaigns_workspace_id_idx").on(t.workspaceId)]
+  (t) => [
+    index("campaigns_workspace_id_idx").on(t.workspaceId),
+    uniqueIndex("campaigns_public_reception_token_uidx").on(t.publicReceptionToken),
+  ]
 );
 
 /** ワークスペースのライブラリ実体（Supabase Storage のオブジェクトと 1:1） */
@@ -153,6 +160,8 @@ export const campaignRecipientSlots = pgTable(
     campaignAssetId: uuid("campaign_asset_id")
       .references(() => campaignAssets.id, { onDelete: "set null" }),
     status: text("status").notNull().default("unlinked"), // 'unlinked' | 'ready' | 'issued'
+    listenerDisplayName: text("listener_display_name"),
+    listenerNote: text("listener_note"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -167,9 +176,10 @@ export const claims = pgTable(
   "claims",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    campaignAssetId: uuid("campaign_asset_id")
-      .notNull()
-      .references(() => campaignAssets.id, { onDelete: "restrict" }),
+    /** 受付方式ではファイル未確定の間 null。スロット側の campaign_asset_id と同期させる */
+    campaignAssetId: uuid("campaign_asset_id").references(() => campaignAssets.id, {
+      onDelete: "restrict",
+    }),
     recipientSlotId: uuid("recipient_slot_id")
       .references(() => campaignRecipientSlots.id, { onDelete: "cascade" }),
     externalTransactionId: text("external_transaction_id").notNull().unique(),

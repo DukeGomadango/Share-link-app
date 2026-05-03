@@ -1,10 +1,26 @@
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
 
 import type { Campaign } from "@/components/features/campaigns/types";
 import { getDb } from "@/db";
-import { campaignAssets, campaigns, claims } from "@/db/schema";
+import {
+  campaignAssets,
+  campaignRecipientSlots,
+  campaigns,
+  claims,
+} from "@/db/schema";
 
 import { uiStatusFromDb } from "@/lib/campaign-status";
+
+function mergeCountMaps(
+  a: Map<string, number>,
+  b: Map<string, number>
+): Map<string, number> {
+  const out = new Map(a);
+  for (const [k, v] of b) {
+    out.set(k, (out.get(k) ?? 0) + v);
+  }
+  return out;
+}
 
 export async function fetchCampaignsWithStats(workspaceId: string): Promise<Campaign[]> {
   const db = getDb();
@@ -28,7 +44,7 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
     .where(inArray(campaignAssets.campaignId, ids))
     .groupBy(campaignAssets.campaignId);
 
-  const issuedCounts = await db
+  const issuedViaAssets = await db
     .select({
       campaignId: campaignAssets.campaignId,
       n: count(),
@@ -38,7 +54,25 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
     .where(inArray(campaignAssets.campaignId, ids))
     .groupBy(campaignAssets.campaignId);
 
-  const claimedCounts = await db
+  const issuedViaSlotsOnly = await db
+    .select({
+      campaignId: campaignRecipientSlots.campaignId,
+      n: count(),
+    })
+    .from(claims)
+    .innerJoin(
+      campaignRecipientSlots,
+      eq(claims.recipientSlotId, campaignRecipientSlots.id)
+    )
+    .where(
+      and(
+        inArray(campaignRecipientSlots.campaignId, ids),
+        isNull(claims.campaignAssetId)
+      )
+    )
+    .groupBy(campaignRecipientSlots.campaignId);
+
+  const claimedViaAssets = await db
     .select({
       campaignId: campaignAssets.campaignId,
       n: count(),
@@ -48,9 +82,34 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
     .where(and(inArray(campaignAssets.campaignId, ids), eq(claims.status, "claimed")))
     .groupBy(campaignAssets.campaignId);
 
+  const claimedViaSlotsOnly = await db
+    .select({
+      campaignId: campaignRecipientSlots.campaignId,
+      n: count(),
+    })
+    .from(claims)
+    .innerJoin(
+      campaignRecipientSlots,
+      eq(claims.recipientSlotId, campaignRecipientSlots.id)
+    )
+    .where(
+      and(
+        inArray(campaignRecipientSlots.campaignId, ids),
+        isNull(claims.campaignAssetId),
+        eq(claims.status, "claimed")
+      )
+    )
+    .groupBy(campaignRecipientSlots.campaignId);
+
   const assetMap = new Map(assetCounts.map((r) => [r.campaignId, Number(r.n)]));
-  const issuedMap = new Map(issuedCounts.map((r) => [r.campaignId, Number(r.n)]));
-  const claimedMap = new Map(claimedCounts.map((r) => [r.campaignId, Number(r.n)]));
+  const issuedMap = mergeCountMaps(
+    new Map(issuedViaAssets.map((r) => [r.campaignId, Number(r.n)])),
+    new Map(issuedViaSlotsOnly.map((r) => [r.campaignId, Number(r.n)]))
+  );
+  const claimedMap = mergeCountMaps(
+    new Map(claimedViaAssets.map((r) => [r.campaignId, Number(r.n)])),
+    new Map(claimedViaSlotsOnly.map((r) => [r.campaignId, Number(r.n)]))
+  );
 
   return list.map((row) => {
     const totalFiles = assetMap.get(row.id) ?? 0;
@@ -70,6 +129,8 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
       expiresAt: row.expiresAt?.toISOString(),
       securityLevel: (row.securityLevel as Campaign["securityLevel"]) || "standard",
       useOtp: row.useOtp,
+      distributionMode: (row.distributionMode as Campaign["distributionMode"]) ?? "per_link",
+      publicReceptionToken: row.publicReceptionToken ?? undefined,
       stats: {
         totalFiles,
         assignedRecipients,

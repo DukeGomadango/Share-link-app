@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import { DroppableRecipient } from "@/components/features/campaigns/DroppableRecipient";
 import { Recipient, FileItem } from "@/components/features/campaigns/types";
+import { useState } from "react";
+import { RecipientDetailDrawer } from "@/components/features/recipients/RecipientDetailDrawer";
 
 interface RecipientsSectionProps {
   recipients: Recipient[];
@@ -31,8 +33,11 @@ export function RecipientsSection({
   showPoolEmptyHint = false,
 }: RecipientsSectionProps) {
   const { t } = useTranslation();
+  const [detailRecipient, setDetailRecipient] = useState<Recipient | null>(null);
+
   return (
-    <GlassCard className="flex flex-col overflow-hidden h-full">
+    <>
+      <GlassCard className="flex flex-col overflow-hidden h-full">
       <div className="shrink-0 space-y-2 mb-4 pb-4 border-b border-border/50">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold flex items-center min-w-0">
@@ -83,10 +88,17 @@ export function RecipientsSection({
               onRemoveFile={onRemoveFile}
               successPulse={pulsedRecipientId === recipient.id}
               readOnly={readOnly}
+              onClick={() => setDetailRecipient(recipient)}
             />
           ))
         )}
       </div>
-    </GlassCard>
+      </GlassCard>
+      <RecipientDetailDrawer 
+        recipient={detailRecipient} 
+        isOpen={!!detailRecipient} 
+        onClose={() => setDetailRecipient(null)} 
+      />
+    </>
   );
 }

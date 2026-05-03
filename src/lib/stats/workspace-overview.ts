@@ -1,7 +1,13 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, isNull } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { assets, campaignAssets, campaigns, claims } from "@/db/schema";
+import {
+  assets,
+  campaignAssets,
+  campaignRecipientSlots,
+  campaigns,
+  claims,
+} from "@/db/schema";
 import type { DashboardOverviewStats } from "@/lib/stats/overview";
 
 export async function computeWorkspaceOverviewStats(
@@ -16,14 +22,26 @@ export async function computeWorkspaceOverviewStats(
 
   const activeCampaigns = Number(activeRow?.n ?? 0);
 
-  const [issuedRow] = await db
+  const [issuedAssetsRow] = await db
     .select({ n: count() })
     .from(claims)
     .innerJoin(campaignAssets, eq(claims.campaignAssetId, campaignAssets.id))
     .innerJoin(campaigns, eq(campaignAssets.campaignId, campaigns.id))
     .where(eq(campaigns.workspaceId, workspaceId));
 
-  const [claimedRow] = await db
+  const [issuedSlotsRow] = await db
+    .select({ n: count() })
+    .from(claims)
+    .innerJoin(
+      campaignRecipientSlots,
+      eq(claims.recipientSlotId, campaignRecipientSlots.id)
+    )
+    .innerJoin(campaigns, eq(campaignRecipientSlots.campaignId, campaigns.id))
+    .where(
+      and(eq(campaigns.workspaceId, workspaceId), isNull(claims.campaignAssetId))
+    );
+
+  const [claimedAssetsRow] = await db
     .select({ n: count() })
     .from(claims)
     .innerJoin(campaignAssets, eq(claims.campaignAssetId, campaignAssets.id))
@@ -32,8 +50,26 @@ export async function computeWorkspaceOverviewStats(
       and(eq(campaigns.workspaceId, workspaceId), eq(claims.status, "claimed"))
     );
 
-  const totalDistributed = Number(issuedRow?.n ?? 0);
-  const claimed = Number(claimedRow?.n ?? 0);
+  const [claimedSlotsRow] = await db
+    .select({ n: count() })
+    .from(claims)
+    .innerJoin(
+      campaignRecipientSlots,
+      eq(claims.recipientSlotId, campaignRecipientSlots.id)
+    )
+    .innerJoin(campaigns, eq(campaignRecipientSlots.campaignId, campaigns.id))
+    .where(
+      and(
+        eq(campaigns.workspaceId, workspaceId),
+        isNull(claims.campaignAssetId),
+        eq(claims.status, "claimed")
+      )
+    );
+
+  const totalDistributed =
+    Number(issuedAssetsRow?.n ?? 0) + Number(issuedSlotsRow?.n ?? 0);
+  const claimed =
+    Number(claimedAssetsRow?.n ?? 0) + Number(claimedSlotsRow?.n ?? 0);
   const openRate =
     totalDistributed === 0
       ? 0

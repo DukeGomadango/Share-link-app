@@ -22,6 +22,7 @@ export const ja = {
     library: "ライブラリ",
     recipients: "受取人管理",
     integrations: "連携",
+    settings: "設定",
     version: "v2.0 MVP",
   },
   dashboard: {

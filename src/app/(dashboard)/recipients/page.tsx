@@ -25,6 +25,9 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { RecipientDetailDrawer } from "@/components/features/recipients/RecipientDetailDrawer";
+import type { Recipient } from "@/components/features/campaigns/types";
+import { useState } from "react";
 
 export default function RecipientsPage() {
   const { 
@@ -39,6 +42,11 @@ export default function RecipientsPage() {
     deleteSelected
   } = useRecipients();
   const { t } = useTranslation();
+  const [detailRecipient, setDetailRecipient] = useState<Recipient | null>(null);
+
+  const handleRowClick = (recipient: Recipient) => {
+    setDetailRecipient(recipient);
+  };
 
   return (
     <div className="space-y-6 relative pb-24">
@@ -149,7 +157,7 @@ export default function RecipientsPage() {
                     "group hover:bg-emerald-500/[0.02] transition-all cursor-pointer",
                     selectedRecipientIds.has(recipient.id) ? 'bg-emerald-500/5' : ''
                   )}
-                  onClick={() => selectRecipient(recipient.id)}
+                  onClick={() => handleRowClick(recipient)}
                 >
                   <td className="p-5" onClick={(e) => e.stopPropagation()}>
                     <Checkbox 
@@ -286,6 +294,12 @@ export default function RecipientsPage() {
           </div>
         </div>
       )}
+      {/* Drawer */}
+      <RecipientDetailDrawer 
+        recipient={detailRecipient} 
+        isOpen={!!detailRecipient} 
+        onClose={() => setDetailRecipient(null)} 
+      />
     </div>
   );
 }

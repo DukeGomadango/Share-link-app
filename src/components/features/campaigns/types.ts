@@ -5,14 +5,22 @@ export type FileItem = {
   previewUrl?: string;
 };
 
-export type Recipient = {
+export type WorkflowRecipient = {
   id: string;
   name: string;
   email?: string;
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  /** 受付チェックイン時の識別用メモ */
+  listenerNote?: string;
+  assignedFileIds?: string[];
+  link?: string;
+  claimSecret?: string;
 };
+
+/** @deprecated WorkflowRecipient を優先（後方互換の別名） */
+export type Recipient = WorkflowRecipient;
 
 export type SlotStatus = "unlinked" | "ready" | "issued";
 
@@ -36,6 +44,8 @@ export type LibraryFile = {
   linkedCampaigns: string[];
 };
 
+export type DistributionMode = "per_link" | "reception";
+
 export interface Campaign {
   id: string;
   name: string;
@@ -47,12 +57,16 @@ export interface Campaign {
   expiresAt?: string;
   securityLevel: "standard" | "high" | "paranoid";
   useOtp: boolean;
+  /** `reception` のとき共通受付 URL（チェックイン）を使う */
+  distributionMode?: DistributionMode;
+  /** 受付ページ `/receive/[token]` 用（サーバが初回アクセス時に生成することあり） */
+  publicReceptionToken?: string;
   stats: {
     totalFiles: number;
     assignedRecipients: number;
     openRate: number;
   };
-  slots?: CampaignRecipientSlot[]; // Added slots for campaign detail
+  slots?: CampaignRecipientSlot[];
 }
 
 export type QuickFilter = "all" | "needsAttention" | "dueSoon" | Campaign["status"];

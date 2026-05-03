@@ -2,11 +2,13 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { createSignedReadUrl } from "@/lib/assets/signed-urls";
+import { fetchWorkflowRecipientsForCampaign } from "@/lib/claims/workflow-recipients";
+import { ensurePublicReceptionToken } from "@/lib/campaigns/public-reception-token";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { fetchCampaignWithStats } from "@/lib/campaigns-query";
 import { getDb } from "@/db";
-import { assets as libraryAssets, campaignAssets, campaigns, claims } from "@/db/schema";
-import type { Campaign, FileItem, Recipient } from "@/components/features/campaigns/types";
+import { assets as libraryAssets, campaignAssets, campaigns } from "@/db/schema";
+import type { Campaign, FileItem } from "@/components/features/campaigns/types";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -28,7 +30,10 @@ export async function GET(_request: Request, ctx: RouteParams) {
   const db = getDb();
 
   const owned = await db
-    .select({ id: campaigns.id })
+    .select({
+      id: campaigns.id,
+      distributionMode: campaigns.distributionMode,
+    })
     .from(campaigns)
     .where(
       and(eq(campaigns.id, campaignId), eq(campaigns.workspaceId, session.workspaceId))
@@ -46,6 +51,8 @@ export async function GET(_request: Request, ctx: RouteParams) {
   if (!campaign) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  const publicReceptionToken = await ensurePublicReceptionToken(campaignId);
 
   const assetRows = await db
     .select({
@@ -81,25 +88,32 @@ export async function GET(_request: Request, ctx: RouteParams) {
     })
   );
 
-  const claimRows = await db
-    .select({
-      claim: claims,
-      campaignAssetId: campaignAssets.id,
-    })
-    .from(claims)
-    .innerJoin(campaignAssets, eq(claims.campaignAssetId, campaignAssets.id))
-    .where(eq(campaignAssets.campaignId, campaignId));
+  const wfRows = await fetchWorkflowRecipientsForCampaign(campaignId, session.workspaceId);
 
-  const recipients: Recipient[] = claimRows.map((row) => ({
-    id: row.claim.id,
-    name: row.claim.recipientDisplayName?.trim() || "（無名）",
+  const distributionMode = owned[0].distributionMode ?? "per_link";
+
+  const recipients = wfRows.map((row) => ({
+    id: row.claimId,
+    name: row.recipientDisplayName ?? "（無名）",
+    listenerNote: row.listenerNote ?? undefined,
     email: "",
-    assignedFileIds: [row.campaignAssetId],
-    link: `/claim/${encodeURIComponent(row.claim.claimSecret)}`,
+    tags: [] as string[],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    assignedFileIds: row.effectiveCampaignAssetId ? [row.effectiveCampaignAssetId] : [],
+    link:
+      distributionMode === "reception"
+        ? undefined
+        : `/claim/${encodeURIComponent(row.claimSecret)}`,
+    claimSecret: row.claimSecret,
   }));
 
   return NextResponse.json({
-    campaign,
+    campaign: {
+      ...campaign,
+      distributionMode,
+      publicReceptionToken,
+    },
     poolFiles,
     recipients,
   });

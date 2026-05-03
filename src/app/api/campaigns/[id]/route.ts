@@ -31,25 +31,48 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   const { id } = await params;
 
-  let body: { status?: string };
+  let body: {
+    status?: string;
+    distributionMode?: string;
+  };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const raw = body.status;
-  if (raw !== "draft" && raw !== "active" && raw !== "completed") {
-    return NextResponse.json({ error: "status が不正です" }, { status: 400 });
+  const db = getDb();
+
+  type Patch = {
+    status?: (typeof campaigns.$inferSelect)["status"];
+    distributionMode?: string;
+  };
+  const patch: Patch = {};
+
+  if (body.status !== undefined) {
+    const raw = body.status;
+    if (raw !== "draft" && raw !== "active" && raw !== "completed") {
+      return NextResponse.json({ error: "status が不正です" }, { status: 400 });
+    }
+    patch.status = dbStatusFromUi(raw);
   }
 
-  const db = getDb();
+  if (body.distributionMode !== undefined) {
+    const m = body.distributionMode;
+    if (m !== "per_link" && m !== "reception") {
+      return NextResponse.json({ error: "distributionMode が不正です" }, { status: 400 });
+    }
+    patch.distributionMode = m;
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return NextResponse.json({ error: "更新項目がありません" }, { status: 400 });
+  }
+
   const updated = await db
     .update(campaigns)
-    .set({ status: dbStatusFromUi(raw) })
-    .where(
-      and(eq(campaigns.workspaceId, ctx.workspaceId), eq(campaigns.id, id))
-    )
+    .set(patch as Record<string, unknown>)
+    .where(and(eq(campaigns.workspaceId, ctx.workspaceId), eq(campaigns.id, id)))
     .returning({ id: campaigns.id });
 
   if (!updated[0]) {

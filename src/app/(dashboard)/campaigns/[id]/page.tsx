@@ -150,6 +150,45 @@ export default function CampaignDetailPage() {
           <h1 className="text-3xl font-bold tracking-tight">
             {workflowLoading ? "…" : campaign?.name ?? t.campaigns.campaignFlow}
           </h1>
+          {!workflowLoading && campaign && campaignId ? (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">配布方式</span>
+              <select
+                className="rounded-lg border border-border/60 bg-background/80 px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                value={campaign.distributionMode ?? "per_link"}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  void (async () => {
+                    const r = await fetch(`/api/campaigns/${campaignId}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ distributionMode: v }),
+                    });
+                    if (r.ok) await reloadWorkflow();
+                  })();
+                }}
+              >
+                <option value="per_link">個別リンク（従来）</option>
+                <option value="reception">共通受付（チェックイン）</option>
+              </select>
+              {campaign.distributionMode === "reception" &&
+              campaign.publicReceptionToken ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => {
+                    const u = `${window.location.origin}/receive/${campaign.publicReceptionToken}`;
+                    void navigator.clipboard.writeText(u);
+                    setBanner({ tone: "ok", text: "受付URLをコピーしました" });
+                  }}
+                >
+                  受付URLをコピー
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <div className="flex space-x-3">
           <Button
@@ -211,7 +250,7 @@ export default function CampaignDetailPage() {
               files={files}
               pulsedRecipientId={pulsedRecipientId}
               onRemoveFile={handleRemoveFile}
-              readOnly
+              readOnly={campaign?.distributionMode !== "reception"}
               onAddRecipients={() => {
                 setAddRecipientResetKey((k) => k + 1);
                 setAddRecipientOpen(true);

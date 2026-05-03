@@ -24,6 +24,7 @@ export function AddRecipientModal({
 }: AddRecipientModalProps) {
   const { t } = useTranslation();
   const [recipientName, setRecipientName] = useState("");
+  const [listenerNote, setListenerNote] = useState("");
   const [campaignAssetId, setCampaignAssetId] = useState(""); // Empty by default
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +48,7 @@ export function AddRecipientModal({
         body: JSON.stringify({
           campaignAssetId: campaignAssetId || null,
           recipientDisplayName: name,
+          listenerNote: listenerNote.trim() || null,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
@@ -114,6 +116,19 @@ export function AddRecipientModal({
                 value={recipientName}
                 onChange={(e) => setRecipientName(e.target.value)}
                 placeholder="リスナーの名前を入力..."
+                className="w-full rounded-2xl border border-border/60 bg-background/50 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-all"
+              />
+              <label htmlFor="add-recipient-note" className="text-sm font-semibold ml-1 mt-4 block">
+                識別用メモ（任意）
+              </label>
+              <input
+                id="add-recipient-note"
+                type="text"
+                autoComplete="off"
+                maxLength={300}
+                value={listenerNote}
+                onChange={(e) => setListenerNote(e.target.value)}
+                placeholder="@や通称など、同名との区別に使うメモ"
                 className="w-full rounded-2xl border border-border/60 bg-background/50 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-all"
               />
             </div>

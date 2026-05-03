@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Recipient, FileItem } from "./types";
 import { useTranslation } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 interface DroppableRecipientProps {
   recipient: Recipient;
@@ -17,6 +18,7 @@ interface DroppableRecipientProps {
   successPulse?: boolean;
   /** DB 上の発行済み Claim 行はドロップで変更できない */
   readOnly?: boolean;
+  onClick?: () => void;
 }
 
 export function DroppableRecipient({
@@ -25,6 +27,7 @@ export function DroppableRecipient({
   onRemoveFile,
   successPulse = false,
   readOnly = false,
+  onClick,
 }: DroppableRecipientProps) {
   const { t } = useTranslation();
   const { isOver, setNodeRef } = useDroppable({
@@ -65,10 +68,13 @@ export function DroppableRecipient({
                 "0 0 0 rgba(16,185,129,0)",
               ],
             }
-          : undefined
+          : { scale: 1 }
       }
+      whileHover={{ scale: 1.01 }}
+      onClick={onClick}
       transition={{ duration: 0.42, ease: "easeOut" }}
-      className={`p-4 rounded-2xl border transition-all relative group/card ${
+      className={cn(
+        `p-4 rounded-2xl border transition-all relative group/card cursor-pointer`,
         isOver
           ? "border-emerald-500 bg-emerald-500/10 scale-[1.02] shadow-emerald-500/20 shadow-lg"
           : successPulse
@@ -76,7 +82,7 @@ export function DroppableRecipient({
           : isUnlinked
           ? "border-amber-500/30 border-dashed bg-amber-500/5 hover:border-amber-500/50"
           : "border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50"
-      }`}
+      )}
     >
       <div className="flex justify-between items-start mb-3">
         <div className="min-w-0">
@@ -96,7 +102,15 @@ export function DroppableRecipient({
               </Badge>
             )}
           </div>
-          <p className="text-[11px] text-muted-foreground truncate opacity-70">{(recipient as any).email || "メール未設定"}</p>
+          {"listenerNote" in recipient && (recipient as { listenerNote?: string }).listenerNote ? (
+            <p className="text-[11px] text-muted-foreground line-clamp-2 opacity-80">
+              {(recipient as { listenerNote?: string }).listenerNote}
+            </p>
+          ) : (
+            <p className="text-[11px] text-muted-foreground truncate opacity-70">
+              {(recipient as { email?: string }).email || "メール未設定"}
+            </p>
+          )}
         </div>
         
         {recipient.link && (
