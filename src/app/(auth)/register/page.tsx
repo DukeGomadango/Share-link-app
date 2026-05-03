@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Gift } from "lucide-react";
+import { getAuthCallbackUrl } from "@/lib/auth/callback-url";
+import { sendRegisterOtp } from "@/lib/auth/email-otp";
 import { useTranslation } from "@/lib/i18n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -13,9 +16,10 @@ export default function RegisterPage() {
   const { t } = useTranslation();
   const router = useRouter();
 
+  const [step, setStep] = useState<"email" | "otp">("email");
   const [creatorName, setCreatorName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,10 +30,16 @@ export default function RegisterPage() {
     typeof process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY === "string" &&
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.length > 0;
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const nextPath = "/dashboard";
+
+  async function sendCode() {
     if (!configured) {
       setError("Supabase の環境変数が未設定です。.env.local を確認してください。");
+      return;
+    }
+    const name = creatorName.trim();
+    if (!name) {
+      setError(t.auth.register.creatorNameRequired);
       return;
     }
     setLoading(true);
@@ -37,26 +47,45 @@ export default function RegisterPage() {
     setInfo(null);
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data, error: err } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            display_name: creatorName.trim(),
-          },
-        },
+      const redirectTo = getAuthCallbackUrl(nextPath);
+      const { error: err } = await sendRegisterOtp(supabase, email.trim(), name, redirectTo);
+      if (err) {
+        throw err;
+      }
+      setStep("otp");
+      setInfo(t.auth.otp.sent);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "コードの送信に失敗しました");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleSendCode(e: React.FormEvent) {
+    e.preventDefault();
+    void sendCode();
+  }
+
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    if (!configured) {
+      setError("Supabase の環境変数が未設定です。.env.local を確認してください。");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error: err } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otp.trim(),
+        type: "email",
       });
       if (err) {
         throw err;
       }
-      if (data.session) {
-        router.push("/dashboard");
-        router.refresh();
-      } else {
-        setInfo(
-          "確認メールを送信しました。メール内のリンクから登録を完了してください。"
-        );
-      }
+      router.push(nextPath);
+      router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "登録に失敗しました");
     } finally {
@@ -86,67 +115,129 @@ export default function RegisterPage() {
           </p>
         ) : null}
 
-        <form className="space-y-5" onSubmit={onSubmit}>
-          {error ? (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          ) : null}
-          {info ? (
-            <p className="text-sm text-emerald-600 dark:text-emerald-400" role="status">
-              {info}
-            </p>
-          ) : null}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              {t.auth.register.creatorName}
-            </label>
-            <input
-              type="text"
-              value={creatorName}
-              onChange={(e) => setCreatorName(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-border/80 bg-background/50 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow"
-              placeholder={t.auth.register.creatorNamePlaceholder}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">{t.auth.register.email}</label>
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 border border-border/80 bg-background/50 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow"
-              placeholder="creater@example.com"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              {t.auth.register.password}
-            </label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full px-4 py-2 border border-border/80 bg-background/50 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow"
-              placeholder="••••••••"
-            />
-          </div>
-          <div className="pt-2">
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 rounded-full"
-            >
-              {loading ? t.common.loading : t.auth.register.signUp}
-            </Button>
-          </div>
-        </form>
+        {step === "email" ? (
+          <>
+            <SocialAuthButtons nextPath={nextPath} disabled={!configured || loading} />
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border/60" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">{t.auth.otp.or}</span>
+              </div>
+            </div>
+
+            <form className="space-y-5" onSubmit={handleSendCode}>
+              {error ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              {info ? (
+                <p className="text-sm text-emerald-600 dark:text-emerald-400" role="status">
+                  {info}
+                </p>
+              ) : null}
+              <p className="text-xs text-muted-foreground">{t.auth.register.emailHint}</p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  {t.auth.register.creatorName}
+                </label>
+                <input
+                  type="text"
+                  value={creatorName}
+                  onChange={(e) => setCreatorName(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-border/80 bg-background/50 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow"
+                  placeholder={t.auth.register.creatorNamePlaceholder}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">{t.auth.register.email}</label>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-border/80 bg-background/50 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow"
+                  placeholder="creater@example.com"
+                />
+              </div>
+              <div className="pt-2">
+                <Button
+                  type="submit"
+                  disabled={loading || !configured}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 rounded-full"
+                >
+                  {loading ? t.common.loading : t.auth.otp.sendCode}
+                </Button>
+              </div>
+            </form>
+          </>
+        ) : (
+          <form className="space-y-5" onSubmit={handleVerifyOtp}>
+            {error ? (
+              <p className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
+            ) : null}
+            {info ? (
+              <p className="text-sm text-emerald-600 dark:text-emerald-400" role="status">
+                {info}
+              </p>
+            ) : null}
+            <p className="text-sm text-muted-foreground">{t.auth.otp.hint}</p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">{t.auth.otp.codeLabel}</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                required
+                className="w-full px-4 py-2 border border-border/80 bg-background/50 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-shadow tracking-widest text-center text-lg"
+                placeholder={t.auth.otp.codePlaceholder}
+              />
+            </div>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                type="submit"
+                disabled={loading || otp.trim().length < 6}
+                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 rounded-full"
+              >
+                {loading ? t.common.loading : t.auth.otp.verifyRegister}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-sm"
+                disabled={loading}
+                onClick={() => {
+                  setStep("email");
+                  setOtp("");
+                  setError(null);
+                  setInfo(null);
+                }}
+              >
+                {t.auth.otp.changeEmail}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full text-sm rounded-full"
+                disabled={loading || !configured}
+                onClick={() => void sendCode()}
+              >
+                {loading ? t.common.loading : t.auth.otp.resend}
+              </Button>
+            </div>
+          </form>
+        )}
 
         <p className="text-center text-sm text-muted-foreground mt-8">
           {t.auth.register.alreadyHaveAccount}{" "}
