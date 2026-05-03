@@ -46,6 +46,7 @@ export default function CampaignsPage() {
     selectCampaignWithRange,
     selectAll,
     formatDate,
+    isNeedsAttention,
     isDueSoon,
     allTags,
     selectedTag,

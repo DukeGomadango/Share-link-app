@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   jsonb,
   pgEnum,
@@ -55,7 +56,7 @@ export const campaigns = pgTable(
     status: campaignStatusEnum("status").default("draft").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     securityLevel: text("security_level").default("standard").notNull(),
-    useOtp: text("use_otp").default("false").notNull(), // text for simplicity if boolean issues, but let's try boolean
+    useOtp: boolean("use_otp").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

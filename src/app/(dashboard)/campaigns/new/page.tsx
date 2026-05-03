@@ -198,10 +198,14 @@ export default function NewCampaignPage() {
                       </div>
                       <div className="flex flex-wrap gap-2 mt-3">
                         {formData.tags.map(tag => (
-                          <span key={tag} className="flex items-center px-3 py-1 bg-emerald-500/10 text-emerald-600 rounded-full text-xs font-semibold border border-emerald-500/20 animate-in zoom-in duration-200">
+                          <span key={tag} className="flex items-center pl-3 pr-1 py-1 bg-emerald-500/10 text-emerald-600 rounded-full text-xs font-semibold border border-emerald-500/20 animate-in zoom-in duration-200">
                             {tag}
-                            <button onClick={() => removeTag(tag)} className="ml-1.5 hover:text-emerald-800 transition-colors">
-                              <Plus className="w-3 h-3 rotate-45" />
+                            <button 
+                              onClick={() => removeTag(tag)} 
+                              className="ml-1 p-1 hover:bg-emerald-500/20 rounded-full transition-colors group/tag"
+                              aria-label={`Remove ${tag}`}
+                            >
+                              <Plus className="w-3.5 h-3.5 rotate-45 text-emerald-600/70 group-hover/tag:text-emerald-600" />
                             </button>
                           </span>
                         ))}

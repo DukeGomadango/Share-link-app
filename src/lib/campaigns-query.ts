@@ -68,8 +68,8 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
       type: "direct",
       createdAt: row.createdAt.toISOString(),
       expiresAt: row.expiresAt?.toISOString(),
-      securityLevel: row.securityLevel as Campaign["securityLevel"],
-      useOtp: row.useOtp === "true",
+      securityLevel: (row.securityLevel as Campaign["securityLevel"]) || "standard",
+      useOtp: row.useOtp,
       stats: {
         totalFiles,
         assignedRecipients,

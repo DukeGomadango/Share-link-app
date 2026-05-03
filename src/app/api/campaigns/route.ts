@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       status: "draft",
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
       securityLevel: body.securityLevel ?? "standard",
-      useOtp: body.useOtp ? "true" : "false",
+      useOtp: body.useOtp ?? false,
     })
     .returning();
 
