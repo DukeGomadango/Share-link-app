@@ -66,7 +66,7 @@ export async function POST(request: Request, ctx: RouteParams) {
     session.workspaceId,
     [
       {
-        campaign_asset_id: campaignAssetId,
+        campaign_asset_ids: [campaignAssetId],
         external_transaction_id,
         recipient_display_name: recipientDisplayName,
       },

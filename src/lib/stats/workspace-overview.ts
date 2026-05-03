@@ -22,54 +22,20 @@ export async function computeWorkspaceOverviewStats(
 
   const activeCampaigns = Number(activeRow?.n ?? 0);
 
-  const [issuedAssetsRow] = await db
+  const [issuedRow] = await db
     .select({ n: count() })
     .from(claims)
-    .innerJoin(campaignAssets, eq(claims.campaignAssetId, campaignAssets.id))
-    .innerJoin(campaigns, eq(campaignAssets.campaignId, campaigns.id))
+    .innerJoin(campaigns, eq(claims.campaignId, campaigns.id))
     .where(eq(campaigns.workspaceId, workspaceId));
 
-  const [issuedSlotsRow] = await db
+  const [claimedRow] = await db
     .select({ n: count() })
     .from(claims)
-    .innerJoin(
-      campaignRecipientSlots,
-      eq(claims.recipientSlotId, campaignRecipientSlots.id)
-    )
-    .innerJoin(campaigns, eq(campaignRecipientSlots.campaignId, campaigns.id))
-    .where(
-      and(eq(campaigns.workspaceId, workspaceId), isNull(claims.campaignAssetId))
-    );
+    .innerJoin(campaigns, eq(claims.campaignId, campaigns.id))
+    .where(and(eq(campaigns.workspaceId, workspaceId), eq(claims.status, "claimed")));
 
-  const [claimedAssetsRow] = await db
-    .select({ n: count() })
-    .from(claims)
-    .innerJoin(campaignAssets, eq(claims.campaignAssetId, campaignAssets.id))
-    .innerJoin(campaigns, eq(campaignAssets.campaignId, campaigns.id))
-    .where(
-      and(eq(campaigns.workspaceId, workspaceId), eq(claims.status, "claimed"))
-    );
-
-  const [claimedSlotsRow] = await db
-    .select({ n: count() })
-    .from(claims)
-    .innerJoin(
-      campaignRecipientSlots,
-      eq(claims.recipientSlotId, campaignRecipientSlots.id)
-    )
-    .innerJoin(campaigns, eq(campaignRecipientSlots.campaignId, campaigns.id))
-    .where(
-      and(
-        eq(campaigns.workspaceId, workspaceId),
-        isNull(claims.campaignAssetId),
-        eq(claims.status, "claimed")
-      )
-    );
-
-  const totalDistributed =
-    Number(issuedAssetsRow?.n ?? 0) + Number(issuedSlotsRow?.n ?? 0);
-  const claimed =
-    Number(claimedAssetsRow?.n ?? 0) + Number(claimedSlotsRow?.n ?? 0);
+  const totalDistributed = Number(issuedRow?.n ?? 0);
+  const claimed = Number(claimedRow?.n ?? 0);
   const openRate =
     totalDistributed === 0
       ? 0

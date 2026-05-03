@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Link as LinkIcon, Download, FileAudio, FileImage } from "lucide-react";
+import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
@@ -16,6 +16,7 @@ import { RecipientsSection } from "@/components/features/campaigns/RecipientsSec
 
 import { useTranslation } from "@/lib/i18n";
 import { escapeCsvField } from "@/lib/csv";
+import { cn } from "@/lib/utils";
 
 export default function CampaignDetailPage() {
   const { t } = useTranslation();
@@ -49,6 +50,33 @@ export default function CampaignDetailPage() {
   const [banner, setBanner] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [addRecipientOpen, setAddRecipientOpen] = useState(false);
   const [addRecipientResetKey, setAddRecipientResetKey] = useState(0);
+  const [statusBusy, setStatusBusy] = useState(false);
+
+  const handleUpdateStatus = useCallback(
+    async (newStatus: "active" | "completed") => {
+      if (!campaignId) return;
+      setStatusBusy(true);
+      setBanner(null);
+      try {
+        const r = await fetch(`/api/campaigns/${campaignId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        });
+        if (!r.ok) throw new Error();
+        await reloadWorkflow();
+        setBanner({
+          tone: "ok",
+          text: newStatus === "active" ? "キャンペーンを公開しました" : "キャンペーンを終了しました",
+        });
+      } catch {
+        setBanner({ tone: "err", text: "ステータスの更新に失敗しました" });
+      } finally {
+        setStatusBusy(false);
+      }
+    },
+    [campaignId, reloadWorkflow]
+  );
 
   const handleExportCsv = useCallback(async () => {
     if (!campaignId) return;
@@ -147,9 +175,25 @@ export default function CampaignDetailPage() {
             <span>•</span>
             <span className="text-muted-foreground font-mono text-xs">{campaign?.id ?? "…"}</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {workflowLoading ? "…" : campaign?.name ?? t.campaigns.campaignFlow}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {workflowLoading ? "…" : campaign?.name ?? t.campaigns.campaignFlow}
+            </h1>
+            {!workflowLoading && campaign && (
+              <span
+                className={cn(
+                  "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                  campaign.status === "active"
+                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                    : campaign.status === "completed"
+                    ? "bg-slate-500/10 text-slate-500 border-slate-500/20"
+                    : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                )}
+              >
+                {t.campaigns.status[campaign.status]}
+              </span>
+            )}
+          </div>
           {!workflowLoading && campaign && campaignId ? (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted-foreground">配布方式</span>
@@ -178,11 +222,13 @@ export default function CampaignDetailPage() {
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs"
+                  disabled={campaign.status !== "active"}
                   onClick={() => {
                     const u = `${window.location.origin}/receive/${campaign.publicReceptionToken}`;
                     void navigator.clipboard.writeText(u);
                     setBanner({ tone: "ok", text: "受付URLをコピーしました" });
                   }}
+                  title={campaign.status !== "active" ? "公開するとコピーできるようになります" : ""}
                 >
                   受付URLをコピー
                 </Button>
@@ -191,6 +237,41 @@ export default function CampaignDetailPage() {
           ) : null}
         </div>
         <div className="flex space-x-3">
+          <Button
+            className={cn(
+              "shadow-lg transition-all",
+              campaign?.status === "draft"
+                ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20"
+                : "bg-slate-200 hover:bg-slate-300 text-slate-900 shadow-slate-200/20"
+            )}
+            disabled={workflowLoading || !campaignId || statusBusy}
+            onClick={() => {
+              if (campaign?.status === "draft") {
+                void handleUpdateStatus("active");
+              } else if (campaign?.status === "active") {
+                if (confirm("キャンペーンを終了しますか？終了するとリスナーはアクセスできなくなります。")) {
+                  void handleUpdateStatus("completed");
+                }
+              } else if (campaign?.status === "completed") {
+                if (confirm("キャンペーンを再開しますか？")) {
+                  void handleUpdateStatus("active");
+                }
+              }
+            }}
+          >
+            {statusBusy ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+            ) : campaign?.status === "active" ? (
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2" />
+            ) : (
+              <Megaphone className="w-4 h-4 mr-2" />
+            )}
+            {campaign?.status === "active"
+              ? "公開中（終了する）"
+              : campaign?.status === "completed"
+              ? "終了済み（再開する）"
+              : "キャンペーンを公開する"}
+          </Button>
           <Button
             variant="outline"
             className="glass"
@@ -201,8 +282,9 @@ export default function CampaignDetailPage() {
             {exportBusy ? t.campaigns.exporting : t.campaigns.exportLinks}
           </Button>
           <Button
-            className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20 shadow-lg"
-            disabled={workflowLoading || !campaignId || bulkBusy || files.length === 0}
+            variant="outline"
+            className="glass"
+            disabled={workflowLoading || !campaignId || bulkBusy || files.length === 0 || campaign?.status !== "active"}
             onClick={() => void handleBulkIssue()}
           >
             <LinkIcon className="w-4 h-4 mr-2" />
@@ -255,8 +337,9 @@ export default function CampaignDetailPage() {
                 setAddRecipientResetKey((k) => k + 1);
                 setAddRecipientOpen(true);
               }}
-              addRecipientsDisabled={workflowLoading}
+              addRecipientsDisabled={workflowLoading || campaign?.status !== "active"}
               showPoolEmptyHint={!workflowLoading && files.length === 0}
+              isDraft={campaign?.status === "draft"}
             />
           </div>
 

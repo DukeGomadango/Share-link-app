@@ -16,23 +16,11 @@ export async function getCampaignIdForClaimSecret(
   const db = getDb();
   const rows = await db
     .select({
-      claim: claims,
-      slot: campaignRecipientSlots,
-      ca: campaignAssets,
+      campaignId: claims.campaignId,
     })
     .from(claims)
-    .leftJoin(
-      campaignRecipientSlots,
-      eq(claims.recipientSlotId, campaignRecipientSlots.id)
-    )
-    .leftJoin(campaignAssets, eq(claims.campaignAssetId, campaignAssets.id))
     .where(eq(claims.claimSecret, claimSecret))
     .limit(1);
 
-  const hit = rows[0];
-  if (!hit) return null;
-
-  if (hit.slot?.campaignId) return hit.slot.campaignId;
-  if (hit.ca?.campaignId) return hit.ca.campaignId;
-  return null;
+  return rows[0]?.campaignId ?? null;
 }

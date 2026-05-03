@@ -3,37 +3,54 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
+const DropdownMenuContext = React.createContext<{
+  open: boolean;
+  setOpen: (open: boolean) => void;
+} | null>(null);
+
+const useDropdownMenu = () => {
+  const context = React.useContext(DropdownMenuContext);
+  if (!context) {
+    throw new Error("DropdownMenu components must be used within a DropdownMenu");
+  }
+  return context;
+};
+
 const DropdownMenu = ({ children }: { children: React.ReactNode }) => {
   const [open, setOpen] = React.useState(false);
   return (
-    <div className="relative inline-block text-left">
-      {React.Children.map(children, (child) => {
-        if (React.isValidElement(child)) {
-          return React.cloneElement(child as React.ReactElement<any>, { open, setOpen });
-        }
-        return child;
-      })}
-    </div>
+    <DropdownMenuContext.Provider value={{ open, setOpen }}>
+      <div className="relative inline-block text-left">
+        {children}
+      </div>
+    </DropdownMenuContext.Provider>
   );
 };
 
-const DropdownMenuTrigger = ({ children, asChild, open, setOpen }: any) => {
+const DropdownMenuTrigger = ({ children, className }: any) => {
+  const { open, setOpen } = useDropdownMenu();
   return (
-    <div onClick={() => setOpen(!open)} className="cursor-pointer">
+    <div 
+      onClick={() => setOpen(!open)} 
+      className={cn("cursor-pointer", className)}
+    >
       {children}
     </div>
   );
 };
 
-const DropdownMenuContent = ({ children, align = "end", open, setOpen }: any) => {
+const DropdownMenuContent = ({ children, align = "end", side = "bottom", className }: any) => {
+  const { open, setOpen } = useDropdownMenu();
   if (!open) return null;
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
       <div
         className={cn(
-          "absolute z-50 mt-2 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in zoom-in-95",
-          align === "end" ? "right-0" : "left-0"
+          "absolute z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in zoom-in-95",
+          side === "top" ? "bottom-full mb-2" : "top-full mt-2",
+          align === "end" ? "right-0" : "left-0",
+          className
         )}
       >
         {children}
@@ -42,7 +59,8 @@ const DropdownMenuContent = ({ children, align = "end", open, setOpen }: any) =>
   );
 };
 
-const DropdownMenuItem = ({ children, className, onClick, ...props }: any) => {
+const DropdownMenuItem = ({ children, className, onClick }: any) => {
+  const { setOpen } = useDropdownMenu();
   return (
     <div
       className={cn(
@@ -51,10 +69,8 @@ const DropdownMenuItem = ({ children, className, onClick, ...props }: any) => {
       )}
       onClick={(e) => {
         onClick?.(e);
-        // We don't have easy access to setOpen here without context, 
-        // but for a minimal version it's fine for now.
+        setOpen(false);
       }}
-      {...props}
     >
       {children}
     </div>

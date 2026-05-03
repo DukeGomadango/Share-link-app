@@ -199,10 +199,23 @@ export function useCampaignDetail() {
     [assignUploadedAssets]
   );
 
-  const handleRemoveFile = useCallback((recipientId: string, fileId: string) => {
-    void recipientId;
-    void fileId;
-  }, []);
+  const handleRemoveFile = useCallback(
+    async (recipientId: string, fileId: string) => {
+      if (!campaignId) return;
+      const res = await fetch(
+        `/api/campaigns/${campaignId}/claims/${recipientId}/assign`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ campaignAssetId: fileId, action: "remove" }),
+        }
+      );
+      if (res.ok) {
+        await loadWorkflow({ quiet: true });
+      }
+    },
+    [campaignId, loadWorkflow]
+  );
 
   const toggleSelection = useCallback((fileId: string) => {
     setSelectedFileIds((prev) => {
@@ -222,39 +235,54 @@ export function useCampaignDetail() {
     setDraggedFileIds(draggingSelection ? Array.from(selectedFileIds) : [file.id]);
   }, [selectedFileIds]);
 
+  const [pulsedRecipientId, setPulsedRecipientId] = useState<string | null>(null);
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
-      setActiveDragFile(null);
-      setDraggedFileIds([]);
-      setSelectedFileIds(new Set());
-
-      if (
-        !over ||
-        !campaignId ||
-        campaign?.distributionMode !== "reception"
-      ) {
+      if (!over || !campaignId || campaign?.status === "draft") {
+        setActiveDragFile(null);
+        setDraggedFileIds([]);
         return;
       }
 
-      const file = active.data.current?.file as FileItem | undefined;
       const overId = over.id.toString();
-      if (!file || !overId.startsWith("recipient-")) return;
+      if (!overId.startsWith("recipient-")) {
+        setActiveDragFile(null);
+        setDraggedFileIds([]);
+        return;
+      }
 
       const claimId = overId.replace(/^recipient-/, "");
-      const res = await fetch(
-        `/api/campaigns/${campaignId}/claims/${claimId}/assign`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ campaignAssetId: file.id }),
-        }
-      );
-      if (res.ok) {
+      
+      const activeFile = active.data.current?.file as FileItem | undefined;
+      let targetIds = [...draggedFileIds];
+      if (targetIds.length === 0 && activeFile) {
+        targetIds = [activeFile.id];
+      }
+
+      if (targetIds.length > 0) {
+        await Promise.all(
+          targetIds.map((fid) =>
+            fetch(`/api/campaigns/${campaignId}/claims/${claimId}/assign`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ campaignAssetId: fid }),
+            })
+          )
+        );
+        
+        setPulsedRecipientId(claimId);
+        setTimeout(() => setPulsedRecipientId(null), 2000);
+        
         await loadWorkflow({ quiet: true });
       }
+
+      setActiveDragFile(null);
+      setDraggedFileIds([]);
+      setSelectedFileIds(new Set());
     },
-    [campaign?.distributionMode, campaignId, loadWorkflow]
+    [campaign?.status, campaignId, draggedFileIds, loadWorkflow]
   );
 
   return {
@@ -267,7 +295,7 @@ export function useCampaignDetail() {
     activeDragFile,
     draggedFileIds,
     selectedFileIds,
-    pulsedRecipientId: null as string | null,
+    pulsedRecipientId,
     showLibraryModal,
     setShowLibraryModal,
     libraryFiles,

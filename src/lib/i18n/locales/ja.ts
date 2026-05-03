@@ -371,6 +371,8 @@ export const ja = {
     tapToOpen: "タップして開封",
     downloadSingle: "「{filename}」のダウンロードを開始します",
     downloadZip: "全 {count} 件のファイルをZIPでダウンロードします",
+    downloadAsZip: "ZIPでまとめて保存",
+    downloadIndividually: "個別に保存",
     downloadSelectedAlert: "選択した {count} 件のファイルをダウンロードします",
   },
   countdown: {

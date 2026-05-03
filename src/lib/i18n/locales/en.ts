@@ -375,6 +375,8 @@ export const en: TranslationKeys = {
     tapToOpen: "Tap to Open",
     downloadSingle: "Starting download of \"{filename}\"",
     downloadZip: "Downloading all {count} files as ZIP",
+    downloadAsZip: "Download as ZIP",
+    downloadIndividually: "Download individually",
     downloadSelectedAlert: "Downloading {count} selected files",
   },
   countdown: {

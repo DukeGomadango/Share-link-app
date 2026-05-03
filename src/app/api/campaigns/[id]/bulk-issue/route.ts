@@ -57,21 +57,16 @@ export async function POST(request: Request, ctx: RouteParams) {
     );
   }
 
-  if (assetRows.length > MAX_ITEMS) {
-    return NextResponse.json(
-      {
-        error: "too_many_assets",
-        message: `アセットは最大 ${MAX_ITEMS} 件まで一括発行できます`,
-      },
-      { status: 400 }
-    );
-  }
+  const allAssetIds = assetRows.map((a) => a.id);
 
-  const items = assetRows.map((a) => ({
-    campaign_asset_id: a.id,
-    external_transaction_id: `bulk-${campaignId}-${a.id}`,
-    recipient_display_name: recipientPrefix,
-  }));
+  // キャンペーン内の全アセットをセットにしたリンクを1つ作成
+  const items = [
+    {
+      campaign_asset_ids: allAssetIds,
+      external_transaction_id: `bulk-${campaignId}-${Date.now()}`,
+      recipient_display_name: recipientPrefix || "一括生成分",
+    },
+  ];
 
   const results = await issueClaimsBatch(session.workspaceId, items, (secret) =>
     buildClaimPageUrl(request, secret)

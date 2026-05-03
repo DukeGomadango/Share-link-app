@@ -162,8 +162,8 @@ export const campaignRecipientSlots = pgTable(
       .references(() => campaigns.id, { onDelete: "cascade" }),
     recipientId: uuid("recipient_id")
       .references(() => recipients.id, { onDelete: "set null" }),
-    campaignAssetId: uuid("campaign_asset_id")
-      .references(() => campaignAssets.id, { onDelete: "set null" }),
+    // campaignAssetId: uuid("campaign_asset_id")
+    //   .references(() => campaignAssets.id, { onDelete: "set null" }),
     status: text("status").notNull().default("unlinked"), // 'unlinked' | 'ready' | 'issued'
     listenerDisplayName: text("listener_display_name"),
     listenerNote: text("listener_note"),
@@ -177,16 +177,39 @@ export const campaignRecipientSlots = pgTable(
   ]
 );
 
+/** 受取人スロットに紐づくアセット（複数対応用） */
+export const slotAssets = pgTable(
+  "slot_assets",
+  {
+    slotId: uuid("slot_id")
+      .notNull()
+      .references(() => campaignRecipientSlots.id, { onDelete: "cascade" }),
+    campaignAssetId: uuid("campaign_asset_id")
+      .notNull()
+      .references(() => campaignAssets.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.slotId, t.campaignAssetId] }),
+    index("slot_assets_slot_id_idx").on(t.slotId),
+  ]
+);
+
 export const claims = pgTable(
   "claims",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    /** 受付方式ではファイル未確定の間 null。スロット側の campaign_asset_id と同期させる */
-    campaignAssetId: uuid("campaign_asset_id").references(() => campaignAssets.id, {
-      onDelete: "restrict",
-    }),
+    /** 受付方式ではファイル未確定の間 null。スロット側の assets と同期させる */
+    // campaignAssetId: uuid("campaign_asset_id").references(() => campaignAssets.id, {
+    //   onDelete: "restrict",
+    // }),
     recipientSlotId: uuid("recipient_slot_id")
       .references(() => campaignRecipientSlots.id, { onDelete: "cascade" }),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
     externalTransactionId: text("external_transaction_id").notNull().unique(),
     claimSecret: text("claim_secret").notNull().unique(),
     recipientDisplayName: text("recipient_display_name"), // 下位互換用、基本は slot 経由で取得
@@ -199,8 +222,28 @@ export const claims = pgTable(
       .notNull(),
   },
   (t) => [
-    index("claims_campaign_asset_id_idx").on(t.campaignAssetId),
     index("claims_recipient_slot_id_idx").on(t.recipientSlotId),
+    index("claims_campaign_id_idx").on(t.campaignId),
+  ]
+);
+
+/** 受取リンクに紐づくアセット（複数対応用） */
+export const claimAssets = pgTable(
+  "claim_assets",
+  {
+    claimId: uuid("claim_id")
+      .notNull()
+      .references(() => claims.id, { onDelete: "cascade" }),
+    campaignAssetId: uuid("campaign_asset_id")
+      .notNull()
+      .references(() => campaignAssets.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.claimId, t.campaignAssetId] }),
+    index("claim_assets_claim_id_idx").on(t.claimId),
   ]
 );
 

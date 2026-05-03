@@ -99,7 +99,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
     tags: [] as string[],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    assignedFileIds: row.effectiveCampaignAssetId ? [row.effectiveCampaignAssetId] : [],
+    assignedFileIds: row.assignedFileIds,
     link:
       distributionMode === "reception"
         ? undefined

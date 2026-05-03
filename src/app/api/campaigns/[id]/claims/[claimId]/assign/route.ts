@@ -7,7 +7,9 @@ import {
   campaignAssets,
   campaignRecipientSlots,
   campaigns,
+  claimAssets,
   claims,
+  slotAssets,
 } from "@/db/schema";
 
 type RouteParams = { params: Promise<{ id: string; claimId: string }> };
@@ -20,7 +22,7 @@ export async function PATCH(request: Request, ctx: RouteParams) {
 
   const { id: campaignId, claimId } = await ctx.params;
 
-  let body: { campaignAssetId?: string };
+  let body: { campaignAssetId?: string; action?: "add" | "remove" };
   try {
     body = await request.json();
   } catch {
@@ -28,6 +30,8 @@ export async function PATCH(request: Request, ctx: RouteParams) {
   }
 
   const assetId = body.campaignAssetId?.trim();
+  const action = body.action ?? "add";
+
   if (!assetId) {
     return NextResponse.json(
       { error: "invalid_body", message: "campaign_asset_id が必要です" },
@@ -37,6 +41,7 @@ export async function PATCH(request: Request, ctx: RouteParams) {
 
   const db = getDb();
 
+  // アセットの存在確認
   const targetAsset = await db
     .select({ id: campaignAssets.id })
     .from(campaignAssets)
@@ -57,18 +62,14 @@ export async function PATCH(request: Request, ctx: RouteParams) {
     );
   }
 
+  // Claim の取得
   const rows = await db
     .select({
       claim: claims,
       slot: campaignRecipientSlots,
-      caLegacy: campaignAssets,
     })
     .from(claims)
-    .leftJoin(
-      campaignRecipientSlots,
-      eq(claims.recipientSlotId, campaignRecipientSlots.id)
-    )
-    .leftJoin(campaignAssets, eq(claims.campaignAssetId, campaignAssets.id))
+    .leftJoin(campaignRecipientSlots, eq(claims.recipientSlotId, campaignRecipientSlots.id))
     .where(eq(claims.id, claimId))
     .limit(1);
 
@@ -77,28 +78,63 @@ export async function PATCH(request: Request, ctx: RouteParams) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const belongsToCampaign =
-    (hit.slot && hit.slot.campaignId === campaignId) ||
-    (hit.caLegacy && hit.caLegacy.campaignId === campaignId);
+  const slotId = hit.slot?.id;
 
-  if (!belongsToCampaign) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (action === "add") {
+    try {
+      // 中間テーブルに追加
+      await db
+        .insert(claimAssets)
+        .values({ claimId, campaignAssetId: assetId })
+        .onConflictDoNothing();
+
+      if (slotId) {
+        await db
+          .insert(slotAssets)
+          .values({ slotId, campaignAssetId: assetId })
+          .onConflictDoNothing();
+
+        // スロットのステータスを更新
+        await db
+          .update(campaignRecipientSlots)
+          .set({ status: "ready" })
+          .where(eq(campaignRecipientSlots.id, slotId));
+      }
+    } catch (e) {
+      console.error("Assignment failed:", e);
+      return NextResponse.json({ error: "assignment_failed", message: String(e) }, { status: 500 });
+    }
+  } else if (action === "remove") {
+    try {
+      // 中間テーブルから削除
+      await db
+        .delete(claimAssets)
+        .where(and(eq(claimAssets.claimId, claimId), eq(claimAssets.campaignAssetId, assetId)));
+
+      if (slotId) {
+        await db
+          .delete(slotAssets)
+          .where(and(eq(slotAssets.slotId, slotId), eq(slotAssets.campaignAssetId, assetId)));
+        
+        // 他にアセットが残っていないか確認
+        const remaining = await db
+          .select()
+          .from(slotAssets)
+          .where(eq(slotAssets.slotId, slotId))
+          .limit(1);
+        
+        if (remaining.length === 0) {
+          await db
+            .update(campaignRecipientSlots)
+            .set({ status: "unlinked" })
+            .where(eq(campaignRecipientSlots.id, slotId));
+        }
+      }
+    } catch (e) {
+      console.error("Removal failed:", e);
+      return NextResponse.json({ error: "removal_failed", message: String(e) }, { status: 500 });
+    }
   }
-
-  if (hit.slot) {
-    await db
-      .update(campaignRecipientSlots)
-      .set({
-        campaignAssetId: assetId,
-        status: "ready",
-      })
-      .where(eq(campaignRecipientSlots.id, hit.slot.id));
-  }
-
-  await db
-    .update(claims)
-    .set({ campaignAssetId: assetId })
-    .where(eq(claims.id, claimId));
 
   return NextResponse.json({ ok: true });
 }

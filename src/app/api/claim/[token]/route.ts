@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-
 import { buildClaimBundleForSecret } from "@/lib/claim/bundle-for-token";
+
+export const revalidate = 0;
 
 type RouteParams = { params: Promise<{ token: string }> };
 

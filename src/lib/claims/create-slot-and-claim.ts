@@ -40,7 +40,7 @@ export async function createSlotAndClaim(
     .insert(claims)
     .values({
       recipientSlotId: slot.id,
-      campaignAssetId: null,
+      campaignId: input.campaignId,
       externalTransactionId: `recv-${randomUUID()}`,
       claimSecret: secret,
       recipientDisplayName: name,

@@ -60,7 +60,7 @@ function normalizeIssueItems(
       );
     }
     out.push({
-      campaign_asset_id,
+      campaign_asset_ids: [campaign_asset_id],
       external_transaction_id,
       recipient_display_name,
     });

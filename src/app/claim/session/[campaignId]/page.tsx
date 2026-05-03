@@ -20,6 +20,7 @@ export default function ClaimSessionByCampaignPage() {
 
   const [bundle, setBundle] = useState<{
     expiryIso: string;
+    campaignName: string;
     pending?: boolean;
     passkeyLinked?: boolean;
     files: ClaimFile[];
@@ -51,6 +52,7 @@ export default function ClaimSessionByCampaignPage() {
       }
       const data = (await r.json()) as {
         expiryIso: string;
+        campaignName: string;
         pending?: boolean;
         passkeyLinked?: boolean;
         files: Array<{
@@ -70,6 +72,7 @@ export default function ClaimSessionByCampaignPage() {
       }));
       setBundle({
         expiryIso: data.expiryIso,
+        campaignName: data.campaignName,
         pending: data.pending,
         passkeyLinked: data.passkeyLinked,
         files,
@@ -192,6 +195,7 @@ export default function ClaimSessionByCampaignPage() {
         <ClaimContentView
           files={bundle.files}
           expiryDate={new Date(bundle.expiryIso)}
+          campaignName={bundle.campaignName}
         />
         {!bundle.passkeyLinked ? (
           <PasskeyRegisterCard

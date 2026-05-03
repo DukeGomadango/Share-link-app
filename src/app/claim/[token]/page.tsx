@@ -61,6 +61,7 @@ export default function ClaimPage() {
   const [isOpened, setIsOpened] = useState(false);
   const [bundle, setBundle] = useState<{
     expiryIso: string;
+    campaignName: string;
     files: ClaimFile[];
   } | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
@@ -75,10 +76,11 @@ export default function ClaimPage() {
       setClaimLoading(true);
       setClaimError(null);
       try {
-        const r = await fetch(`/api/claim/${encodeURIComponent(token)}`);
+        const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`, { cache: "no-store" });
         if (!r.ok) throw new Error(String(r.status));
         const data = (await r.json()) as {
           expiryIso: string;
+          campaignName: string;
           files: Array<{
             id: string;
             type: string;
@@ -94,7 +96,9 @@ export default function ClaimPage() {
           filename: f.filename,
           title: f.title,
         }));
-        if (!cancelled) setBundle({ expiryIso: data.expiryIso, files });
+        if (!cancelled) {
+          setBundle({ expiryIso: data.expiryIso, campaignName: data.campaignName, files });
+        }
       } catch {
         if (!cancelled) setClaimError("読み込みに失敗しました");
       } finally {
@@ -167,7 +171,11 @@ export default function ClaimPage() {
             <p className="text-center text-muted-foreground py-8 text-sm">読み込み中…</p>
           )}
           {!claimLoading && bundle && !claimError && (
-            <ClaimContentView files={bundle.files} expiryDate={new Date(bundle.expiryIso)} />
+            <ClaimContentView 
+              files={bundle.files} 
+              expiryDate={new Date(bundle.expiryIso)} 
+              campaignName={bundle.campaignName}
+            />
           )}
         </motion.div>
       )}

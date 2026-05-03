@@ -12,12 +12,22 @@ import { useTranslation } from "@/lib/i18n";
 import { ClaimFileCard } from "./ClaimFileCard";
 import { ClaimActionBar } from "./ClaimActionBar";
 
+import { downloadSingleFile, downloadFilesAsZip } from "@/lib/download-utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronUp } from "lucide-react";
+
 interface ClaimContentViewProps {
   files: ClaimFile[];
   expiryDate: Date;
+  campaignName: string;
 }
 
-export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
+export function ClaimContentView({ files, expiryDate, campaignName }: ClaimContentViewProps) {
   const { t } = useTranslation();
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
@@ -40,22 +50,35 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
     }
   };
 
-  const handleDownloadSingle = (fileId: string) => {
+  const handleDownloadSingle = async (fileId: string) => {
     const file = files.find((f) => f.id === fileId);
     if (!file?.src) return;
-    window.open(file.src, "_blank", "noopener,noreferrer");
+    setIsDownloading(true);
+    try {
+      await downloadSingleFile(file.src, file.filename || "file");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
-  const handleDownloadSelected = async () => {
-    const targets =
-      selectedFileIds.size === 0
-        ? files
-        : files.filter((f) => selectedFileIds.has(f.id));
+  const handleDownloadZip = async (targets: ClaimFile[]) => {
+    setIsDownloading(true);
+    try {
+      await downloadFilesAsZip(
+        targets.map(f => ({ src: f.src, filename: f.filename })),
+        "dango-bundle.zip"
+      );
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadIndividually = async (targets: ClaimFile[]) => {
     setIsDownloading(true);
     try {
       for (const f of targets) {
         if (f.src) {
-          window.open(f.src, "_blank", "noopener,noreferrer");
+          await downloadSingleFile(f.src, f.filename);
         }
       }
     } finally {
@@ -63,7 +86,24 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
     }
   };
 
+  const handleMainAction = () => {
+    const targets =
+      selectedFileIds.size === 0
+        ? files
+        : files.filter((f) => selectedFileIds.has(f.id));
+    
+    if (targets.length === 1) {
+      handleDownloadSingle(targets[0].id);
+    } else {
+      // 複数ある場合はデフォルトで ZIP
+      handleDownloadZip(targets);
+    }
+  };
+
   const allSelected = selectedFileIds.size === files.length && files.length > 0;
+  const targets = selectedFileIds.size === 0
+    ? files
+    : files.filter((f) => selectedFileIds.has(f.id));
 
   return (
     <div className="w-full space-y-6 py-6 pb-32">
@@ -75,7 +115,7 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
         className="flex justify-between items-start mb-2"
       >
         <div>
-          <h2 className="text-3xl font-bold text-foreground">{t.claim.headerTitle}</h2>
+          <h2 className="text-3xl font-bold text-foreground">{campaignName}</h2>
           <p className="text-emerald-500 text-sm mt-1.5 font-medium tracking-wide">{t.claim.headerSubtitle}</p>
         </div>
         <CountdownBadge expiresAt={expiryDate} />
@@ -123,20 +163,69 @@ export function ClaimContentView({ files, expiryDate }: ClaimContentViewProps) {
               <span className="text-muted-foreground">{t.claim.downloadBundle}</span>
             )}
           </div>
-          <Button 
-            onClick={handleDownloadSelected}
-            disabled={isDownloading}
-            className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-6 shadow-[0_0_15px_oklch(0.645_0.165_158.452/0.3)] transition-all hover:scale-105"
-          >
-            {isDownloading ? (
-              <span className="animate-pulse">{t.claim.preparing}</span>
+
+          <div className="flex gap-1">
+            {targets.length > 1 ? (
+              <DropdownMenu>
+                <div className="flex items-center rounded-full bg-emerald-500 overflow-hidden shadow-[0_0_15px_oklch(0.645_0.165_158.452/0.3)] transition-all hover:scale-105">
+                  <Button 
+                    onClick={handleMainAction}
+                    disabled={isDownloading}
+                    className="rounded-none bg-transparent hover:bg-emerald-600 text-white px-5 h-10 border-r border-emerald-400/30"
+                  >
+                    {isDownloading ? (
+                      <span className="animate-pulse">{t.claim.preparing}</span>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        {selectedFileIds.size === 0 ? t.claim.saveAll : t.claim.saveSelected}
+                      </>
+                    )}
+                  </Button>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      disabled={isDownloading}
+                      className="rounded-none bg-transparent hover:bg-emerald-600 text-white w-8 h-10"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </div>
+                <DropdownMenuContent align="end" side="top" className="rounded-2xl border-border bg-background/80 backdrop-blur-xl mb-2 min-w-[180px]">
+                  <DropdownMenuItem 
+                    className="rounded-xl py-3 cursor-pointer focus:bg-emerald-500/10"
+                    onClick={() => handleDownloadZip(targets)}
+                  >
+                    <Download className="w-4 h-4 mr-2 text-emerald-500" />
+                    {t.claim.downloadAsZip}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="rounded-xl py-3 cursor-pointer focus:bg-emerald-500/10"
+                    onClick={() => handleDownloadIndividually(targets)}
+                  >
+                    <Download className="w-4 h-4 mr-2 text-emerald-500" />
+                    {t.claim.downloadIndividually}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <>
-                <Download className="w-4 h-4 mr-2" />
-                {selectedFileIds.size === 0 ? t.claim.saveAll : t.claim.saveSelected}
-              </>
+              <Button 
+                onClick={handleMainAction}
+                disabled={isDownloading}
+                className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-6 h-10 shadow-[0_0_15px_oklch(0.645_0.165_158.452/0.3)] transition-all hover:scale-105"
+              >
+                {isDownloading ? (
+                  <span className="animate-pulse">{t.claim.preparing}</span>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 mr-2" />
+                    {selectedFileIds.size === 0 ? t.claim.saveAll : t.claim.saveSelected}
+                  </>
+                )}
+              </Button>
             )}
-          </Button>
+          </div>
         </div>
       </motion.div>
     </div>

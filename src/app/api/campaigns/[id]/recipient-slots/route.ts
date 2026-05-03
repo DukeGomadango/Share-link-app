@@ -79,17 +79,25 @@ export async function POST(request: Request, ctx: RouteParams) {
 
     if (optionalAssetId) {
       await db
-        .update(campaignRecipientSlots)
-        .set({
+        .insert(slotAssets)
+        .values({
+          slotId: created.slotId,
           campaignAssetId: optionalAssetId,
-          status: "ready",
         })
-        .where(eq(campaignRecipientSlots.id, created.slotId));
+        .onConflictDoNothing();
 
       await db
-        .update(claims)
-        .set({ campaignAssetId: optionalAssetId })
-        .where(eq(claims.id, created.claimId));
+        .insert(claimAssets)
+        .values({
+          claimId: created.claimId,
+          campaignAssetId: optionalAssetId,
+        })
+        .onConflictDoNothing();
+
+      await db
+        .update(campaignRecipientSlots)
+        .set({ status: "ready" })
+        .where(eq(campaignRecipientSlots.id, created.slotId));
     }
 
     return NextResponse.json(

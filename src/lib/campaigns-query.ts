@@ -11,17 +11,6 @@ import {
 
 import { uiStatusFromDb } from "@/lib/campaign-status";
 
-function mergeCountMaps(
-  a: Map<string, number>,
-  b: Map<string, number>
-): Map<string, number> {
-  const out = new Map(a);
-  for (const [k, v] of b) {
-    out.set(k, (out.get(k) ?? 0) + v);
-  }
-  return out;
-}
-
 export async function fetchCampaignsWithStats(workspaceId: string): Promise<Campaign[]> {
   const db = getDb();
   const list = await db
@@ -35,6 +24,7 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
     return [];
   }
 
+  // 1. キャンペーン内のアセット総数
   const assetCounts = await db
     .select({
       campaignId: campaignAssets.campaignId,
@@ -44,72 +34,29 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
     .where(inArray(campaignAssets.campaignId, ids))
     .groupBy(campaignAssets.campaignId);
 
-  const issuedViaAssets = await db
+  // 2. 配布済みリンク（Claim）の総数
+  const issuedCounts = await db
     .select({
-      campaignId: campaignAssets.campaignId,
+      campaignId: claims.campaignId,
       n: count(),
     })
     .from(claims)
-    .innerJoin(campaignAssets, eq(claims.campaignAssetId, campaignAssets.id))
-    .where(inArray(campaignAssets.campaignId, ids))
-    .groupBy(campaignAssets.campaignId);
+    .where(inArray(claims.campaignId, ids))
+    .groupBy(claims.campaignId);
 
-  const issuedViaSlotsOnly = await db
+  // 3. 受取済みリンク（Claimed）の数
+  const claimedCounts = await db
     .select({
-      campaignId: campaignRecipientSlots.campaignId,
+      campaignId: claims.campaignId,
       n: count(),
     })
     .from(claims)
-    .innerJoin(
-      campaignRecipientSlots,
-      eq(claims.recipientSlotId, campaignRecipientSlots.id)
-    )
-    .where(
-      and(
-        inArray(campaignRecipientSlots.campaignId, ids),
-        isNull(claims.campaignAssetId)
-      )
-    )
-    .groupBy(campaignRecipientSlots.campaignId);
-
-  const claimedViaAssets = await db
-    .select({
-      campaignId: campaignAssets.campaignId,
-      n: count(),
-    })
-    .from(claims)
-    .innerJoin(campaignAssets, eq(claims.campaignAssetId, campaignAssets.id))
-    .where(and(inArray(campaignAssets.campaignId, ids), eq(claims.status, "claimed")))
-    .groupBy(campaignAssets.campaignId);
-
-  const claimedViaSlotsOnly = await db
-    .select({
-      campaignId: campaignRecipientSlots.campaignId,
-      n: count(),
-    })
-    .from(claims)
-    .innerJoin(
-      campaignRecipientSlots,
-      eq(claims.recipientSlotId, campaignRecipientSlots.id)
-    )
-    .where(
-      and(
-        inArray(campaignRecipientSlots.campaignId, ids),
-        isNull(claims.campaignAssetId),
-        eq(claims.status, "claimed")
-      )
-    )
-    .groupBy(campaignRecipientSlots.campaignId);
+    .where(and(inArray(claims.campaignId, ids), eq(claims.status, "claimed")))
+    .groupBy(claims.campaignId);
 
   const assetMap = new Map(assetCounts.map((r) => [r.campaignId, Number(r.n)]));
-  const issuedMap = mergeCountMaps(
-    new Map(issuedViaAssets.map((r) => [r.campaignId, Number(r.n)])),
-    new Map(issuedViaSlotsOnly.map((r) => [r.campaignId, Number(r.n)]))
-  );
-  const claimedMap = mergeCountMaps(
-    new Map(claimedViaAssets.map((r) => [r.campaignId, Number(r.n)])),
-    new Map(claimedViaSlotsOnly.map((r) => [r.campaignId, Number(r.n)]))
-  );
+  const issuedMap = new Map(issuedCounts.map((r) => [r.campaignId, Number(r.n)]));
+  const claimedMap = new Map(claimedCounts.map((r) => [r.campaignId, Number(r.n)]));
 
   return list.map((row) => {
     const totalFiles = assetMap.get(row.id) ?? 0;

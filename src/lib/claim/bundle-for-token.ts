@@ -1,5 +1,4 @@
-import { eq } from "drizzle-orm";
-
+import { and, eq, inArray } from "drizzle-orm";
 import { createSignedReadUrl } from "@/lib/assets/signed-urls";
 import { getDb } from "@/db";
 import {
@@ -7,12 +6,15 @@ import {
   campaignAssets,
   campaignRecipientSlots,
   campaigns,
+  claimAssets,
   claimIdentityLinks,
   claims,
+  slotAssets,
 } from "@/db/schema";
 
 export type ClaimBundleResponse = {
   expiryIso: string;
+  campaignName: string;
   /** ライバー未割当・ファイルなし（リスナーは待機ポーリング） */
   pending?: boolean;
   /** この claim にパスキー（WebAuthn）が紐づいている */
@@ -30,12 +32,24 @@ export async function buildClaimBundleForSecret(
   claimSecret: string
 ): Promise<ClaimBundleResponse | null> {
   const db = getDb();
+  
+  // 1. Claim と Campaign, (あれば) Slot の情報を取得
   const base = await db
     .select({
-      claim: claims,
-      slot: campaignRecipientSlots,
+      claim: { 
+        id: claims.id,
+      },
+      campaign: {
+        name: campaigns.name,
+        status: campaigns.status,
+        expiresAt: campaigns.expiresAt,
+      },
+      slot: {
+        id: campaignRecipientSlots.id,
+      },
     })
     .from(claims)
+    .innerJoin(campaigns, eq(claims.campaignId, campaigns.id))
     .leftJoin(
       campaignRecipientSlots,
       eq(claims.recipientSlotId, campaignRecipientSlots.id)
@@ -44,122 +58,88 @@ export async function buildClaimBundleForSecret(
     .limit(1);
 
   const hit = base[0];
-  if (!hit) {
+  if (!hit || hit.campaign.status !== "active") {
     return null;
   }
 
-  const effectiveAssetId =
-    hit.claim.campaignAssetId ?? hit.slot?.campaignAssetId ?? null;
+  const claimId = hit.claim.id;
+  const slotId = hit.slot?.id;
 
-  let campaignId: string | null = null;
-  if (effectiveAssetId) {
-    const caRow = await db
-      .select({ campaignId: campaignAssets.campaignId })
-      .from(campaignAssets)
-      .where(eq(campaignAssets.id, effectiveAssetId))
-      .limit(1);
-    campaignId = caRow[0]?.campaignId ?? null;
-  }
-  if (!campaignId && hit.slot) {
-    campaignId = hit.slot.campaignId;
-  }
-  if (!campaignId && hit.claim.campaignAssetId) {
-    const caRow = await db
-      .select({ campaignId: campaignAssets.campaignId })
-      .from(campaignAssets)
-      .where(eq(campaignAssets.id, hit.claim.campaignAssetId))
-      .limit(1);
-    campaignId = caRow[0]?.campaignId ?? null;
-  }
+  // 2. 紐づくアセット ID を収集 (Claim 優先、なければ Slot)
+  const [cAssets, sAssets] = await Promise.all([
+    db.select().from(claimAssets).where(eq(claimAssets.claimId, claimId)),
+    slotId
+      ? db.select().from(slotAssets).where(eq(slotAssets.slotId, slotId))
+      : Promise.resolve([]),
+  ]);
 
-  const campaignRow = campaignId
-    ? await db
-        .select({ expiresAt: campaigns.expiresAt })
-        .from(campaigns)
-        .where(eq(campaigns.id, campaignId))
-        .limit(1)
-    : [];
+  const assetIds = Array.from(new Set([
+    ...cAssets.map(a => a.campaignAssetId),
+    ...sAssets.map(a => a.campaignAssetId),
+  ]));
 
-  const expiry =
-    campaignRow[0]?.expiresAt ??
-    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiry = hit.campaign.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   const passkeyRows = await db
     .select({ claimId: claimIdentityLinks.claimId })
     .from(claimIdentityLinks)
-    .where(eq(claimIdentityLinks.claimId, hit.claim.id))
+    .where(eq(claimIdentityLinks.claimId, claimId))
     .limit(1);
   const passkeyLinked = Boolean(passkeyRows[0]);
 
-  if (!effectiveAssetId) {
+  if (assetIds.length === 0) {
     return {
       expiryIso: expiry.toISOString(),
+      campaignName: hit.campaign.name || "特別な贈り物",
       pending: true,
       passkeyLinked,
       files: [],
     };
   }
 
-  const row = await db
+  // 3. 全アセットの情報を取得して署名 URL を生成
+  const assetRows = await db
     .select({
       ca: campaignAssets,
-      campaign: campaigns,
       asset: assets,
     })
     .from(campaignAssets)
-    .innerJoin(campaigns, eq(campaignAssets.campaignId, campaigns.id))
     .leftJoin(assets, eq(campaignAssets.assetId, assets.id))
-    .where(eq(campaignAssets.id, effectiveAssetId))
-    .limit(1);
+    .where(inArray(campaignAssets.id, assetIds));
 
-  const bundle = row[0];
-  if (!bundle) {
-    return null;
-  }
+  const files = await Promise.all(assetRows.map(async (row) => {
+    let src: string | null = null;
+    if (row.asset) {
+      src = await createSignedReadUrl(row.asset.bucket, row.asset.objectKey);
+    } else if (row.ca.assetUrl?.trim()) {
+      src = row.ca.assetUrl.trim();
+    }
 
-  let src: string | null = null;
-  if (bundle.asset) {
-    src = await createSignedReadUrl(bundle.asset.bucket, bundle.asset.objectKey);
-  } else if (bundle.ca.assetUrl?.trim()) {
-    src = bundle.ca.assetUrl.trim();
-  }
+    if (!src) return null;
 
-  if (!src) {
+    const mime = row.asset?.mimeType ?? "";
+    const type: "image" | "audio" = mime.startsWith("audio/") ? "audio" : "image";
+    const filename = row.asset?.originalFilename ?? row.ca.label?.trim() ?? "download";
+    const title = row.ca.label?.trim() || filename;
+
     return {
-      expiryIso: expiry.toISOString(),
-      pending: true,
-      passkeyLinked,
-      files: [],
+      id: row.ca.id,
+      type,
+      src,
+      filename,
+      title,
     };
-  }
+  }));
 
-  const mime = bundle.asset?.mimeType ?? "";
-  const type: "image" | "audio" = mime.startsWith("audio/")
-    ? "audio"
-    : "image";
+  const validFiles = files.filter((f): f is Exclude<typeof f, null> => !!f);
 
-  const filename =
-    bundle.asset?.originalFilename ??
-    bundle.ca.label?.trim() ??
-    "download";
-
-  const title = bundle.ca.label?.trim() || filename;
-
-  const exp =
-    bundle.campaign.expiresAt ??
-    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-  return {
-    expiryIso: exp.toISOString(),
+  const bundle = {
+    expiryIso: expiry.toISOString(),
+    campaignName: hit.campaign.name || "特別な贈り物",
     passkeyLinked,
-    files: [
-      {
-        id: bundle.ca.id,
-        type,
-        src,
-        filename,
-        title,
-      },
-    ],
+    pending: validFiles.length === 0,
+    files: validFiles,
   };
+  
+  return bundle;
 }

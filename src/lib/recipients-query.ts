@@ -63,7 +63,6 @@ export async function fetchRecipientHistory(workspaceId: string, recipientId: st
     .select({
       id: claims.id,
       campaignName: campaigns.name,
-      fileName: campaignAssets.label,
       claimStatus: claims.status,
       date: claims.createdAt,
       token: claims.claimSecret,
@@ -72,7 +71,6 @@ export async function fetchRecipientHistory(workspaceId: string, recipientId: st
     .from(claims)
     .innerJoin(campaignRecipientSlots, eq(claims.recipientSlotId, campaignRecipientSlots.id))
     .innerJoin(campaigns, eq(campaignRecipientSlots.campaignId, campaigns.id))
-    .leftJoin(campaignAssets, eq(claims.campaignAssetId, campaignAssets.id))
     .where(and(
       eq(campaignRecipientSlots.recipientId, recipientId),
       eq(campaigns.workspaceId, workspaceId)
@@ -90,7 +88,7 @@ export async function fetchRecipientHistory(workspaceId: string, recipientId: st
     return {
       id: h.id,
       campaignName: h.campaignName,
-      fileName: h.fileName || "割り当て済みファイル",
+      fileName: "配布セット（複数ファイル）",
       status,
       date: h.date.toISOString(),
       token: h.token,

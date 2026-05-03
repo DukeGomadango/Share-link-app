@@ -20,6 +20,8 @@ interface RecipientsSectionProps {
   addRecipientsDisabled?: boolean;
   /** ファイルプールにまだ何もないときの案内を表示 */
   showPoolEmptyHint?: boolean;
+  /** キャンペーンが下書き状態かどうか */
+  isDraft?: boolean;
 }
 
 export function RecipientsSection({
@@ -31,6 +33,7 @@ export function RecipientsSection({
   onAddRecipients,
   addRecipientsDisabled = false,
   showPoolEmptyHint = false,
+  isDraft = false,
 }: RecipientsSectionProps) {
   const { t } = useTranslation();
   const [detailRecipient, setDetailRecipient] = useState<Recipient | null>(null);
@@ -53,7 +56,7 @@ export function RecipientsSection({
             onClick={onAddRecipients}
             title={
               addRecipientsDisabled
-                ? undefined
+                ? "キャンペーンを公開すると追加できるようになります"
                 : t.campaigns.addRecipientsButtonTitle
             }
           >
@@ -64,7 +67,14 @@ export function RecipientsSection({
         <p className="text-xs text-muted-foreground leading-relaxed">
           {t.campaigns.recipientsSectionDescription}
         </p>
-        {showPoolEmptyHint ? (
+        {isDraft ? (
+          <p
+            className="text-xs leading-relaxed rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-3 py-2 text-emerald-900 dark:text-emerald-100"
+            role="status"
+          >
+            準備ができたら、右上の「キャンペーンを公開する」を押して配布を開始しましょう。公開するとリンクを発行できるようになります。
+          </p>
+        ) : showPoolEmptyHint ? (
           <p
             className="text-xs leading-relaxed rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-amber-900 dark:text-amber-100"
             role="status"
