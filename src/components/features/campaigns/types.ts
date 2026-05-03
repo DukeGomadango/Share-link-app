@@ -5,11 +5,17 @@ export type FileItem = {
   previewUrl?: string;
 };
 
+export type RecipientStatus = "waiting" | "verified" | "claimed";
+
 export type WorkflowRecipient = {
   id: string;
   name: string;
-  email?: string;
   tags: string[];
+  status: RecipientStatus;
+  platformId?: {
+    type: "discord" | "twitter" | "custom";
+    handle: string;
+  };
   createdAt: string;
   updatedAt: string;
   /** 受付チェックイン時の識別用メモ */
@@ -72,5 +78,5 @@ export interface Campaign {
 }
 
 export type QuickFilter = "all" | "needsAttention" | "dueSoon" | Campaign["status"];
-export type RecipientFilter = "all" | "noEmail" | "noTags";
+export type RecipientFilter = "all" | "noTags" | RecipientStatus;
 export type ViewMode = "list" | "kanban";

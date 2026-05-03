@@ -122,13 +122,9 @@ export function DroppableRecipient({
               </Badge>
             ) : null}
           </div>
-          {"listenerNote" in recipient && (recipient as { listenerNote?: string }).listenerNote ? (
+          {"listenerNote" in recipient && (recipient as { listenerNote?: string }).listenerNote && (
             <p className="text-[11px] text-muted-foreground line-clamp-2 opacity-80">
               {(recipient as { listenerNote?: string }).listenerNote}
-            </p>
-          ) : (
-            <p className="text-[11px] text-muted-foreground truncate opacity-70">
-              {(recipient as { email?: string }).email || "メール未設定"}
             </p>
           )}
         </div>

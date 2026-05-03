@@ -132,7 +132,7 @@ export const recipients = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    email: text("email"),
+    // email: text("email"), // Conceptually deprecated in v2
     tags: jsonb("tags").$type<string[]>().default([]).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

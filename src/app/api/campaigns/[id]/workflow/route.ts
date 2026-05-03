@@ -96,7 +96,6 @@ export async function GET(_request: Request, ctx: RouteParams) {
     id: row.claimId,
     name: row.recipientDisplayName ?? "（無名）",
     listenerNote: row.listenerNote ?? undefined,
-    email: "",
     tags: [] as string[],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
