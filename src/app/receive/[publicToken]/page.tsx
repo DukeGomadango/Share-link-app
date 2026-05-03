@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import type { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/browser";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ export default function PublicReceivePage() {
     typeof params?.publicToken === "string" ? params.publicToken : "";
   const router = useRouter();
 
+  const [bootReady, setBootReady] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -19,6 +20,37 @@ export default function PublicReceivePage() {
   const [passkeyBusy, setPasskeyBusy] = useState(false);
   const [passkeyHint, setPasskeyHint] = useState<string | null>(null);
   const [passkeyError, setPasskeyError] = useState<string | null>(null);
+
+  const tryResumeAfterAuth = useCallback(async (): Promise<boolean> => {
+    if (!token) return false;
+    const r = await fetch(
+      `/api/public/campaigns/${encodeURIComponent(token)}/resume-with-passkey`,
+      { method: "POST", credentials: "include" }
+    );
+    if (!r.ok) return false;
+    const j = (await r.json()) as { campaignId?: string };
+    if (j.campaignId && typeof j.campaignId === "string") {
+      router.replace(`/claim/session/${encodeURIComponent(j.campaignId)}`);
+      return true;
+    }
+    return false;
+  }, [token, router]);
+
+  useEffect(() => {
+    if (!token) {
+      setBootReady(true);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const navigated = await tryResumeAfterAuth();
+      if (cancelled) return;
+      if (!navigated) setBootReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, tryResumeAfterAuth]);
 
   const passkeyLogin = async () => {
     setPasskeyBusy(true);
@@ -57,7 +89,12 @@ export default function PublicReceivePage() {
         setPasskeyError(v.error ?? "認証に失敗しました");
         return;
       }
-      setPasskeyHint("端末の本人確認が完了しました。上のフォームからチェックインを続行できます。");
+      const navigated = await tryResumeAfterAuth();
+      if (!navigated) {
+        setPasskeyHint(
+          "このキャンペーンで再開できる受け取りがまだありません。初回は上のフォームからチェックインしてください。"
+        );
+      }
     } catch (e) {
       setPasskeyError(e instanceof Error ? e.message : "通信に失敗しました");
     } finally {
@@ -104,6 +141,14 @@ export default function PublicReceivePage() {
     }
   };
 
+  if (!bootReady) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center p-6 bg-gradient-to-b from-background to-muted/30">
+        <p className="text-sm text-muted-foreground">確認中…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[100dvh] flex items-center justify-center p-6 bg-gradient-to-b from-background to-muted/30">
       <motion.div
@@ -114,7 +159,7 @@ export default function PublicReceivePage() {
         <div className="space-y-1">
           <h1 className="text-xl font-bold tracking-tight">受付チェックイン</h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            表示名と、同名と区別するためのメモ（任意）を入力してください。送信後、この端末で受け取りページが開きます。
+            初回は表示名とメモ（任意）を入力してください。前回すでにこのキャンペーンでパスキー登録済みの場合は、下の「パスキーで続ける」だけで受け取りページへ進めます。
           </p>
         </div>
         <form onSubmit={(e) => void submit(e)} className="space-y-4">
@@ -160,7 +205,7 @@ export default function PublicReceivePage() {
         </form>
         <div className="border-t border-border/50 pt-5 space-y-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            前回と同じ端末で受け取り登録をした方は、先に端末の本人確認（任意）ができます。
+            同じ端末で前回パスキー登録済みなら、認証後にチェックインを省略できます。リスナー用のログイン状態が残っている場合は、ページを開いただけで進むこともあります。
           </p>
           {passkeyError ? (
             <p className="text-xs text-destructive border border-destructive/30 rounded-xl px-3 py-2 bg-destructive/5">
@@ -179,7 +224,7 @@ export default function PublicReceivePage() {
             disabled={passkeyBusy}
             onClick={() => void passkeyLogin()}
           >
-            {passkeyBusy ? "認証中…" : "端末の本人確認（パスキー）"}
+            {passkeyBusy ? "認証中…" : "パスキーで続ける（チェックイン省略）"}
           </Button>
         </div>
       </motion.div>
