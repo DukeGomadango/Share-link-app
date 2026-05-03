@@ -14,6 +14,8 @@ interface DroppableRecipientProps {
   getFile: (id: string) => FileItem | undefined;
   onRemoveFile: (recipientId: string, fileId: string) => void;
   successPulse?: boolean;
+  /** DB 上の発行済み Claim 行はドロップで変更できない */
+  readOnly?: boolean;
 }
 
 export function DroppableRecipient({
@@ -21,11 +23,13 @@ export function DroppableRecipient({
   getFile,
   onRemoveFile,
   successPulse = false,
+  readOnly = false,
 }: DroppableRecipientProps) {
   const { t } = useTranslation();
   const { isOver, setNodeRef } = useDroppable({
     id: `recipient-${recipient.id}`,
     data: { recipient },
+    disabled: readOnly,
   });
   const [copied, setCopied] = useState(false);
 
@@ -143,27 +147,32 @@ export function DroppableRecipient({
                       {file.name}
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveFile(recipient.id, file.id);
-                    }}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
+                  {!readOnly && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveFile(recipient.id, file.id);
+                      }}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
-            <div className="text-center pt-2 border-t border-emerald-500/20 border-dashed text-xs text-muted-foreground mt-1">
-              {t.campaigns.dropMoreFiles}
-            </div>
+            {!readOnly && (
+              <div className="text-center pt-2 border-t border-emerald-500/20 border-dashed text-xs text-muted-foreground mt-1">
+                {t.campaigns.dropMoreFiles}
+              </div>
+            )}
           </>
         ) : (
           <span className="opacity-70 flex items-center">
-            <Copy className="w-4 h-4 mr-2 opacity-50" /> {t.campaigns.dropFileHere}
+            <Copy className="w-4 h-4 mr-2 opacity-50" />{" "}
+            {readOnly ? t.campaigns.noAssetYet : t.campaigns.dropFileHere}
           </span>
         )}
       </div>

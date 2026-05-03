@@ -41,7 +41,16 @@ export async function createSignedUploadToStorage(
   if (error || !data) {
     return null;
   }
-  return { signedUrl: data.signedUrl, path: data.path, token: data.token };
+
+  let signedUrl = data.signedUrl;
+  if (signedUrl.startsWith("/")) {
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/\/$/, "");
+    if (baseUrl) {
+      signedUrl = `${baseUrl}${signedUrl}`;
+    }
+  }
+
+  return { signedUrl, path: data.path, token: data.token };
 }
 
 export { getStorageBucket };

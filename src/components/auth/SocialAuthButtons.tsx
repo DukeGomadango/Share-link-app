@@ -2,30 +2,14 @@
 
 import { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
+import { SiDiscord } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getAuthCallbackUrl } from "@/lib/auth/callback-url";
 import { cn } from "@/lib/utils";
 
-type Provider = "google" | "azure";
-
-/** Microsoft「4 色」ロゴ（サインイン用の一般的な表現。各社公式 SVG の代わりに色面を使用） */
-function MicrosoftFourColorMark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 21 21"
-      aria-hidden
-      className={cn("shrink-0", className)}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-      <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-      <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-      <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-    </svg>
-  );
-}
+type Provider = "google" | "discord";
 
 export function SocialAuthButtons({
   nextPath,
@@ -98,23 +82,23 @@ export function SocialAuthButtons({
         type="button"
         variant="ghost"
         disabled={busy}
-        onClick={() => void signIn("azure")}
+        onClick={() => void signIn("discord")}
         className={cn(
           "relative h-11 w-full overflow-hidden rounded-full border font-medium shadow-sm",
-          "border-zinc-200 bg-white text-zinc-900",
-          "hover:bg-zinc-50 hover:shadow hover:text-zinc-900",
-          "dark:border-zinc-700 dark:bg-black dark:text-white",
-          "dark:hover:bg-zinc-950 dark:hover:text-white",
+          "border-[#4752C4] bg-[#5865F2] text-white",
+          "hover:bg-[#4752C4] hover:shadow hover:text-white",
+          "dark:border-[#4752C4] dark:bg-[#5865F2] dark:text-white",
+          "dark:hover:bg-[#4752C4] dark:hover:text-white",
         )}
       >
         <span
-          className="pointer-events-none absolute left-4 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center"
+          className="pointer-events-none absolute left-4 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center text-white"
           aria-hidden
         >
-          <MicrosoftFourColorMark className="size-5" />
+          <SiDiscord className="size-5" />
         </span>
         <span className="block w-full px-12 text-center text-sm">
-          {loading === "azure" ? t.common.loading : t.auth.login.continueMicrosoft}
+          {loading === "discord" ? t.common.loading : t.auth.login.continueDiscord}
         </span>
       </Button>
     </div>

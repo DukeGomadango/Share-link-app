@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import {
   DragEndEvent,
   DragStartEvent,
@@ -9,27 +10,99 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { FileItem, Recipient, LibraryFile } from "@/components/features/campaigns/types";
+import type {
+  Campaign,
+  FileItem,
+  LibraryFile,
+  Recipient,
+} from "@/components/features/campaigns/types";
+
+async function uploadLibraryAssetFromFile(file: File): Promise<string> {
+  const init = await fetch("/api/files/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      filename: file.name,
+      size: file.size,
+      contentType: file.type || "application/octet-stream",
+    }),
+  });
+  if (!init.ok) {
+    throw new Error(`upload-url failed: ${init.status}`);
+  }
+  const meta = (await init.json()) as {
+    uploadUrl: string;
+    assetId: string;
+    objectKey: string;
+    contentType: string;
+    token?: string;
+  };
+
+  const putHeaders: Record<string, string> = {
+    "Content-Type": meta.contentType || file.type || "application/octet-stream",
+    "x-upsert": "true",
+  };
+  if (meta.token) {
+    putHeaders.Authorization = `Bearer ${meta.token}`;
+  }
+
+  // Supabase CLI 等で相対パスが返る場合に備え、絶対パスに変換
+  let uploadUrl = meta.uploadUrl;
+  if (uploadUrl.startsWith("/")) {
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+    if (baseUrl) {
+      uploadUrl = `${baseUrl}${uploadUrl}`;
+    }
+  }
+
+  const put = await fetch(uploadUrl, {
+    method: "PUT",
+    body: file,
+    headers: putHeaders,
+  });
+
+  if (!put.ok) {
+    const errorBody = await put.text().catch(() => "");
+    console.error("Storage upload failed:", {
+      status: put.status,
+      statusText: put.statusText,
+      body: errorBody,
+      url: uploadUrl,
+    });
+    throw new Error(`storage upload failed: ${put.status} ${errorBody}`);
+  }
+
+  const reg = await fetch("/api/files/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      assetId: meta.assetId,
+      objectKey: meta.objectKey,
+      originalFilename: file.name,
+      sizeBytes: file.size,
+      mimeType: file.type || "application/octet-stream",
+    }),
+  });
+  if (!reg.ok) {
+    throw new Error(`register failed: ${reg.status}`);
+  }
+  return meta.assetId;
+}
 
 export function useCampaignDetail() {
-  const [files, setFiles] = useState<FileItem[]>([
-    { id: "f1", name: "good_morning_voice.wav", type: "audio" },
-    { id: "f2", name: "special_photo.jpg", type: "image", previewUrl: "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=200&auto=format&fit=crop" },
-    { id: "f3", name: "thank_you_message.wav", type: "audio" },
-  ]);
+  const params = useParams();
+  const campaignId = typeof params.id === "string" ? params.id : undefined;
 
-  const [recipients, setRecipients] = useState<Recipient[]>([
-    { id: "r1", name: "Fan A", email: "fan.a@example.com", assignedFileIds: [] },
-    { id: "r2", name: "Fan B", email: "fan.b@example.com", assignedFileIds: [] },
-    { id: "r3", name: "Fan C", email: "fan.c@example.com", assignedFileIds: [] },
-  ]);
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [workflowLoading, setWorkflowLoading] = useState(true);
+  const [workflowError, setWorkflowError] = useState<string | null>(null);
 
   const [activeDragFile, setActiveDragFile] = useState<FileItem | null>(null);
   const [draggedFileIds, setDraggedFileIds] = useState<string[]>([]);
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
-  const [pulsedRecipientId, setPulsedRecipientId] = useState<string | null>(null);
 
-  // ライブラリモーダル用状態
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [libraryFiles, setLibraryFiles] = useState<LibraryFile[]>([]);
 
@@ -40,25 +113,87 @@ export function useCampaignDetail() {
     useSensor(KeyboardSensor)
   );
 
+  const loadWorkflow = useCallback(async () => {
+    if (!campaignId) return;
+    setWorkflowLoading(true);
+    try {
+      const r = await fetch(`/api/campaigns/${campaignId}/workflow`);
+      if (!r.ok) throw new Error(String(r.status));
+      const data = (await r.json()) as {
+        campaign: Campaign;
+        poolFiles: FileItem[];
+        recipients: Recipient[];
+      };
+      setCampaign(data.campaign);
+      setFiles(data.poolFiles);
+      setRecipients(data.recipients);
+      setWorkflowError(null);
+    } catch {
+      setWorkflowError("読み込みに失敗しました");
+    } finally {
+      setWorkflowLoading(false);
+    }
+  }, [campaignId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- マウント時に workflow GET（非同期）
+    void loadWorkflow();
+  }, [loadWorkflow]);
+
   const fetchLibraryFiles = useCallback(() => {
     fetch("/api/files")
       .then((r) => r.json())
-      .then((data) => setLibraryFiles(data))
+      .then((data) => setLibraryFiles(data as LibraryFile[]))
       .catch((e) => console.error(e));
   }, []);
 
-  const handleRemoveFile = useCallback((recipientId: string, fileId: string) => {
-    setRecipients((prev) =>
-      prev.map((r) => {
-        if (r.id === recipientId) {
-          return {
-            ...r,
-            assignedFileIds: r.assignedFileIds.filter((id) => id !== fileId),
-          };
+  const assignFromLibrary = useCallback(
+    async (libraryAssetIds: string[]) => {
+      if (!campaignId || libraryAssetIds.length === 0) return;
+      await fetch("/api/files/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileIds: libraryAssetIds,
+          campaignId,
+        }),
+      });
+      await loadWorkflow();
+    },
+    [campaignId, loadWorkflow]
+  );
+
+  const assignUploadedAssets = useCallback(
+    async (assetIds: string[]) => {
+      if (!campaignId || assetIds.length === 0) return;
+      await fetch("/api/files/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileIds: assetIds, campaignId }),
+      });
+      await loadWorkflow();
+    },
+    [campaignId, loadWorkflow]
+  );
+
+  const handleFilesDropped = useCallback(
+    async (droppedFiles: File[]) => {
+      const ids: string[] = [];
+      for (const file of droppedFiles) {
+        try {
+          ids.push(await uploadLibraryAssetFromFile(file));
+        } catch (e) {
+          console.error(e);
         }
-        return r;
-      })
-    );
+      }
+      await assignUploadedAssets(ids);
+    },
+    [assignUploadedAssets]
+  );
+
+  const handleRemoveFile = useCallback((recipientId: string, fileId: string) => {
+    void recipientId;
+    void fileId;
   }, []);
 
   const toggleSelection = useCallback((fileId: string) => {
@@ -70,64 +205,45 @@ export function useCampaignDetail() {
     });
   }, []);
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const file = active.data.current?.file;
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const file = event.active.data.current?.file as FileItem | undefined;
     if (!file) return;
     setActiveDragFile(file);
-    const draggingSelection = selectedFileIds.has(file.id) && selectedFileIds.size > 1;
+    const draggingSelection =
+      selectedFileIds.has(file.id) && selectedFileIds.size > 1;
     setDraggedFileIds(draggingSelection ? Array.from(selectedFileIds) : [file.id]);
-  };
+  }, [selectedFileIds]);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+  /** 発行済み Claim は読み取り専用のため、ドロップで状態は変えない */
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    void event;
     setActiveDragFile(null);
-    const sourceFileIds = draggedFileIds;
     setDraggedFileIds([]);
-
-    if (over && over.id.toString().startsWith("recipient-")) {
-      const recipientId = over.id.toString().replace("recipient-", "");
-      const fallbackFileId = active.id.toString().replace("file-", "");
-      const fileIdsToAssign = sourceFileIds.length > 0 ? sourceFileIds : [fallbackFileId];
-
-      setRecipients(prev => prev.map(r => {
-        if (r.id === recipientId) {
-          const newFileIds = [...r.assignedFileIds];
-          for (const fileId of fileIdsToAssign) {
-            if (!newFileIds.includes(fileId)) {
-              newFileIds.push(fileId);
-            }
-          }
-          return { ...r, assignedFileIds: newFileIds, link: r.link || `/claim/${Math.random().toString(36).substring(7)}` };
-        }
-        return r;
-      }));
-      setPulsedRecipientId(recipientId);
-      window.setTimeout(() => setPulsedRecipientId((prev) => (prev === recipientId ? null : prev)), 450);
-      setSelectedFileIds(new Set());
-    }
-  };
-
-  const addFilesToPool = (newItems: FileItem[]) => {
-    setFiles(prev => [...prev, ...newItems]);
-  };
+    setSelectedFileIds(new Set());
+  }, []);
 
   return {
+    campaignId,
+    campaign,
+    workflowLoading,
+    workflowError,
     files,
     recipients,
     activeDragFile,
     draggedFileIds,
     selectedFileIds,
-    pulsedRecipientId,
+    pulsedRecipientId: null as string | null,
     showLibraryModal,
     setShowLibraryModal,
     libraryFiles,
     sensors,
     fetchLibraryFiles,
+    assignFromLibrary,
     handleRemoveFile,
     toggleSelection,
     handleDragStart,
     handleDragEnd,
-    addFilesToPool,
+    handleFilesDropped,
+    reloadWorkflow: loadWorkflow,
   };
 }

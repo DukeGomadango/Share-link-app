@@ -3,21 +3,22 @@
 import { useState } from "react";
 import { X, Check, FileImage, FileAudio } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileItem, LibraryFile } from "./types";
+import { LibraryFile } from "./types";
 import { useTranslation } from "@/lib/i18n";
 
 interface LibrarySelectModalProps {
   isOpen: boolean;
   onClose: () => void;
   libraryFiles: LibraryFile[];
-  onAddFiles: (files: FileItem[]) => void;
+  /** 選択されたライブラリアセット ID でサーバーにアサインする */
+  onAssignSelected: (libraryAssetIds: string[]) => void | Promise<void>;
 }
 
 export function LibrarySelectModal({
   isOpen,
   onClose,
   libraryFiles,
-  onAddFiles,
+  onAssignSelected,
 }: LibrarySelectModalProps) {
   const { t } = useTranslation();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -29,17 +30,13 @@ export function LibrarySelectModal({
     onClose();
   };
 
-  const handleAdd = () => {
-    const selectedFiles = libraryFiles
-      .filter((f) => selectedIds.has(f.id))
-      .map((f) => ({
-        id: `f-${f.id}-${Date.now()}`,
-        name: f.name,
-        type: f.type.startsWith("image") ? ("image" as const) : ("audio" as const),
-        previewUrl: f.url,
-      }));
-    onAddFiles(selectedFiles);
-    handleClose();
+  const handleAdd = async () => {
+    const ids = libraryFiles.filter((f) => selectedIds.has(f.id)).map((f) => f.id);
+    try {
+      await onAssignSelected(ids);
+    } finally {
+      handleClose();
+    }
   };
 
   const toggleSelection = (id: string) => {

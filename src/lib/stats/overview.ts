@@ -10,16 +10,3 @@ export interface DashboardOverviewStats {
     noActiveCampaigns: boolean;
   };
 }
-
-export const dashboardOverviewMock: DashboardOverviewStats = {
-  activeCampaigns: 3,
-  totalDistributed: 1542,
-  openRate: 86.4,
-  weeklyViews: 286,
-  weekOverWeekGrowth: 12.8,
-  unassignedAssets: 7,
-  anomalies: {
-    lowOpenRate: false,
-    noActiveCampaigns: false,
-  },
-};

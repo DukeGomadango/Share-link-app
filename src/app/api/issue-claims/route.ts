@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { buildClaimPageUrl } from "@/lib/claims/base-url";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import {
   issueClaimsBatch,
@@ -7,14 +8,6 @@ import {
 } from "@/lib/issue-claims-logic";
 
 const MAX_ITEMS = 50;
-
-function claimBaseUrl(request: Request): string {
-  const env = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
-  if (env) {
-    return env;
-  }
-  return new URL(request.url).origin;
-}
 
 export async function POST(request: Request) {
   const ctx = await getSessionWorkspaceContext();
@@ -40,9 +33,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const base = claimBaseUrl(request);
   const results = await issueClaimsBatch(ctx.workspaceId, items, (secret) =>
-    `${base}/claim/${encodeURIComponent(secret)}`
+    buildClaimPageUrl(request, secret)
   );
 
   return NextResponse.json({ results });

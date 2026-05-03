@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { MSWProvider } from "@/components/msw-provider";
 import { I18nProvider } from "@/lib/i18n";
 import { GlobalScrollbarActivity } from "@/components/shared/GlobalScrollbarActivity";
 
@@ -51,10 +50,8 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <I18nProvider>
-            <MSWProvider>
-              <GlobalScrollbarActivity />
-              {children}
-            </MSWProvider>
+            <GlobalScrollbarActivity />
+            {children}
           </I18nProvider>
         </ThemeProvider>
       </body>
