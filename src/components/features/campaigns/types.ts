@@ -8,9 +8,22 @@ export type FileItem = {
 export type Recipient = {
   id: string;
   name: string;
-  email: string;
-  assignedFileIds: string[];
-  link?: string;
+  email?: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type SlotStatus = "unlinked" | "ready" | "issued";
+
+export type CampaignRecipientSlot = {
+  id: string;
+  campaignId: string;
+  recipientId?: string; // Optional: can be an empty slot
+  recipient?: Recipient; // Joined data
+  campaignAssetId?: string; // Optional: not yet linked to a file
+  status: SlotStatus;
+  createdAt: string;
 };
 
 export type LibraryFile = {
@@ -39,7 +52,9 @@ export interface Campaign {
     assignedRecipients: number;
     openRate: number;
   };
+  slots?: CampaignRecipientSlot[]; // Added slots for campaign detail
 }
 
 export type QuickFilter = "all" | "needsAttention" | "dueSoon" | Campaign["status"];
+export type RecipientFilter = "all" | "noEmail" | "noTags";
 export type ViewMode = "list" | "kanban";

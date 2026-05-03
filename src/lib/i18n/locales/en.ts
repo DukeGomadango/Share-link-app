@@ -16,13 +16,15 @@ export const en: TranslationKeys = {
     back: "Back",
     download: "Download",
     toggleTheme: "Toggle theme",
+    recipients: "Recipients",
   },
   nav: {
     dashboard: "Dashboard",
     campaigns: "Campaigns",
     library: "Library",
-    settings: "Settings",
+    recipients: "Recipients",
     integrations: "Integrations",
+    settings: "Settings",
     version: "v2.0 MVP",
   },
   dashboard: {

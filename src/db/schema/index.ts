@@ -113,6 +113,56 @@ export const campaignAssets = pgTable(
   ]
 );
 
+/**
+ * グローバルな受取人（リスナー）管理。
+ * 特定のキャンペーンに属さない「名簿」としての実体。
+ */
+export const recipients = pgTable(
+  "recipients",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    email: text("email"),
+    tags: jsonb("tags").$type<string[]>().default([]).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [index("recipients_workspace_id_idx").on(t.workspaceId)]
+);
+
+/**
+ * キャンペーン内の「受取人スロット」。
+ * ファイル（campaign_asset）が未紐付けの状態を許容する。
+ */
+export const campaignRecipientSlots = pgTable(
+  "campaign_recipient_slots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    recipientId: uuid("recipient_id")
+      .references(() => recipients.id, { onDelete: "set null" }),
+    campaignAssetId: uuid("campaign_asset_id")
+      .references(() => campaignAssets.id, { onDelete: "set null" }),
+    status: text("status").notNull().default("unlinked"), // 'unlinked' | 'ready' | 'issued'
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    index("recipient_slots_campaign_id_idx").on(t.campaignId),
+    index("recipient_slots_recipient_id_idx").on(t.recipientId),
+  ]
+);
+
 export const claims = pgTable(
   "claims",
   {
@@ -120,9 +170,11 @@ export const claims = pgTable(
     campaignAssetId: uuid("campaign_asset_id")
       .notNull()
       .references(() => campaignAssets.id, { onDelete: "restrict" }),
+    recipientSlotId: uuid("recipient_slot_id")
+      .references(() => campaignRecipientSlots.id, { onDelete: "cascade" }),
     externalTransactionId: text("external_transaction_id").notNull().unique(),
     claimSecret: text("claim_secret").notNull().unique(),
-    recipientDisplayName: text("recipient_display_name"),
+    recipientDisplayName: text("recipient_display_name"), // 下位互換用、基本は slot 経由で取得
     status: claimStatusEnum("status").default("issued").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -131,7 +183,10 @@ export const claims = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (t) => [index("claims_campaign_asset_id_idx").on(t.campaignAssetId)]
+  (t) => [
+    index("claims_campaign_asset_id_idx").on(t.campaignAssetId),
+    index("claims_recipient_slot_id_idx").on(t.recipientSlotId),
+  ]
 );
 
 /** だんご等の外部統合 Bearer（平文保存しない。`token_hash` のみ） */
