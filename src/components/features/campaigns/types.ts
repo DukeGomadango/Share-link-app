@@ -26,9 +26,14 @@ export type LibraryFile = {
 export interface Campaign {
   id: string;
   name: string;
+  description?: string;
+  tags: string[];
   status: "active" | "draft" | "completed";
   type: string;
   createdAt: string;
+  expiresAt?: string;
+  securityLevel: "standard" | "high" | "paranoid";
+  useOtp: boolean;
   stats: {
     totalFiles: number;
     assignedRecipients: number;

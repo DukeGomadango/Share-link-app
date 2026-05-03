@@ -50,7 +50,12 @@ export const campaigns = pgTable(
       .notNull()
       .references(() => workspaces.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    description: text("description"),
+    tags: jsonb("tags").$type<string[]>().default([]).notNull(),
     status: campaignStatusEnum("status").default("draft").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    securityLevel: text("security_level").default("standard").notNull(),
+    useOtp: text("use_otp").default("false").notNull(), // text for simplicity if boolean issues, but let's try boolean
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

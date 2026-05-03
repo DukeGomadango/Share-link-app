@@ -60,6 +60,26 @@ export function CampaignPeekDrawer({
                 <p className="text-xs text-muted-foreground mb-2">{t.campaigns.peek.recipients}</p>
                 <p className="font-medium">{peekCampaign.stats.assignedRecipients}</p>
               </GlassCard>
+
+              {peekCampaign.description && (
+                <GlassCard className="p-4">
+                  <p className="text-xs text-muted-foreground mb-2">{t.campaigns.new.descriptionLabel}</p>
+                  <p className="text-sm leading-relaxed">{peekCampaign.description}</p>
+                </GlassCard>
+              )}
+
+              {peekCampaign.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {peekCampaign.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="px-2 py-1 bg-emerald-500/10 text-emerald-600 rounded-md text-[10px] font-semibold border border-emerald-500/20"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
               {isNeedsAttention(peekCampaign) && (
                 <GlassCard className="p-4 border-amber-500/40">
                   <div className="flex items-center gap-2 text-amber-300">

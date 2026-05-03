@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/shared/GlassCard";
 import type { QuickFilter, ViewMode } from "@/components/features/campaigns/types";
 import { useTranslation } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 interface CampaignsFiltersProps {
   searchQuery: string;
@@ -13,6 +14,9 @@ interface CampaignsFiltersProps {
   activeFilter: QuickFilter;
   onFilterChange: (filter: QuickFilter) => void;
   quickFilters: QuickFilter[];
+  allTags: string[];
+  selectedTag: string | null;
+  onTagChange: (tag: string | null) => void;
 }
 
 export function CampaignsFilters({
@@ -23,6 +27,9 @@ export function CampaignsFilters({
   activeFilter,
   onFilterChange,
   quickFilters,
+  allTags,
+  selectedTag,
+  onTagChange,
 }: CampaignsFiltersProps) {
   const { t } = useTranslation();
 
@@ -73,6 +80,37 @@ export function CampaignsFilters({
           ))}
         </div>
       </div>
+
+      {/* Tag Filter */}
+      {allTags.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-1 duration-500">
+          <Button
+            variant={selectedTag === null ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => onTagChange(null)}
+            className="rounded-full text-[10px] h-7 px-3"
+          >
+            {t.library.tagLabel}: {t.library.dateOptions.all}
+          </Button>
+          {allTags.map((tag) => (
+            <Button
+              key={tag}
+              variant={selectedTag === tag ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => onTagChange(selectedTag === tag ? null : tag)}
+              className={cn(
+                "rounded-full text-[10px] h-7 px-3 transition-all",
+                selectedTag === tag 
+                  ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
+                  : "bg-background/20 text-muted-foreground border-border/40 hover:border-emerald-500/30"
+              )}
+            >
+              #{tag}
+            </Button>
+          ))}
+        </div>
+      )}
+
       <p className="mt-3 text-xs text-muted-foreground">{t.campaigns.keyboardHint}</p>
     </GlassCard>
   );

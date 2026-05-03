@@ -46,8 +46,10 @@ export default function CampaignsPage() {
     selectCampaignWithRange,
     selectAll,
     formatDate,
-    isNeedsAttention,
     isDueSoon,
+    allTags,
+    selectedTag,
+    setSelectedTag,
   } = useCampaigns();
 
   useEffect(() => {
@@ -123,6 +125,9 @@ export default function CampaignsPage() {
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
             quickFilters={QUICK_FILTERS}
+            allTags={allTags}
+            selectedTag={selectedTag}
+            onTagChange={setSelectedTag}
           />
 
           {viewMode === "list" ? (

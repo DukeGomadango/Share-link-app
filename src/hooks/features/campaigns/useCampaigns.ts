@@ -20,6 +20,7 @@ export function useCampaigns() {
     previousStatuses: Record<string, Campaign["status"]>;
     nextStatus: Campaign["status"];
   } | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const { t, locale } = useTranslation();
 
   const fetchCampaigns = useCallback(() => {
@@ -59,14 +60,27 @@ export function useCampaigns() {
 
   const visibleCampaigns = useMemo(() => {
     return campaigns.filter((campaign) => {
-      const bySearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase());
-      if (!bySearch) return false;
+      const query = searchQuery.toLowerCase();
+      const byName = campaign.name.toLowerCase().includes(query);
+      const byTag = campaign.tags.some((tag) => tag.toLowerCase().includes(query));
+      
+      if (!byName && !byTag) return false;
+
+      // New: Tag selection filter
+      if (selectedTag && !campaign.tags.includes(selectedTag)) return false;
+
       if (activeFilter === "all") return true;
       if (activeFilter === "needsAttention") return isNeedsAttention(campaign);
       if (activeFilter === "dueSoon") return isDueSoon(campaign);
       return campaign.status === activeFilter;
     });
-  }, [campaigns, searchQuery, activeFilter, isNeedsAttention, isDueSoon]);
+  }, [campaigns, searchQuery, activeFilter, isNeedsAttention, isDueSoon, selectedTag]);
+
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    campaigns.forEach((c) => c.tags.forEach((t) => tags.add(t)));
+    return Array.from(tags).sort();
+  }, [campaigns]);
 
   const orderedVisibleCampaigns = useMemo(() => {
     return [...visibleCampaigns].sort((a, b) => {
@@ -249,6 +263,9 @@ export function useCampaigns() {
     formatDate,
     isNeedsAttention,
     isDueSoon,
+    allTags,
+    selectedTag,
+    setSelectedTag,
     t,
   };
 }

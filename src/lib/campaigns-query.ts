@@ -62,9 +62,14 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
     return {
       id: row.id,
       name: row.name,
+      description: row.description ?? undefined,
+      tags: (row.tags as string[]) ?? [],
       status: uiStatusFromDb(row.status),
       type: "direct",
       createdAt: row.createdAt.toISOString(),
+      expiresAt: row.expiresAt?.toISOString(),
+      securityLevel: row.securityLevel as Campaign["securityLevel"],
+      useOtp: row.useOtp === "true",
       stats: {
         totalFiles,
         assignedRecipients,
