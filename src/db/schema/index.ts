@@ -134,6 +134,11 @@ export const recipients = pgTable(
     name: text("name").notNull(),
     // email: text("email"), // Conceptually deprecated in v2
     tags: jsonb("tags").$type<string[]>().default([]).notNull(),
+    platformId: jsonb("platform_id").$type<{
+      type: "discord" | "twitter" | "custom";
+      handle: string;
+    }>(),
+    listenerNote: text("listener_note"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

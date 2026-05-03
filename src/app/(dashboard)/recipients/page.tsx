@@ -33,8 +33,10 @@ export default function RecipientsPage() {
     updateRecipientInfo,
     addRecipient,
     bulkUpdateTags,
+    bulkAddRecipients,
     allUniqueTags,
-    stats
+    stats,
+    isLoading
   } = useRecipients();
   const { t } = useTranslation();
   const [detailRecipient, setDetailRecipient] = useState<Recipient | null>(null);
@@ -54,9 +56,39 @@ export default function RecipientsPage() {
     }
   };
 
-  const handleCreateRecipient = () => {
-    const newRecipient = addRecipient();
-    setDetailRecipient(newRecipient);
+  const handleCreateRecipient = async () => {
+    const newRecipient = await addRecipient();
+    if (newRecipient) {
+      setDetailRecipient(newRecipient);
+    }
+  };
+
+  const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split(/\r?\n/).filter(line => line.trim());
+      
+      // Basic CSV parse (assuming: name, tags, platform_type, platform_handle)
+      const data = lines.slice(1).map(line => {
+        const parts = line.split(",").map(p => p.trim());
+        return {
+          name: parts[0],
+          tags: parts[1] ? parts[1].split(";").map(t => t.trim()) : [],
+          platformId: parts[2] && parts[3] ? { type: parts[2], handle: parts[3] } : undefined,
+        };
+      }).filter(r => r.name);
+
+      if (data.length > 0) {
+        const ok = await bulkAddRecipients(data);
+        if (ok) window.alert(`${data.length}件の受取人をインポートしました。`);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ""; // Reset
   };
 
   const handleAssign = (recipient: Recipient) => {
@@ -86,10 +118,19 @@ export default function RecipientsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="glass">
-            <Download className="w-4 h-4 mr-2" />
-            CSVインポート
-          </Button>
+          <div className="relative">
+            <input
+              type="file"
+              accept=".csv"
+              className="absolute inset-0 opacity-0 cursor-pointer z-10"
+              onChange={handleCsvImport}
+              title="CSVをインポート"
+            />
+            <Button variant="outline" size="sm" className="glass">
+              <Download className="w-4 h-4 mr-2" />
+              CSVインポート
+            </Button>
+          </div>
           <Button 
             size="sm" 
             className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
@@ -146,14 +187,21 @@ export default function RecipientsPage() {
       </div>
 
       {/* Recipients List */}
-      <RecipientTable 
-        recipients={recipients}
-        selectedRecipientIds={selectedRecipientIds}
-        onSelectAll={selectAll}
-        onSelectRecipient={selectRecipient}
-        onRowClick={handleRowClick}
-        onAssign={handleAssign}
-      />
+      {isLoading ? (
+        <div className="glass rounded-2xl border-border/50 p-20 flex flex-col items-center justify-center space-y-4">
+          <div className="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+          <p className="text-sm font-medium text-muted-foreground">リスナー名簿を読み込み中...</p>
+        </div>
+      ) : (
+        <RecipientTable 
+          recipients={recipients}
+          selectedRecipientIds={selectedRecipientIds}
+          onSelectAll={selectAll}
+          onSelectRecipient={selectRecipient}
+          onRowClick={handleRowClick}
+          onAssign={handleAssign}
+        />
+      )}
 
       {/* Floating Bulk Action Bar */}
       <RecipientBulkActions 

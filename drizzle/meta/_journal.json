@@ -15,6 +15,13 @@
       "when": 1777769545702,
       "tag": "0001_external_api",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777821268149,
+      "tag": "0002_foamy_black_bolt",
+      "breakpoints": true
     }
   ]
 }

@@ -19,44 +19,32 @@ interface RecipientDetailDrawerProps {
   existingTags?: string[];
 }
 
-// Mock data for the timeline
-const MOCK_HISTORY = [
-  {
-    id: "h1",
-    campaignName: "2026年 春の新作ボイス配布",
-    fileName: "spring_voice_set.zip",
-    status: "opened" as const,
-    date: "2026/04/15 14:22",
-    token: "tk_abc123"
-  },
-  {
-    id: "h2",
-    campaignName: "フォロワー1万人記念壁紙",
-    fileName: "desktop_wallpaper_4k.png",
-    status: "unopened" as const,
-    date: "2026/04/28 10:05",
-    token: "tk_def456"
-  },
-  {
-    id: "h3",
-    campaignName: "限定サイン入りデジタルブロマイド",
-    fileName: "signed_photo_v1.jpg",
-    status: "expired" as const,
-    date: "2026/03/10 18:30",
-    token: "tk_ghi789"
-  }
-];
 
 export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags, onUpdateInfo, existingTags = [] }: RecipientDetailDrawerProps) {
   const [newTag, setNewTag] = useState("");
   const [editName, setEditName] = useState("");
   const [editNote, setEditNote] = useState("");
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Sync state when recipient changes or drawer opens
   useEffect(() => {
-    if (recipient) {
+    if (recipient && isOpen) {
       setEditName(recipient.name);
       setEditNote(recipient.listenerNote || "");
+      
+      // Fetch real history
+      setIsLoadingHistory(true);
+      fetch(`/api/recipients/${recipient.id}/history`)
+        .then(res => res.json())
+        .then(data => {
+          setHistory(data);
+          setIsLoadingHistory(false);
+        })
+        .catch(err => {
+          console.error("Failed to fetch history:", err);
+          setIsLoadingHistory(false);
+        });
     }
   }, [recipient, isOpen]);
 
@@ -216,7 +204,14 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
             <Calendar className="w-3.5 h-3.5" />
             アクティビティ履歴
           </h3>
-          <CampaignTimeline items={MOCK_HISTORY} />
+          {isLoadingHistory ? (
+            <div className="py-12 flex flex-col items-center justify-center space-y-2 opacity-50">
+              <div className="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+              <p className="text-[10px] font-medium">履歴を読み込み中...</p>
+            </div>
+          ) : (
+            <CampaignTimeline items={history} />
+          )}
         </section>
 
         {/* Info Grid */}
@@ -227,7 +222,7 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
           </div>
           <div className="p-4 rounded-2xl bg-muted/30 border border-border/50">
             <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">総受取数</p>
-            <p className="text-sm font-bold text-emerald-600">12 件</p>
+            <p className="text-sm font-bold text-emerald-600">{history.length} 件</p>
           </div>
         </section>
       </SheetBody>
