@@ -92,7 +92,7 @@ export function RecipientsSection({
         ) : null}
       </div>
 
-      <div className="scrollbar-prominent overflow-y-auto flex-1 pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-max pb-20">
+      <div className="scrollbar-prominent overflow-y-auto overflow-x-hidden flex-1 pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-max pb-20">
         {recipients.length === 0 ? (
           <p className="text-sm text-muted-foreground col-span-full text-center py-8 px-2 border border-dashed border-border/60 rounded-xl">
             {t.campaigns.recipientsEmpty}

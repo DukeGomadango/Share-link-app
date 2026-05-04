@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users } from "lucide-react";
+import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users, Calendar, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
@@ -222,6 +222,51 @@ export default function CampaignDetailPage() {
                 <option value="per_link">個別リンク（従来）</option>
                 <option value="reception">共通受付（チェックイン）</option>
               </select>
+
+              <div className="flex items-center gap-2 ml-2 pl-4 border-l border-border/30">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  有効期限
+                </span>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="datetime-local"
+                    className="rounded-lg border border-border/60 bg-background/80 px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                    value={campaign.expiresAt ? new Date(new Date(campaign.expiresAt).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (!v) return;
+                      void (async () => {
+                        const r = await fetch(`/api/campaigns/${campaignId}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ expiresAt: new Date(v).toISOString() }),
+                        });
+                        if (r.ok) await reloadWorkflow();
+                      })();
+                    }}
+                  />
+                  {campaign.expiresAt && (
+                    <button
+                      onClick={() => {
+                        void (async () => {
+                          const r = await fetch(`/api/campaigns/${campaignId}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ expiresAt: null }),
+                          });
+                          if (r.ok) await reloadWorkflow();
+                        })();
+                      }}
+                      className="p-1 hover:bg-destructive/10 rounded-md text-muted-foreground hover:text-destructive transition-colors"
+                      title="期限をクリア"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {campaign.distributionMode === "reception" &&
               campaign.publicReceptionToken ? (
                 <Button
@@ -355,7 +400,7 @@ export default function CampaignDetailPage() {
                 onRemoveFile={handleRemoveFile}
                 onRemoveRecipient={handleRemoveRecipient}
                 onMerge={handleMergeRecipients}
-                readOnly={campaign?.distributionMode !== "reception"}
+                readOnly={false}
               onAddRecipients={() => {
                 setAddRecipientResetKey((k) => k + 1);
                 setAddRecipientOpen(true);

@@ -19,8 +19,9 @@ export default function PublicReceivePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
-  const [passkeyHint, setPasskeyHint] = useState<string | null>(null);
   const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const [passkeyHint, setPasskeyHint] = useState<string | null>(null);
+  const [detectedName, setDetectedName] = useState<string | null>(null);
 
   const tryResumeWithCookie = useCallback(async (): Promise<boolean> => {
     if (!token) return false;
@@ -41,19 +42,24 @@ export default function PublicReceivePage() {
     return false;
   }, [token, router]);
 
-  const tryResumeAfterAuth = useCallback(async (): Promise<boolean> => {
-    if (!token) return false;
+  const tryResumeAfterAuth = useCallback(async (): Promise<{ resumed: boolean; detected?: string }> => {
+    if (!token) return { resumed: false };
     const r = await fetch(
       `/api/public/campaigns/${encodeURIComponent(token)}/resume-with-passkey`,
       { method: "POST", credentials: "include" }
     );
-    if (!r.ok) return false;
-    const j = (await r.json()) as { campaignId?: string };
+    if (!r.ok) return { resumed: false };
+    const j = (await r.json()) as { campaignId?: string; detectedName?: string };
     if (j.campaignId && typeof j.campaignId === "string") {
       router.replace(`/claim/session/${encodeURIComponent(j.campaignId)}`);
-      return true;
+      return { resumed: true };
     }
-    return false;
+    if (j.detectedName) {
+      setDetectedName(j.detectedName);
+      setDisplayName(j.detectedName);
+      return { resumed: false, detected: j.detectedName };
+    }
+    return { resumed: false };
   }, [token, router]);
 
   useEffect(() => {
@@ -68,8 +74,8 @@ export default function PublicReceivePage() {
       if (cancelled || cookieResumed) return;
 
       // 2. パスキーセッションによる再開を試みる（もしあれば）
-      const passkeyResumed = await tryResumeAfterAuth();
-      if (cancelled || passkeyResumed) return;
+      const { resumed } = await tryResumeAfterAuth();
+      if (cancelled || resumed) return;
 
       setBootReady(true);
     })();
@@ -82,6 +88,7 @@ export default function PublicReceivePage() {
     setPasskeyBusy(true);
     setPasskeyError(null);
     setPasskeyHint(null);
+    setDetectedName(null);
     try {
       const { startAuthentication, browserSupportsWebAuthn } = await import(
         "@simplewebauthn/browser"
@@ -115,10 +122,10 @@ export default function PublicReceivePage() {
         setPasskeyError(v.error ?? "認証に失敗しました");
         return;
       }
-      const navigated = await tryResumeAfterAuth();
-      if (!navigated) {
+      const { resumed, detected } = await tryResumeAfterAuth();
+      if (!resumed && !detected) {
         setPasskeyHint(
-          "このキャンペーンで再開できる受け取りがまだありません。初回は上のフォームからチェックインしてください。"
+          "認証されましたが、このキャンペーンでの受け取りがまだありません。初回チェックインを行ってください。"
         );
       }
     } catch (e) {
@@ -198,12 +205,72 @@ export default function PublicReceivePage() {
             </div>
             <h1 className="text-3xl font-black tracking-tight text-foreground">受付チェックイン</h1>
             <p className="text-sm text-muted-foreground leading-relaxed font-medium">
-              ライバーがあなたを待っています。<br />
-              受け取りに使う名前を教えてください。
+              ライバーがあなたを待っています。
             </p>
           </div>
 
-          <form onSubmit={(e) => void submit(e)} className="space-y-6">
+          {/* リピーター向け誘導セクション */}
+          {!detectedName && (
+            <div className="p-4 rounded-3xl bg-emerald-50 border border-emerald-100 space-y-3">
+              <div className="flex items-center gap-2 px-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest">
+                  2回目以降の方（推奨）
+                </p>
+              </div>
+              <Button
+                type="button"
+                className="w-full h-12 rounded-2xl bg-white border border-emerald-200 text-emerald-700 text-sm font-bold shadow-sm hover:bg-emerald-50 hover:border-emerald-300 transition-all group flex items-center justify-center gap-2"
+                disabled={passkeyBusy}
+                onClick={() => void passkeyLogin()}
+              >
+                <Fingerprint className="w-5 h-5 text-emerald-500" />
+                {passkeyBusy ? "認証中…" : "パスキーでかんたん受取"}
+                <ChevronRight className="w-4 h-4 text-emerald-300 group-hover:translate-x-0.5 transition-transform" />
+              </Button>
+              
+              {passkeyError && (
+                <p className="text-[10px] text-destructive text-center font-bold px-2">{passkeyError}</p>
+              )}
+              {passkeyHint && (
+                <p className="text-[10px] text-emerald-600 text-center font-bold px-2 leading-relaxed">{passkeyHint}</p>
+              )}
+            </div>
+          )}
+
+          {detectedName && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-6 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                  <User className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70">Welcome back</p>
+                  <p className="text-lg font-black text-emerald-900">{detectedName} さん</p>
+                </div>
+              </div>
+              <Button
+                onClick={(e) => void submit(e)}
+                disabled={busy}
+                className="w-full h-12 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/10"
+              >
+                {busy ? "送信中…" : "このままチェックインする"}
+              </Button>
+              <button 
+                onClick={() => setDetectedName(null)}
+                className="w-full text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"
+              >
+                別の名前でチェックインする
+              </button>
+            </motion.div>
+          )}
+
+          {!detectedName && (
+            <form onSubmit={(e) => void submit(e)} className="space-y-6">
             <div className="space-y-4">
               <div className="group space-y-2">
                 <label htmlFor="recv-name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1 flex items-center gap-2">
@@ -257,40 +324,18 @@ export default function PublicReceivePage() {
               {busy ? "送信中…" : "チェックインして待機へ"}
             </Button>
           </form>
+          )}
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-black/[0.05]" />
+          {!detectedName && (
+            <div className="relative pt-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-black/[0.05]" />
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest">
+                <span className="bg-[#fafafa] px-4 text-muted-foreground">初めての方</span>
+              </div>
             </div>
-            <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest">
-              <span className="bg-white/80 px-4 text-muted-foreground">or use your passkey</span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-14 rounded-2xl border-black/[0.05] bg-white/50 text-sm font-bold hover:bg-white hover:border-emerald-500/20 transition-all group"
-              disabled={passkeyBusy}
-              onClick={() => void passkeyLogin()}
-            >
-              <Fingerprint className="w-5 h-5 mr-3 text-emerald-500" />
-              {passkeyBusy ? "認証中…" : "パスキーで続ける"}
-              <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-            </Button>
-
-            {passkeyError ? (
-              <p className="text-[10px] text-destructive text-center font-bold px-4">
-                {passkeyError}
-              </p>
-            ) : null}
-            {passkeyHint ? (
-              <p className="text-[10px] text-emerald-600 text-center font-bold px-4 leading-relaxed">
-                {passkeyHint}
-              </p>
-            ) : null}
-          </div>
+          )}
         </div>
 
         <p className="text-center mt-8 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">

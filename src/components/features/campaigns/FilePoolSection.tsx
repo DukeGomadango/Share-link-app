@@ -188,7 +188,7 @@ export function FilePoolSection({
       </div>
 
       <div 
-        className="scrollbar-prominent overflow-y-auto flex-1 pr-2 pb-20 relative select-none"
+        className="scrollbar-prominent overflow-y-auto overflow-x-hidden flex-1 pr-2 pb-20 relative select-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -224,7 +224,7 @@ export function FilePoolSection({
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-dashed border-border mt-6">
+        <div className="flex flex-col xl:flex-row gap-4 pt-4 border-t border-dashed border-border mt-6">
           <div className="flex-1">
             <FileDropzone onFilesDropped={onFilesDropped} />
           </div>

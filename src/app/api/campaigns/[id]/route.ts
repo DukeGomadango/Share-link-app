@@ -35,6 +35,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     name?: string;
     status?: string;
     distributionMode?: string;
+    expiresAt?: string | null;
   };
   try {
     body = await request.json();
@@ -48,6 +49,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     name?: string;
     status?: (typeof campaigns.$inferSelect)["status"];
     distributionMode?: string;
+    expiresAt?: Date | null;
   };
   const patch: Patch = {};
 
@@ -72,6 +74,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "distributionMode が不正です" }, { status: 400 });
     }
     patch.distributionMode = m;
+  }
+
+  if (body.expiresAt !== undefined) {
+    if (body.expiresAt === null) {
+      patch.expiresAt = null;
+    } else {
+      const d = new Date(body.expiresAt);
+      if (isNaN(d.getTime())) {
+        return NextResponse.json({ error: "expiresAt が不正な形式です" }, { status: 400 });
+      }
+      patch.expiresAt = d;
+    }
   }
 
   if (Object.keys(patch).length === 0) {

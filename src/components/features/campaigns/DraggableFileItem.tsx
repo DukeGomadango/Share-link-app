@@ -17,9 +17,9 @@ export function DraggableFileItem({ file, isSelected, onToggleSelection, priorit
     data: { file },
   });
 
-  const style = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
-    : undefined;
+  // DragOverlay を使用しているため、オリジナル側は移動（transform）させない。
+  // 移動させるとプールのコンテナ幅を広げてしまい、意図しない横スクロールを誘発するため。
+  const style = undefined;
 
   return (
     <div
@@ -30,7 +30,7 @@ export function DraggableFileItem({ file, isSelected, onToggleSelection, priorit
       data-file-id={file.id}
       className={cn(
         "relative rounded-xl border bg-background/50 cursor-grab active:cursor-grabbing hover:border-emerald-500/50 transition-[border-color,background-color,box-shadow] duration-200 group flex flex-col p-2",
-        isDragging ? "opacity-50 ring-2 ring-emerald-500 shadow-xl z-50" : "border-border/50",
+        isDragging ? "opacity-20 ring-2 ring-emerald-500/20 z-0" : "border-border/50",
         isSelected ? "border-emerald-500 bg-emerald-500/5" : ""
       )}
       onClick={(event) => {

@@ -10,7 +10,11 @@ import {
 import { createSlotAndClaim } from "@/lib/claims/create-slot-and-claim";
 import { checkInRateLimit } from "@/lib/public/check-in-rate-limit";
 import { getDb } from "@/db";
-import { campaigns, claims, recipients } from "@/db/schema";
+import { campaigns, claims, listenerIdentities, recipients } from "@/db/schema";
+import {
+  LISTENER_SESSION_COOKIE,
+  verifyListenerSessionToken,
+} from "@/lib/webauthn/listener-session-cookie";
 
 type RouteParams = { params: Promise<{ publicToken: string }> };
 
@@ -139,23 +143,45 @@ export async function POST(request: Request, ctx: RouteParams) {
     );
   }
 
+  const cookieStore = await cookies();
+  const listenerTok = cookieStore.get(LISTENER_SESSION_COOKIE)?.value;
+  const session = verifyListenerSessionToken(listenerTok);
+
   let created;
   try {
-    // グローバル名簿に受取人を自動登録
-    const [newRecipient] = await db
-      .insert(recipients)
-      .values({
-        workspaceId: c.workspaceId,
-        name: displayName,
-        tags: [],
-      })
-      .returning({ id: recipients.id });
+    let recipientId: string | null = null;
+
+    if (session && session.workspaceId === c.workspaceId) {
+      // 既にパスキーで紐付いている既存の受取人 ID を DB から取得
+      const [identity] = await db
+        .select({ linkedRecipientId: listenerIdentities.linkedRecipientId })
+        .from(listenerIdentities)
+        .where(eq(listenerIdentities.id, session.listenerIdentityId))
+        .limit(1);
+
+      if (identity?.linkedRecipientId) {
+        recipientId = identity.linkedRecipientId;
+      }
+    }
+
+    if (!recipientId) {
+      // グローバル名簿に受取人を自動登録
+      const [newRecipient] = await db
+        .insert(recipients)
+        .values({
+          workspaceId: c.workspaceId,
+          name: displayName,
+          tags: [],
+        })
+        .returning({ id: recipients.id });
+      recipientId = newRecipient?.id ?? null;
+    }
 
     created = await createSlotAndClaim({
       campaignId: c.id,
       listenerDisplayName: displayName,
       listenerNote: body.note ?? null,
-      recipientId: newRecipient?.id ?? null,
+      recipientId,
     });
   } catch (e) {
     console.error(e);
@@ -165,7 +191,6 @@ export async function POST(request: Request, ctx: RouteParams) {
     );
   }
 
-  const cookieStore = await cookies();
   const name = claimSessionCookieName(c.id);
   cookieStore.set(name, created.claimSecret, {
     httpOnly: true,

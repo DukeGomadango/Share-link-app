@@ -14,7 +14,7 @@ import {
   verifyListenerSessionToken,
 } from "@/lib/webauthn/listener-session-cookie";
 import { getDb } from "@/db";
-import { campaigns } from "@/db/schema";
+import { campaigns, listenerIdentities, recipients } from "@/db/schema";
 
 type RouteParams = { params: Promise<{ publicToken: string }> };
 
@@ -99,12 +99,30 @@ export async function POST(request: Request, ctx: RouteParams) {
   });
 
   if (!resolved) {
+    // クレームは見つからなかったが、アイデンティティ（名簿との紐付け）は判明している場合
+    // 名前を返して、フロントエンドで「おかえりなさい、〇〇さん」と表示できるようにする
+    const [identity] = await db
+      .select({ linkedRecipientId: listenerIdentities.linkedRecipientId })
+      .from(listenerIdentities)
+      .where(eq(listenerIdentities.id, session.listenerIdentityId))
+      .limit(1);
+
+    const identityName = identity?.linkedRecipientId
+      ? await db
+          .select({ name: recipients.name })
+          .from(recipients)
+          .where(eq(recipients.id, identity.linkedRecipientId))
+          .limit(1)
+          .then((rows) => rows[0]?.name)
+      : undefined;
+
     return NextResponse.json(
       {
         error: "no_resumable_claim",
         message: "このキャンペーンで再開できる受け取りがありません",
+        detectedName: identityName,
       },
-      { status: 404 }
+      { status: 200 } // ユーザー判明時は 200 で返してフロントで処理しやすくする
     );
   }
 
