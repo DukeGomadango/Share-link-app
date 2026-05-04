@@ -8,6 +8,7 @@ import { ClaimUnopenedView } from "@/components/features/claim/ClaimUnopenedView
 import { ClaimContentView } from "@/components/features/claim/ClaimContentView";
 import { PasskeyRegisterCard } from "@/components/features/claim/PasskeyRegisterCard";
 import type { ClaimFile } from "@/components/features/claim/types";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { CLAIM_SESSION_MAX_AGE_SEC } from "@/lib/claims/constants";
 
 const POLL_MS = 4000;
@@ -110,10 +111,33 @@ export default function ClaimSessionByCampaignPage() {
   }, [bundle]);
 
   useEffect(() => {
-    if (!bundle?.pending) return;
-    const t = setInterval(() => void fetchSession(), POLL_MS);
-    return () => clearInterval(t);
-  }, [bundle?.pending, fetchSession]);
+    // リアルタイム監視 (Supabase Realtime)
+    if (!campaignId) return;
+
+    const supabase = createSupabaseBrowserClient();
+    const channel = supabase
+      .channel(`claim-updates-${campaignId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "claims",
+          // セッションに基づいた絞り込みは難しい（Secretがクッキーにあるため）ので、
+          // ひとまずキャンペーン内の更新をすべて受けて、fetchSession で自分の分を確認する
+          filter: `campaign_id=eq.${campaignId}`,
+        },
+        () => {
+          // 何か更新があったらデータを再取得
+          void fetchSession({ force: true });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [campaignId, bundle?.files.length, fetchSession]);
 
   const expiryDate = bundle
     ? new Date(bundle.expiryIso)

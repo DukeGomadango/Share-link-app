@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useDroppable } from "@dnd-kit/core";
+import { useDroppable, useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
 import {
   Copy,
@@ -13,6 +14,7 @@ import {
   AlertCircle,
   Plus,
   KeyRound,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +31,8 @@ interface DroppableRecipientProps {
   /** DB 上の発行済み Claim 行はドロップで変更できない */
   readOnly?: boolean;
   onClick?: () => void;
+  matchingPreparedSlot?: Recipient;
+  onMerge?: (sourceId: string, targetId: string) => void;
 }
 
 export function DroppableRecipient({
@@ -38,13 +42,39 @@ export function DroppableRecipient({
   successPulse = false,
   readOnly = false,
   onClick,
+  matchingPreparedSlot,
+  onMerge,
 }: DroppableRecipientProps) {
   const { t } = useTranslation();
-  const { isOver, setNodeRef } = useDroppable({
+  
+  const { isOver, setNodeRef: setDroppableRef } = useDroppable({
     id: `recipient-${recipient.id}`,
-    data: { recipient },
+    data: { recipient, type: 'recipient' },
     disabled: readOnly,
   });
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDraggableRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: `recipient-${recipient.id}`,
+    data: { recipient, type: 'recipient' },
+    disabled: readOnly,
+  });
+
+  // 合体させたRefを作成
+  const setNodeRef = (node: HTMLElement | null) => {
+    setDroppableRef(node);
+    setDraggableRef(node);
+  };
+
+  const style = transform ? {
+    transform: CSS.Translate.toString(transform),
+  } : undefined;
+
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = () => {
@@ -67,6 +97,8 @@ export function DroppableRecipient({
   return (
     <motion.div
       ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       initial={false}
       animate={
         successPulse
@@ -80,12 +112,13 @@ export function DroppableRecipient({
             }
           : { scale: 1 }
       }
-      whileHover={{ scale: 1.01 }}
+      whileHover={{ scale: isDragging ? 1 : 1.01 }}
       onClick={onClick}
       transition={{ duration: 0.42, ease: "easeOut" }}
       className={cn(
-        `p-4 rounded-2xl border transition-all relative group/card cursor-pointer`,
-        isOver
+        `p-4 rounded-2xl border transition-all relative group/card cursor-grab active:cursor-grabbing`,
+        isDragging ? "opacity-0 invisible" : "opacity-100", // ドラッグ中は元の場所を消す（DragOverlayに任せる）
+        isOver && !isDragging
           ? "border-emerald-500 bg-emerald-500/10 scale-[1.02] shadow-emerald-500/20 shadow-lg"
           : successPulse
           ? "border-emerald-500 bg-emerald-500/10"
@@ -126,6 +159,38 @@ export function DroppableRecipient({
             <p className="text-[11px] text-muted-foreground line-clamp-2 opacity-80">
               {(recipient as { listenerNote?: string }).listenerNote}
             </p>
+          )}
+          {recipient.status === 'waiting' && matchingPreparedSlot && (
+            <div 
+              className="mt-3 p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 flex flex-col gap-2 relative overflow-hidden group/merge"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute inset-0 bg-sky-500/5 opacity-0 group-hover/merge:opacity-100 transition-opacity pointer-events-none" />
+              <div className="flex items-center justify-between gap-2 relative z-10">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-sky-500/20 flex items-center justify-center">
+                    <Users className="w-3.5 h-3.5 text-sky-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-sky-700 leading-tight">事前準備と一致しました</p>
+                    <p className="text-[9px] text-sky-600/70 leading-tight">
+                      {matchingPreparedSlot.assignedFileIds?.length || 0} 個のファイル
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-3 text-[10px] font-bold bg-sky-500 text-white hover:bg-sky-600 hover:text-white rounded-lg shadow-sm shadow-sky-500/20 transition-all active:scale-95"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onMerge) onMerge(recipient.id, matchingPreparedSlot.id);
+                  }}
+                >
+                  統合する
+                </Button>
+              </div>
+            </div>
           )}
         </div>
         

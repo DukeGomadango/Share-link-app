@@ -93,7 +93,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
   const distributionMode = owned[0].distributionMode ?? "per_link";
 
   const recipients = wfRows.map((row) => ({
-    id: row.claimId,
+    id: row.recipientSlotId || row.claimId,
     name: row.recipientDisplayName ?? "（無名）",
     listenerNote: row.listenerNote ?? undefined,
     tags: [] as string[],

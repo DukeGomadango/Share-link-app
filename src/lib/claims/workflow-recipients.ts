@@ -10,12 +10,14 @@ import {
 } from "@/db/schema";
 
 export type WorkflowRecipientRow = {
+  id: string;
   claimId: string;
   claimSecret: string;
   recipientDisplayName: string | null;
   listenerNote: string | null;
   assignedFileIds: string[];
   distributionMode: string;
+  recipientSlotId: string | null;
   /** claim と listener_identity が WebAuthn で紐づいている */
   passkeyVerified: boolean;
 };
@@ -79,29 +81,40 @@ export async function fetchWorkflowRecipientsForCampaign(
     assetsBySlot.set(sa.slotId, list);
   }
 
-  return rows.map((r) => {
-    const claimId = r.claim.id;
-    const slotId = r.slot?.id;
+  // 枠（SlotID）ごとにグループ化して集約する
+  const slotGroups = new Map<string, WorkflowRecipientRow>();
 
-    // 優先順位: Claim に直接紐づくアセット > Slot に紐づくアセット
+  for (const r of rows) {
+    const claimId = r.claim.id;
+    const slotId = r.slot?.id || claimId; // Slot がない場合は ClaimID をキーにする
+
+    const existing = slotGroups.get(slotId);
+
+    // 優先順位: Claim に直接紐づくアセット + Slot に紐づくアセット
     const assignedSet = new Set([
+      ...(existing?.assignedFileIds || []),
       ...(assetsByClaim.get(claimId) ?? []),
-      ...(slotId ? assetsBySlot.get(slotId) ?? [] : []),
+      ...(r.slot?.id ? assetsBySlot.get(r.slot.id) ?? [] : []),
     ]);
 
     const name =
       r.slot?.listenerDisplayName?.trim() ||
       r.claim.recipientDisplayName?.trim() ||
+      existing?.recipientDisplayName ||
       "（無名）";
 
-    return {
-      claimId,
-      claimSecret: r.claim.claimSecret,
+    slotGroups.set(slotId, {
+      id: slotId, // フロントエンドがキーやIDとして使用する
+      claimId: existing?.claimId || claimId, // 代表的な ClaimID を1つ保持
+      claimSecret: existing?.claimSecret || r.claim.claimSecret,
       recipientDisplayName: name,
-      listenerNote: r.slot?.listenerNote?.trim() || null,
+      listenerNote: r.slot?.listenerNote?.trim() || existing?.listenerNote || null,
       assignedFileIds: Array.from(assignedSet),
       distributionMode,
-      passkeyVerified: linked.has(claimId),
-    };
-  });
+      recipientSlotId: r.claim.recipientSlotId,
+      passkeyVerified: existing?.passkeyVerified || linked.has(claimId),
+    });
+  }
+
+  return Array.from(slotGroups.values());
 }

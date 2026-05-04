@@ -65,7 +65,8 @@ export async function buildClaimBundleForSecret(
   const claimId = hit.claim.id;
   const slotId = hit.slot?.id;
 
-  // 2. 紐づくアセット ID を収集 (Claim 優先、なければ Slot)
+  // 2. 紐づくアセット ID を収集
+  // 統合後は Slot にファイルが紐付いていることが多いため、両方をマージして取得する
   const [cAssets, sAssets] = await Promise.all([
     db.select().from(claimAssets).where(eq(claimAssets.claimId, claimId)),
     slotId
@@ -87,6 +88,7 @@ export async function buildClaimBundleForSecret(
     .limit(1);
   const passkeyLinked = Boolean(passkeyRows[0]);
 
+  // アセットが1つでもあれば pending は false
   if (assetIds.length === 0) {
     return {
       expiryIso: expiry.toISOString(),
@@ -133,13 +135,11 @@ export async function buildClaimBundleForSecret(
 
   const validFiles = files.filter((f): f is Exclude<typeof f, null> => !!f);
 
-  const bundle = {
+  return {
     expiryIso: expiry.toISOString(),
     campaignName: hit.campaign.name || "特別な贈り物",
     passkeyLinked,
     pending: validFiles.length === 0,
     files: validFiles,
   };
-  
-  return bundle;
 }

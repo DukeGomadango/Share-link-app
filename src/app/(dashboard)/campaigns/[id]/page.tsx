@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone } from "lucide-react";
+import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
@@ -28,6 +28,7 @@ export default function CampaignDetailPage() {
     files,
     recipients,
     activeDragFile,
+    activeDragRecipient,
     draggedFileIds,
     selectedFileIds,
     pulsedRecipientId,
@@ -39,6 +40,7 @@ export default function CampaignDetailPage() {
     assignFromLibrary,
     handleRemoveFile,
     handleRemoveRecipient,
+    handleMergeRecipients,
     toggleSelection,
     toggleAllSelection,
     handleDragStart,
@@ -330,13 +332,14 @@ export default function CampaignDetailPage() {
               }}
             />
 
-            <RecipientsSection
-              recipients={recipients}
-              files={files}
-              pulsedRecipientId={pulsedRecipientId}
-              onRemoveFile={handleRemoveFile}
-              onRemoveRecipient={handleRemoveRecipient}
-              readOnly={campaign?.distributionMode !== "reception"}
+              <RecipientsSection
+                recipients={recipients}
+                files={files}
+                pulsedRecipientId={pulsedRecipientId}
+                onRemoveFile={handleRemoveFile}
+                onRemoveRecipient={handleRemoveRecipient}
+                onMerge={handleMergeRecipients}
+                readOnly={campaign?.distributionMode !== "reception"}
               onAddRecipients={() => {
                 setAddRecipientResetKey((k) => k + 1);
                 setAddRecipientOpen(true);
@@ -348,7 +351,17 @@ export default function CampaignDetailPage() {
           </div>
 
           <DragOverlay>
-            {activeDragFile ? (
+            {activeDragRecipient ? (
+              <div className="p-4 rounded-2xl border border-sky-500 bg-background/95 shadow-2xl flex items-center space-x-3 rotate-2 scale-105 cursor-grabbing min-w-[200px]">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center text-sky-500">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold">{activeDragRecipient.name}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Recipient</p>
+                </div>
+              </div>
+            ) : activeDragFile ? (
               draggedFileIds.length > 1 ? (
                 <StackedDragOverlay
                   label={t.campaigns.filesSelected.replace("{count}", draggedFileIds.length.toString())}

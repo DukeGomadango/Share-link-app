@@ -15,6 +15,7 @@ interface RecipientsSectionProps {
   pulsedRecipientId: string | null;
   onRemoveFile: (recipientId: string, fileId: string) => void;
   onRemoveRecipient: (recipientId: string) => void;
+  onMerge: (sourceId: string, targetId: string) => void;
   readOnly?: boolean;
   onAddRecipients?: () => void;
   /** ワークフロー読み込み中など、ボタンを無効にするだけの用途（プール空でもクリック可） */
@@ -31,6 +32,7 @@ export function RecipientsSection({
   pulsedRecipientId,
   onRemoveFile,
   onRemoveRecipient,
+  onMerge,
   readOnly = false,
   onAddRecipients,
   addRecipientsDisabled = false,
@@ -39,6 +41,9 @@ export function RecipientsSection({
 }: RecipientsSectionProps) {
   const { t } = useTranslation();
   const [detailRecipient, setDetailRecipient] = useState<Recipient | null>(null);
+
+  // 事前準備された（待機中ではない）スロットのリスト
+  const preparedSlots = recipients.filter(r => r.status !== 'waiting');
 
   return (
     <>
@@ -92,17 +97,32 @@ export function RecipientsSection({
             {t.campaigns.recipientsEmpty}
           </p>
         ) : (
-          recipients.map((recipient) => (
-            <DroppableRecipient
-              key={recipient.id}
-              recipient={recipient}
-              getFile={(id) => files.find((f) => f.id === id)}
-              onRemoveFile={onRemoveFile}
-              successPulse={pulsedRecipientId === recipient.id}
-              readOnly={readOnly}
-              onClick={() => setDetailRecipient(recipient)}
-            />
-          ))
+          recipients.map((recipient) => {
+            // この受取人が「入室したて（ファイル未紐付け）」の場合、マッチ候補を探す
+            const isWaiting = recipient.status === 'waiting' || (recipient.assignedFileIds?.length === 0);
+            
+            const matchingSlot = isWaiting 
+              ? preparedSlots.find(p => 
+                  p.id !== recipient.id && 
+                  p.name.toLowerCase().trim() === recipient.name.toLowerCase().trim() &&
+                  (p.assignedFileIds?.length || 0) > 0
+                )
+              : undefined;
+
+            return (
+              <DroppableRecipient
+                key={recipient.id}
+                recipient={recipient}
+                matchingPreparedSlot={matchingSlot}
+                onMerge={onMerge}
+                getFile={(id) => files.find((f) => f.id === id)}
+                onRemoveFile={onRemoveFile}
+                successPulse={pulsedRecipientId === recipient.id}
+                readOnly={readOnly}
+                onClick={() => setDetailRecipient(recipient)}
+              />
+            );
+          })
         )}
       </div>
       </GlassCard>

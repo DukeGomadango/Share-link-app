@@ -99,6 +99,7 @@ export function useCampaignDetail() {
   const [workflowError, setWorkflowError] = useState<string | null>(null);
 
   const [activeDragFile, setActiveDragFile] = useState<FileItem | null>(null);
+  const [activeDragRecipient, setActiveDragRecipient] = useState<Recipient | null>(null);
   const [draggedFileIds, setDraggedFileIds] = useState<string[]>([]);
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
 
@@ -138,15 +139,20 @@ export function useCampaignDetail() {
   );
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- マウント時に workflow GET（非同期）
+    // 初回読み込み
     void loadWorkflow();
-  }, [loadWorkflow]);
+  }, [campaignId]); // campaignId が変わった時だけ（実質マウント時のみ）
 
   useEffect(() => {
+    // 受付モード時のみ、8秒おきにサイレント更新
     if (campaign?.distributionMode !== "reception") return;
-    const timer = setInterval(() => void loadWorkflow({ quiet: true }), 6000);
+    
+    const timer = setInterval(() => {
+      void loadWorkflow({ quiet: true });
+    }, 8000);
+
     return () => clearInterval(timer);
-  }, [campaign?.distributionMode, loadWorkflow]);
+  }, [campaign?.distributionMode, campaignId]); // loadWorkflow を外して、モード変更時のみ反応させる
 
   const fetchLibraryFiles = useCallback(() => {
     fetch("/api/files")
@@ -203,7 +209,7 @@ export function useCampaignDetail() {
     async (recipientId: string, fileId: string) => {
       if (!campaignId) return;
       const res = await fetch(
-        `/api/campaigns/${campaignId}/claims/${recipientId}/assign`,
+        `/api/campaigns/${campaignId}/recipient-slots/${recipientId}/assign`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -218,14 +224,15 @@ export function useCampaignDetail() {
   );
 
   const handleRemoveRecipient = useCallback(
-    async (recipientId: string) => {
+    async (id: string) => {
       if (!campaignId) return;
-      const res = await fetch(
-        `/api/campaigns/${campaignId}/claims/${recipientId}`,
-        { method: "DELETE" }
-      );
+      const res = await fetch(`/api/campaigns/${campaignId}/recipient-slots/${id}`, {
+        method: "DELETE",
+      });
       if (res.ok) {
         await loadWorkflow({ quiet: true });
+      } else {
+        alert("削除に失敗しました。再度お試しください。");
       }
     },
     [campaignId, loadWorkflow]
@@ -251,7 +258,15 @@ export function useCampaignDetail() {
   }, [files]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
-    const file = event.active.data.current?.file as FileItem | undefined;
+    const data = event.active.data.current;
+    
+    // 受取人のドラッグ開始
+    if (data?.type === 'recipient') {
+      setActiveDragRecipient(data.recipient as Recipient);
+      return;
+    }
+
+    const file = data?.file as FileItem | undefined;
     if (!file) return;
     setActiveDragFile(file);
     const draggingSelection =
@@ -261,12 +276,49 @@ export function useCampaignDetail() {
 
   const [pulsedRecipientId, setPulsedRecipientId] = useState<string | null>(null);
 
+  const handleMergeRecipients = useCallback(
+    async (sourceSlotId: string, targetSlotId: string) => {
+      if (!campaignId) return;
+      const res = await fetch(`/api/campaigns/${campaignId}/recipient-slots/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceSlotId, targetSlotId }),
+      });
+      if (res.ok) {
+        await loadWorkflow({ quiet: true });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`統合に失敗しました: ${err.error || "Unknown error"}\n${err.detail || ""}`);
+      }
+    },
+    [campaignId, loadWorkflow]
+  );
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
+      
+      // クリーンアップ
+      setActiveDragFile(null);
+      setActiveDragRecipient(null);
+      setDraggedFileIds([]);
+
       if (!over || !campaignId || campaign?.status === "draft") {
-        setActiveDragFile(null);
-        setDraggedFileIds([]);
+        return;
+      }
+
+      const activeData = active.data.current;
+      const overData = over.data.current;
+
+      // 受取人カード同士のドラッグ（統合）
+      if (activeData?.type === "recipient" && overData?.type === "recipient") {
+        const sourceId = activeData.recipient.id;
+        const targetId = overData.recipient.id;
+        if (sourceId !== targetId) {
+          if (confirm(`${activeData.recipient.name} さんを ${overData.recipient.name} さんに統合しますか？\n（事前準備されていたファイルも引き継がれます）`)) {
+            await handleMergeRecipients(sourceId, targetId);
+          }
+        }
         return;
       }
 
@@ -288,7 +340,7 @@ export function useCampaignDetail() {
       if (targetIds.length > 0) {
         await Promise.all(
           targetIds.map((fid) =>
-            fetch(`/api/campaigns/${campaignId}/claims/${claimId}/assign`, {
+            fetch(`/api/campaigns/${campaignId}/recipient-slots/${claimId}/assign`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ campaignAssetId: fid }),
@@ -306,7 +358,7 @@ export function useCampaignDetail() {
       setDraggedFileIds([]);
       setSelectedFileIds(new Set());
     },
-    [campaign?.status, campaignId, draggedFileIds, loadWorkflow]
+    [campaign?.status, campaignId, draggedFileIds, handleMergeRecipients, loadWorkflow]
   );
 
   return {
@@ -317,6 +369,7 @@ export function useCampaignDetail() {
     files,
     recipients,
     activeDragFile,
+    activeDragRecipient,
     draggedFileIds,
     selectedFileIds,
     pulsedRecipientId,
@@ -328,6 +381,7 @@ export function useCampaignDetail() {
     assignFromLibrary,
     handleRemoveFile,
     handleRemoveRecipient,
+    handleMergeRecipients,
     toggleSelection,
     toggleAllSelection,
     handleDragStart,
