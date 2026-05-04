@@ -10,7 +10,7 @@ import {
 import { createSlotAndClaim } from "@/lib/claims/create-slot-and-claim";
 import { checkInRateLimit } from "@/lib/public/check-in-rate-limit";
 import { getDb } from "@/db";
-import { campaigns, claims, listenerIdentities, recipients } from "@/db/schema";
+import { campaigns, claimIdentityLinks, claims, listenerIdentities, recipients } from "@/db/schema";
 import {
   LISTENER_SESSION_COOKIE,
   verifyListenerSessionToken,
@@ -183,6 +183,14 @@ export async function POST(request: Request, ctx: RouteParams) {
       listenerNote: body.note ?? null,
       recipientId,
     });
+
+    // パスキー認証済みの場合、新しい Claim を自動的にアイデンティティと紐付ける
+    if (session && session.workspaceId === c.workspaceId) {
+      await db.insert(claimIdentityLinks).values({
+        claimId: created.claimId,
+        listenerIdentityId: session.listenerIdentityId,
+      }).onConflictDoNothing(); // 念のため重複無視
+    }
   } catch (e) {
     console.error(e);
     return NextResponse.json(

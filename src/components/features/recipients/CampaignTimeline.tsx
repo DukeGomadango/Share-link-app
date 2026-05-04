@@ -3,6 +3,7 @@
 import { CheckCircle2, Clock, XCircle, Copy, ExternalLink, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface TimelineItem {
@@ -38,8 +39,7 @@ export function CampaignTimeline({ items }: CampaignTimelineProps) {
   const copyLink = (token: string) => {
     const url = `${window.location.origin}/claim/${token}`;
     void navigator.clipboard.writeText(url);
-    // Ideally add a toast here
-    alert("リンクをコピーしました");
+    toast.success("リンクをコピーしました");
   };
 
   return (

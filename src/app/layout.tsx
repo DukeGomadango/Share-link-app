@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/lib/i18n";
 import { GlobalScrollbarActivity } from "@/components/shared/GlobalScrollbarActivity";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -51,6 +52,7 @@ export default function RootLayout({
         >
           <I18nProvider>
             <GlobalScrollbarActivity />
+            <Toaster richColors closeButton position="top-center" />
             {children}
           </I18nProvider>
         </ThemeProvider>

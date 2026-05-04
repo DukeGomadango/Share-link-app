@@ -6,6 +6,8 @@ import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { ConfirmModal } from "@/components/shared/ConfirmModal";
+import { toast } from "sonner";
 
 type TokenRow = {
   id: string;
@@ -20,6 +22,8 @@ export default function IntegrationsSettingsPage() {
   const [label, setLabel] = useState("");
   const [onceToken, setOnceToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingRevokeId, setPendingRevokeId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/integrations/tokens");
@@ -47,15 +51,21 @@ export default function IntegrationsSettingsPage() {
       setOnceToken(data.token);
       setLabel("");
       await refresh();
+      toast.success("APIトークンを発行しました");
     } finally {
       setLoading(false);
     }
   }
 
-  async function revoke(id: string) {
-    if (!confirm(t.integrations.revoke + "?")) return;
+  async function handleRevoke(id: string) {
     await fetch(`/api/integrations/tokens/${id}`, { method: "DELETE" });
     await refresh();
+    toast.success("APIトークンを失効させました");
+  }
+
+  function startRevoke(id: string) {
+    setPendingRevokeId(id);
+    setConfirmOpen(true);
   }
 
   return (
@@ -118,7 +128,7 @@ export default function IntegrationsSettingsPage() {
                   </p>
                   <p className="text-xs text-muted-foreground">{tok.createdAt}</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => void revoke(tok.id)}>
+                <Button variant="outline" size="sm" onClick={() => startRevoke(tok.id)}>
                   {t.integrations.revoke}
                 </Button>
               </li>
@@ -126,6 +136,18 @@ export default function IntegrationsSettingsPage() {
           </ul>
         )}
       </GlassCard>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          if (pendingRevokeId) void handleRevoke(pendingRevokeId);
+        }}
+        title="トークンの失効"
+        description="このAPIトークンを失効させますか？このトークンを使用している連携機能は動作しなくなります。"
+        confirmText="失効させる"
+        variant="destructive"
+      />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { AssetAssignModal } from "@/components/features/library/AssetAssignModal
 import { AssetFile } from "@/components/features/library/types";
 import { useLibrary } from "@/hooks/features/library/useLibrary";
 import { useRegisterCommandPaletteSource } from "@/hooks/features/library/useRegisterCommandPaletteSource";
+import { toast } from "sonner";
 
 // サブコンポーネント
 import { LibraryHeader } from "@/components/features/library/LibraryHeader";
@@ -89,7 +90,7 @@ export default function LibraryPage() {
       setIsBulkConfirmOpen(false);
       setSelectedFileIds(new Set());
     } catch (err: any) {
-      alert(err.message || "一括削除に失敗しました。");
+      toast.error(err.message || "一括削除に失敗しました。");
     } finally {
       setIsBulkRemoving(false);
     }
@@ -144,17 +145,6 @@ export default function LibraryPage() {
       <LibraryHeader title={t.library.title} subtitle={t.library.subtitle} />
 
       <div className="mb-8 space-y-4">
-        {uploadError && (
-          <div className="flex items-center justify-between text-sm text-destructive border border-destructive/30 rounded-lg px-3 py-2 bg-destructive/5 animate-in fade-in slide-in-from-top-2">
-            <p>{uploadError}</p>
-            <button 
-              onClick={() => setUploadError(null)}
-              className="text-destructive/60 hover:text-destructive transition-colors ml-4"
-            >
-              閉じる
-            </button>
-          </div>
-        )}
         <FileDropzone onFilesDropped={handleFilesDropped} />
       </div>
 

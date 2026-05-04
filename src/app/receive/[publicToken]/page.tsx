@@ -128,8 +128,14 @@ export default function PublicReceivePage() {
           "認証されましたが、このキャンペーンでの受け取りがまだありません。初回チェックインを行ってください。"
         );
       }
-    } catch (e) {
-      setPasskeyError(e instanceof Error ? e.message : "通信に失敗しました");
+    } catch (e: any) {
+      if (e?.name === "NotAllowedError") {
+        setPasskeyError(null);
+      } else if (e?.name === "TimeoutError") {
+        setPasskeyError("タイムアウトしました。もう一度お試しください。");
+      } else {
+        setPasskeyError("認証が中断されました。");
+      }
     } finally {
       setPasskeyBusy(false);
     }

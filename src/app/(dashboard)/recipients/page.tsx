@@ -15,8 +15,10 @@ import { RecipientStatsCards } from "@/components/features/recipients/RecipientS
 import { RecipientTable } from "@/components/features/recipients/RecipientTable";
 import { RecipientBulkActions } from "@/components/features/recipients/RecipientBulkActions";
 import { QuickAssignModal } from "@/components/features/recipients/QuickAssignModal";
+import { TagAddModal } from "@/components/features/recipients/TagAddModal";
 import type { Recipient } from "@/components/features/campaigns/types";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export default function RecipientsPage() {
   const { 
@@ -42,6 +44,7 @@ export default function RecipientsPage() {
   const { t } = useTranslation();
   const [detailRecipientId, setDetailRecipientId] = useState<string | null>(null);
   const [assignRecipientId, setAssignRecipientId] = useState<string | null>(null);
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
 
   const detailRecipient = recipients.find(r => r.id === detailRecipientId) || null;
   const assignRecipient = recipients.find(r => r.id === assignRecipientId) || null;
@@ -51,10 +54,10 @@ export default function RecipientsPage() {
   };
 
   const handleBulkAddTags = () => {
-    const suggestions = allUniqueTags.length > 0 ? `\n既存のタグ: ${allUniqueTags.join(", ")}` : "";
-    const tagStr = window.prompt(`追加するタグをカンマ区切りで入力してください (例: VIP, 2024春)${suggestions}`);
-    if (!tagStr) return;
-    const tags = tagStr.split(",").map(s => s.trim()).filter(Boolean);
+    setIsTagModalOpen(true);
+  };
+
+  const handleConfirmTags = (tags: string[]) => {
     if (tags.length > 0) {
       bulkUpdateTags(selectedRecipientIds, tags, "add");
     }
@@ -88,7 +91,7 @@ export default function RecipientsPage() {
 
       if (data.length > 0) {
         const ok = await bulkAddRecipients(data);
-        if (ok) window.alert(`${data.length}件の受取人をインポートしました。`);
+        if (ok) toast.success(`${data.length}件の受取人をインポートしました。`);
       }
     };
     reader.readAsText(file);
@@ -231,6 +234,14 @@ export default function RecipientsPage() {
         isOpen={!!assignRecipientId}
         onClose={() => setAssignRecipientId(null)}
         onAssign={handleQuickAssign}
+      />
+
+      <TagAddModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+        onConfirm={handleConfirmTags}
+        existingTags={allUniqueTags}
+        selectedCount={selectedRecipientIds.size}
       />
     </div>
   );

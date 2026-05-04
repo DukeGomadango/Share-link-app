@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { AssetFile } from "@/components/features/library/types";
 import { MAX_UPLOAD_BYTES } from "@/lib/storage/config";
+import { toast } from "sonner";
 
 export function useLibraryFiles() {
   const [files, setFiles] = useState<AssetFile[]>([]);
@@ -12,7 +13,6 @@ export function useLibraryFiles() {
   const [sizeFilter, setSizeFilter] = useState<"all" | "small" | "medium" | "large">("all");
   const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
   const [selectedTag, setSelectedTag] = useState("all");
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const [nowTs] = useState(() => Date.now());
 
   const fetchFiles = useCallback(() => {
@@ -90,12 +90,11 @@ export function useLibraryFiles() {
   }, []);
 
   const handleFilesDropped = async (droppedFiles: File[]) => {
-    setUploadError(null);
     const tooLargeFiles = droppedFiles.filter(f => f.size > MAX_UPLOAD_BYTES);
     const validFiles = droppedFiles.filter(f => f.size <= MAX_UPLOAD_BYTES);
 
     if (tooLargeFiles.length > 0) {
-      setUploadError(`${tooLargeFiles.length} 件のファイルが制限（50MB）を超えているためスキップされました。`);
+      toast.error(`${tooLargeFiles.length} 件のファイルが制限（50MB）を超えているためスキップされました。`);
     }
 
     const newAssetIds: string[] = [];
@@ -105,10 +104,13 @@ export function useLibraryFiles() {
         newAssetIds.push(id);
       } catch (error) {
         console.error("Upload error:", error);
-        setUploadError("アップロード中にエラーが発生しました。");
+        toast.error(`${file.name} のアップロードに失敗しました。`);
       }
     }
     fetchFiles();
+    if (newAssetIds.length > 0) {
+      toast.success(`${newAssetIds.length} 件のファイルを追加しました`);
+    }
     return newAssetIds;
   };
 
@@ -258,7 +260,5 @@ export function useLibraryFiles() {
     handleDelete,
     handleBulkDelete,
     refreshFiles: fetchFiles,
-    uploadError,
-    setUploadError,
   };
 }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { AssetFile } from "./types";
 
 interface DraggableAssetCardProps {
@@ -94,7 +95,7 @@ export function DraggableAssetCard({
       }
       setIsConfirmOpen(false);
     } catch (err: any) {
-      alert(err.message || "削除に失敗しました。");
+      toast.error(err.message || "削除に失敗しました。");
     } finally {
       setIsRemoving(false);
     }

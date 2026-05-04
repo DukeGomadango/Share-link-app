@@ -70,6 +70,7 @@ export default function ClaimPage() {
   } | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimLoading, setClaimLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   // リアルタイム監視 (Supabase Realtime)
   useEffect(() => {
@@ -176,9 +177,11 @@ export default function ClaimPage() {
   }, [token]);
 
   const handleAuth = () => {
+    setIsVerifying(true);
     setTimeout(() => {
       setIsAuthenticated(true);
-    }, 800);
+      setIsVerifying(false);
+    }, 1500);
   };
 
   const phaseKey = !isAuthenticated ? "auth" : !isOpened ? "unopened" : "content";
@@ -202,7 +205,7 @@ export default function ClaimPage() {
           exit="exit"
           className="w-full"
         >
-          <ClaimAuthView onVerify={handleAuth} />
+          <ClaimAuthView onVerify={handleAuth} isVerifying={isVerifying} />
         </motion.div>
       )}
 
@@ -241,10 +244,27 @@ export default function ClaimPage() {
           style={{ perspective: "1200px" }}
         >
           {claimError && (
-            <p className="text-center text-destructive py-8 text-sm">{claimError}</p>
+            <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center space-y-4">
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-2">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold">読み込みに失敗しました</h2>
+              <p className="text-muted-foreground text-sm max-w-xs mx-auto">{claimError}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-4 px-6 py-2 rounded-xl bg-muted hover:bg-muted/80 transition-colors text-sm font-medium"
+              >
+                再読み込み
+              </button>
+            </div>
           )}
           {claimLoading && !claimError && (
-            <p className="text-center text-muted-foreground py-8 text-sm">読み込み中…</p>
+            <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+              <div className="w-8 h-8 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+              <p className="text-muted-foreground text-sm">コンテンツを準備中...</p>
+            </div>
           )}
           {!claimLoading && bundle && !claimError && (
             <ClaimContentView 

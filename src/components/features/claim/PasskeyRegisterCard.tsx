@@ -68,8 +68,16 @@ export function PasskeyRegisterCard({ campaignId, onSuccess }: Props) {
       }
       setDone(true);
       onSuccess?.();
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : "エラーが発生しました");
+    } catch (e: any) {
+      // ユーザーによるキャンセルやタイムアウトなどのハンドリング
+      if (e?.name === "NotAllowedError") {
+        // キャンセルの場合はエラーを表示しない
+        setErr(null);
+      } else if (e?.name === "TimeoutError") {
+        setErr("タイムアウトしました。もう一度お試しください。");
+      } else {
+        setErr("登録が中断されました。");
+      }
     } finally {
       setBusy(false);
     }

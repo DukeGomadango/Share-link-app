@@ -31,8 +31,6 @@ export function useLibrary() {
     handleRename,
     handleDelete,
     handleBulkDelete,
-    uploadError,
-    setUploadError,
   } = useLibraryFiles();
 
   // 2. Campaigns & Search
@@ -165,7 +163,5 @@ export function useLibrary() {
     openCommandDropForSelection,
     closeCommandDrop,
     assignFromCommandDrop,
-    uploadError,
-    setUploadError,
   };
 }

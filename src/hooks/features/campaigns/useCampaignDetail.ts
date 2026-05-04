@@ -10,6 +10,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { toast } from "sonner";
 import type {
   Campaign,
   FileItem,
@@ -98,7 +99,6 @@ export function useCampaignDetail() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [workflowLoading, setWorkflowLoading] = useState(true);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [activeDragFile, setActiveDragFile] = useState<FileItem | null>(null);
   const [activeDragRecipient, setActiveDragRecipient] = useState<Recipient | null>(null);
@@ -175,6 +175,7 @@ export function useCampaignDetail() {
         }),
       });
       await loadWorkflow();
+      toast.success("ライブラリからファイルを追加しました");
     },
     [campaignId, loadWorkflow]
   );
@@ -188,19 +189,19 @@ export function useCampaignDetail() {
         body: JSON.stringify({ fileIds: assetIds, campaignId }),
       });
       await loadWorkflow();
+      toast.success("ファイルをアップロードして追加しました");
     },
     [campaignId, loadWorkflow]
   );
 
   const handleFilesDropped = useCallback(
     async (droppedFiles: File[]) => {
-      setUploadError(null);
       const ids: string[] = [];
       const tooLargeFiles = droppedFiles.filter(f => f.size > MAX_UPLOAD_BYTES);
       const validFiles = droppedFiles.filter(f => f.size <= MAX_UPLOAD_BYTES);
 
       if (tooLargeFiles.length > 0) {
-        setUploadError(`${tooLargeFiles.length} 件のファイルが制限（50MB）を超えているためスキップされました。`);
+        toast.error(`${tooLargeFiles.length} 件のファイルが制限（50MB）を超えているためスキップされました。`);
       }
 
       for (const file of validFiles) {
@@ -208,7 +209,7 @@ export function useCampaignDetail() {
           ids.push(await uploadLibraryAssetFromFile(file));
         } catch (e) {
           console.error(e);
-          setUploadError("アップロード中にエラーが発生しました。");
+          toast.error(`${file.name} のアップロードに失敗しました。`);
         }
       }
       if (ids.length > 0) {
@@ -244,6 +245,7 @@ export function useCampaignDetail() {
       
       if (!res.ok) {
         // Rollback on error
+        toast.error("割り当ての解除に失敗しました");
         await loadWorkflow({ quiet: true });
       } else {
         // Just sync to be sure
@@ -264,7 +266,7 @@ export function useCampaignDetail() {
         method: "DELETE",
       });
       if (!res.ok) {
-        alert("削除に失敗しました。再度お試しください。");
+        toast.error("受取人の削除に失敗しました。時間をおいて再度お試しください。");
         await loadWorkflow({ quiet: true });
       } else {
         void loadWorkflow({ quiet: true });
@@ -325,9 +327,10 @@ export function useCampaignDetail() {
       });
       if (res.ok) {
         await loadWorkflow({ quiet: true });
+        toast.success("受取人を統合しました");
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`統合に失敗しました: ${err.error || "Unknown error"}\n${err.detail || ""}`);
+        toast.error(`統合に失敗しました: ${err.error || "サーバーエラーが発生しました"}`);
       }
     },
     [campaignId, loadWorkflow]
@@ -415,8 +418,6 @@ export function useCampaignDetail() {
     campaign,
     workflowLoading,
     workflowError,
-    uploadError,
-    setUploadError,
     files,
     recipients,
     activeDragFile,

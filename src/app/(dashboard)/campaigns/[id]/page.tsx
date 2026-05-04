@@ -1,10 +1,10 @@
 "use client";
-
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users, Calendar, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { toast } from "sonner";
 
 import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
 import { LibrarySelectModal } from "@/components/features/campaigns/LibrarySelectModal";
@@ -17,6 +17,7 @@ import { RecipientsSection } from "@/components/features/campaigns/RecipientsSec
 import { useTranslation } from "@/lib/i18n";
 import { escapeCsvField } from "@/lib/csv";
 import { cn } from "@/lib/utils";
+import { ConfirmModal } from "@/components/shared/ConfirmModal";
 
 export default function CampaignDetailPage() {
   const { t } = useTranslation();
@@ -25,8 +26,6 @@ export default function CampaignDetailPage() {
     campaign,
     workflowLoading,
     workflowError,
-    uploadError,
-    setUploadError,
     files,
     recipients,
     activeDragFile,
@@ -54,10 +53,11 @@ export default function CampaignDetailPage() {
 
   const [exportBusy, setExportBusy] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [banner, setBanner] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [addRecipientOpen, setAddRecipientOpen] = useState(false);
   const [addRecipientResetKey, setAddRecipientResetKey] = useState(0);
   const [statusBusy, setStatusBusy] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<"active" | "completed" | null>(null);
 
   const handleUpdateStatus = useCallback(
     async (newStatus: "active" | "completed") => {
@@ -72,12 +72,9 @@ export default function CampaignDetailPage() {
         });
         if (!r.ok) throw new Error();
         await reloadWorkflow();
-        setBanner({
-          tone: "ok",
-          text: newStatus === "active" ? "キャンペーンを公開しました" : "キャンペーンを終了しました",
-        });
+        toast.success(newStatus === "active" ? "キャンペーンを公開しました" : "キャンペーンを終了しました");
       } catch {
-        setBanner({ tone: "err", text: "ステータスの更新に失敗しました" });
+        toast.error("ステータスの更新に失敗しました。時間をおいて再度お試しください。");
       } finally {
         setStatusBusy(false);
       }
@@ -104,7 +101,7 @@ export default function CampaignDetailPage() {
       };
 
       if (data.rows.length === 0) {
-        setBanner({ tone: "err", text: t.campaigns.exportNoClaims });
+        toast.error(t.campaigns.exportNoClaims);
         return;
       }
 
@@ -140,7 +137,7 @@ export default function CampaignDetailPage() {
       URL.revokeObjectURL(url);
       setBanner({ tone: "ok", text: t.campaigns.exportDone });
     } catch {
-      setBanner({ tone: "err", text: t.campaigns.exportFailed });
+      toast.error(t.campaigns.exportFailed);
     } finally {
       setExportBusy(false);
     }
@@ -149,7 +146,7 @@ export default function CampaignDetailPage() {
   const handleBulkIssue = useCallback(async () => {
     if (!campaignId) return;
     if (files.length === 0) {
-      setBanner({ tone: "err", text: t.campaigns.bulkIssueNoAssets });
+      toast.error(t.campaigns.bulkIssueNoAssets);
       return;
     }
     setBulkBusy(true);
@@ -165,9 +162,9 @@ export default function CampaignDetailPage() {
         throw new Error(j.message ?? "");
       }
       await reloadWorkflow();
-      setBanner({ tone: "ok", text: t.campaigns.bulkIssueDone });
+      toast.success(t.campaigns.bulkIssueDone);
     } catch {
-      setBanner({ tone: "err", text: t.campaigns.bulkIssueFailed });
+      toast.error(t.campaigns.bulkIssueFailed);
     } finally {
       setBulkBusy(false);
     }
@@ -278,7 +275,7 @@ export default function CampaignDetailPage() {
                   onClick={() => {
                     const u = `${window.location.origin}/receive/${campaign.publicReceptionToken}`;
                     void navigator.clipboard.writeText(u);
-                    setBanner({ tone: "ok", text: "受付URLをコピーしました" });
+                    toast.success("受付URLをコピーしました");
                   }}
                   title={campaign.status !== "active" ? "公開するとコピーできるようになります" : ""}
                 >
@@ -299,15 +296,14 @@ export default function CampaignDetailPage() {
             disabled={workflowLoading || !campaignId || statusBusy}
             onClick={() => {
               if (campaign?.status === "draft") {
-                void handleUpdateStatus("active");
+                setPendingStatus("active");
+                setConfirmOpen(true);
               } else if (campaign?.status === "active") {
-                if (confirm("キャンペーンを終了しますか？終了するとリスナーはアクセスできなくなります。")) {
-                  void handleUpdateStatus("completed");
-                }
+                setPendingStatus("completed");
+                setConfirmOpen(true);
               } else if (campaign?.status === "completed") {
-                if (confirm("キャンペーンを再開しますか？")) {
-                  void handleUpdateStatus("active");
-                }
+                setPendingStatus("active");
+                setConfirmOpen(true);
               }
             }}
           >
@@ -345,34 +341,10 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {banner && (
-        <p
-          className={`text-sm rounded-lg px-3 py-2 border ${
-            banner.tone === "ok"
-              ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
-              : "border-destructive/30 bg-destructive/5 text-destructive"
-          }`}
-        >
-          {banner.text}
-        </p>
-      )}
-
       {workflowError && (
         <p className="text-sm text-destructive border border-destructive/30 rounded-lg px-3 py-2 bg-destructive/5">
           {workflowError}
         </p>
-      )}
-      
-      {uploadError && (
-        <div className="flex items-center justify-between text-sm text-destructive border border-destructive/30 rounded-lg px-3 py-2 bg-destructive/5">
-          <p>{uploadError}</p>
-          <button 
-            onClick={() => setUploadError(null)}
-            className="text-destructive/60 hover:text-destructive transition-colors ml-4"
-          >
-            閉じる
-          </button>
-        </div>
       )}
 
       {workflowLoading ? (
@@ -470,10 +442,37 @@ export default function CampaignDetailPage() {
           poolFiles={files}
           onIssued={async () => {
             await reloadWorkflow();
-            setBanner({ tone: "ok", text: t.campaigns.addRecipientSuccess });
+            toast.success(t.campaigns.addRecipientSuccess);
           }}
         />
       ) : null}
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          if (pendingStatus) void handleUpdateStatus(pendingStatus);
+        }}
+        title={
+          pendingStatus === "active" 
+            ? (campaign?.status === "completed" ? "キャンペーンを再開" : "キャンペーンを公開")
+            : "キャンペーンを終了"
+        }
+        description={
+          pendingStatus === "active"
+            ? (campaign?.status === "completed" 
+                ? "キャンペーンを再開しますか？リスナーが再びアクセスできるようになります。" 
+                : "キャンペーンを公開しますか？これ以降、リスナーがファイルを受け取れるようになります。")
+            : "キャンペーンを終了しますか？終了すると、リスナーはファイルの受け取りができなくなります。"
+        }
+        confirmText={
+          pendingStatus === "active" 
+            ? (campaign?.status === "completed" ? "再開する" : "公開する")
+            : "終了する"
+        }
+        variant={pendingStatus === "active" ? "emerald" : "destructive"}
+        isLoading={statusBusy}
+      />
     </div>
   );
 }
