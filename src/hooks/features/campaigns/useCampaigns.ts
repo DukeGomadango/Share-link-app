@@ -10,7 +10,7 @@ export function useCampaigns() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<QuickFilter>("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("kanban");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [peekCampaign, setPeekCampaign] = useState<Campaign | null>(null);
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<Set<string>>(new Set());
   const [focusedCampaignId, setFocusedCampaignId] = useState<string | null>(null);

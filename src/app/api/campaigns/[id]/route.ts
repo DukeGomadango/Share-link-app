@@ -32,6 +32,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const { id } = await params;
 
   let body: {
+    name?: string;
     status?: string;
     distributionMode?: string;
   };
@@ -44,10 +45,18 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const db = getDb();
 
   type Patch = {
+    name?: string;
     status?: (typeof campaigns.$inferSelect)["status"];
     distributionMode?: string;
   };
   const patch: Patch = {};
+
+  if (body.name !== undefined) {
+    const n = body.name.trim();
+    if (n) {
+      patch.name = n;
+    }
+  }
 
   if (body.status !== undefined) {
     const raw = body.status;

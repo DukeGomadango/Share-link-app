@@ -8,9 +8,11 @@ import { useTranslation } from "@/lib/i18n";
 interface ClaimUnopenedViewProps {
   onOpen: () => void;
   expiryDate: Date;
+  campaignName?: string;
+  isLoading?: boolean;
 }
 
-export function ClaimUnopenedView({ onOpen, expiryDate }: ClaimUnopenedViewProps) {
+export function ClaimUnopenedView({ onOpen, expiryDate, campaignName, isLoading }: ClaimUnopenedViewProps) {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-12">
@@ -25,7 +27,7 @@ export function ClaimUnopenedView({ onOpen, expiryDate }: ClaimUnopenedViewProps
           {t.claim.receivedGift}
         </h1>
         <p className="text-muted-foreground/80 text-sm">
-          {t.claim.from.replace("{sender}", "Spring Voice Gacha 2026")}
+          {t.claim.from.replace("{sender}", campaignName || "特別な贈り物")}
         </p>
       </motion.div>
 
@@ -48,7 +50,11 @@ export function ClaimUnopenedView({ onOpen, expiryDate }: ClaimUnopenedViewProps
 
         {/* ボックス本体 */}
         <div className="relative w-44 h-44 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-emerald-500/50">
-          <Gift className="w-20 h-20 text-white" strokeWidth={1.5} />
+          {isLoading ? (
+            <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Gift className="w-20 h-20 text-white" strokeWidth={1.5} />
+          )}
         </div>
 
         <motion.p

@@ -215,6 +215,7 @@ export default function ClaimSessionByCampaignPage() {
             setIsOpened(true);
           }}
           expiryDate={expiryDate}
+          campaignName={bundle.campaignName}
           isLoading={isRefetching}
         />
         <p className="text-[11px] text-muted-foreground/80 max-w-sm text-center px-4 pb-8">

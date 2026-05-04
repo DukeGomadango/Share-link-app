@@ -15,6 +15,7 @@ import {
 export type ClaimBundleResponse = {
   expiryIso: string;
   campaignName: string;
+  campaignId?: string;
   /** ライバー未割当・ファイルなし（リスナーは待機ポーリング） */
   pending?: boolean;
   /** この claim にパスキー（WebAuthn）が紐づいている */
@@ -36,17 +37,12 @@ export async function buildClaimBundleForSecret(
   // 1. Claim と Campaign, (あれば) Slot の情報を取得
   const base = await db
     .select({
-      claim: { 
-        id: claims.id,
-      },
-      campaign: {
-        name: campaigns.name,
-        status: campaigns.status,
-        expiresAt: campaigns.expiresAt,
-      },
-      slot: {
-        id: campaignRecipientSlots.id,
-      },
+      claimId: claims.id,
+      campaignId: campaigns.id,
+      campaignName: campaigns.name,
+      campaignStatus: campaigns.status,
+      expiresAt: campaigns.expiresAt,
+      slotId: campaignRecipientSlots.id,
     })
     .from(claims)
     .innerJoin(campaigns, eq(claims.campaignId, campaigns.id))
@@ -58,12 +54,13 @@ export async function buildClaimBundleForSecret(
     .limit(1);
 
   const hit = base[0];
-  if (!hit || hit.campaign.status !== "active") {
+
+  if (!hit || hit.campaignStatus !== "active") {
     return null;
   }
 
-  const claimId = hit.claim.id;
-  const slotId = hit.slot?.id;
+  const claimId = hit.claimId;
+  const slotId = hit.slotId;
 
   // 2. 紐づくアセット ID を収集
   // 統合後は Slot にファイルが紐付いていることが多いため、両方をマージして取得する
@@ -79,7 +76,7 @@ export async function buildClaimBundleForSecret(
     ...sAssets.map(a => a.campaignAssetId),
   ]));
 
-  const expiry = hit.campaign.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const expiry = hit.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
   const passkeyRows = await db
     .select({ claimId: claimIdentityLinks.claimId })
@@ -88,11 +85,16 @@ export async function buildClaimBundleForSecret(
     .limit(1);
   const passkeyLinked = Boolean(passkeyRows[0]);
 
+  const campaignName = (hit.campaignName && hit.campaignName.trim() !== "") 
+    ? hit.campaignName 
+    : "特別な贈り物";
+
   // アセットが1つでもあれば pending は false
   if (assetIds.length === 0) {
     return {
       expiryIso: expiry.toISOString(),
-      campaignName: hit.campaign.name || "特別な贈り物",
+      campaignName,
+      campaignId: hit.campaignId,
       pending: true,
       passkeyLinked,
       files: [],
@@ -142,9 +144,12 @@ export async function buildClaimBundleForSecret(
 
   return {
     expiryIso: expiry.toISOString(),
-    campaignName: hit.campaign.name || "特別な贈り物",
+    campaignName,
+    campaignId: hit.campaignId,
     passkeyLinked,
     pending: validFiles.length === 0,
     files: validFiles,
   };
 }
+
+// Fixed duplicate campaignName definition

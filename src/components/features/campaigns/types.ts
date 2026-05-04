@@ -76,6 +76,7 @@ export interface Campaign {
     openRate: number;
   };
   slots?: CampaignRecipientSlot[];
+  topAssetUrls?: string[];
 }
 
 export type QuickFilter = "all" | "needsAttention" | "dueSoon" | Campaign["status"];

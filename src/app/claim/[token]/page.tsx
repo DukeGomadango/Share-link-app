@@ -57,12 +57,13 @@ const unboxVariants = {
 export default function ClaimPage() {
   const params = useParams<{ token: string }>();
   const token = typeof params?.token === "string" ? params.token : "";
-
+  
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isOpened, setIsOpened] = useState(false);
   const [bundle, setBundle] = useState<{
     expiryIso: string;
     campaignName: string;
+    campaignId?: string;
     files: ClaimFile[];
   } | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
@@ -97,7 +98,12 @@ export default function ClaimPage() {
                 filename: f.filename,
                 title: f.title,
               }));
-              setBundle({ expiryIso: data.expiryIso, campaignName: data.campaignName, files });
+              setBundle({ 
+                expiryIso: data.expiryIso, 
+                campaignName: data.campaignName, 
+                campaignId: data.campaignId,
+                files 
+              });
             }
           } catch (e) {
             console.error("Refetch failed", e);
@@ -112,19 +118,29 @@ export default function ClaimPage() {
   }, [token, bundle]);
 
   useEffect(() => {
-    if (!isOpened || !token) return;
+    console.log("[DEBUG] useEffect started, token:", token);
+    if (!token) return;
     let cancelled = false;
     void (async () => {
+      console.log("[DEBUG] fetch async block started");
       await Promise.resolve();
       if (cancelled) return;
       setClaimLoading(true);
       setClaimError(null);
       try {
         const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`, { cache: "no-store" });
-        if (!r.ok) throw new Error(String(r.status));
+        if (!r.ok) {
+          if (r.status === 404) {
+            setClaimError("ギフトが見つかりません。URLが正しいか確認してください。");
+          } else {
+            throw new Error(String(r.status));
+          }
+          return;
+        }
         const data = (await r.json()) as {
           expiryIso: string;
           campaignName: string;
+          campaignId?: string;
           files: Array<{
             id: string;
             type: string;
@@ -141,10 +157,15 @@ export default function ClaimPage() {
           title: f.title,
         }));
         if (!cancelled) {
-          setBundle({ expiryIso: data.expiryIso, campaignName: data.campaignName, files });
+          setBundle({ 
+            expiryIso: data.expiryIso, 
+            campaignName: data.campaignName, 
+            campaignId: data.campaignId,
+            files 
+          });
         }
       } catch {
-        if (!cancelled) setClaimError("読み込みに失敗しました");
+        if (!cancelled) setClaimError("データの読み込みに失敗しました");
       } finally {
         if (!cancelled) setClaimLoading(false);
       }
@@ -152,7 +173,7 @@ export default function ClaimPage() {
     return () => {
       cancelled = true;
     };
-  }, [isOpened, token]);
+  }, [token]);
 
   const handleAuth = () => {
     setTimeout(() => {
@@ -194,7 +215,18 @@ export default function ClaimPage() {
           exit="exit"
           className="w-full"
         >
-          <ClaimUnopenedView onOpen={() => setIsOpened(true)} expiryDate={expiryDate} />
+          {claimLoading && !bundle ? (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+              <div className="w-8 h-8 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+              <p className="text-muted-foreground text-sm">ギフトを確認中...</p>
+            </div>
+          ) : (
+            <ClaimUnopenedView 
+              onOpen={() => setIsOpened(true)} 
+              expiryDate={expiryDate} 
+              campaignName={bundle?.campaignName}
+            />
+          )}
         </motion.div>
       )}
 
@@ -222,6 +254,12 @@ export default function ClaimPage() {
             />
           )}
         </motion.div>
+      )}
+      {/* Debug Info (Subtle) */}
+      {bundle?.campaignId && (
+        <div className="fixed bottom-2 right-2 text-[10px] text-muted-foreground/20 pointer-events-none select-none">
+          ID: {bundle.campaignId}
+        </div>
       )}
     </AnimatePresence>
   );
