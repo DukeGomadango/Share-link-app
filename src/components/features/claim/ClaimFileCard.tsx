@@ -16,6 +16,7 @@ interface ClaimFileCardProps {
   isSelected: boolean;
   onToggle: (id: string) => void;
   onDownload: (id: string) => void;
+  onClick: () => void;
 }
 
 const itemVariants = {
@@ -38,6 +39,7 @@ export function ClaimFileCard({
   isSelected,
   onToggle,
   onDownload,
+  onClick,
 }: ClaimFileCardProps) {
   const { t } = useTranslation();
   return (
@@ -46,8 +48,9 @@ export function ClaimFileCard({
       variants={itemVariants}
       initial="hidden"
       animate="visible"
+      onClick={onClick}
       className={cn(
-        "relative group rounded-[2rem] transition-all duration-500 p-4 bg-white border border-black/[0.03] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] hover:-translate-y-1",
+        "relative group rounded-[2rem] transition-all duration-500 p-4 bg-white border border-black/[0.03] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] hover:-translate-y-1 cursor-pointer",
         isSelected 
           ? "bg-emerald-50/50 ring-2 ring-emerald-500/40 shadow-[0_20px_40px_rgba(16,185,129,0.15)]" 
           : "hover:bg-white"
@@ -56,7 +59,10 @@ export function ClaimFileCard({
       {/* 選択チェックボックス */}
       <motion.div
         className="absolute top-4 left-4 z-20 cursor-pointer bg-white rounded-full shadow-sm"
-        onClick={() => onToggle(file.id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle(file.id);
+        }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
       >

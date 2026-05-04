@@ -11,6 +11,7 @@ import { useTranslation } from "@/lib/i18n";
 // サブコンポーネント
 import { ClaimFileCard } from "./ClaimFileCard";
 import { ClaimActionBar } from "./ClaimActionBar";
+import { Lightbox } from "@/components/shared/Lightbox";
 
 import { downloadSingleFile, downloadFilesAsZip } from "@/lib/download-utils";
 import {
@@ -32,6 +33,7 @@ export function ClaimContentView({ files, expiryDate, campaignName }: ClaimConte
   const { t } = useTranslation();
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
+  const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
 
   const toggleSelection = (id: string) => {
     const newSelected = new Set(selectedFileIds);
@@ -147,6 +149,7 @@ export function ClaimContentView({ files, expiryDate, campaignName }: ClaimConte
                 isSelected={selectedFileIds.has(file.id)}
                 onToggle={toggleSelection}
                 onDownload={handleDownloadSingle}
+                onClick={() => setActivePreviewIndex(index)}
               />
             </div>
           );
@@ -240,6 +243,16 @@ export function ClaimContentView({ files, expiryDate, campaignName }: ClaimConte
           </div>
         </div>
       </motion.div>
+      {/* ライトボックス */}
+      {activePreviewIndex !== null && (
+        <Lightbox
+          files={files}
+          currentIndex={activePreviewIndex}
+          onClose={() => setActivePreviewIndex(null)}
+          onNavigate={(index) => setActivePreviewIndex(index)}
+          onDownload={handleDownloadSingle}
+        />
+      )}
     </div>
   );
 }
