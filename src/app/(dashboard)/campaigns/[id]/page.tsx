@@ -38,6 +38,7 @@ export default function CampaignDetailPage() {
     fetchLibraryFiles,
     assignFromLibrary,
     handleRemoveFile,
+    handleRemoveRecipient,
     toggleSelection,
     toggleAllSelection,
     handleDragStart,
@@ -334,6 +335,7 @@ export default function CampaignDetailPage() {
               files={files}
               pulsedRecipientId={pulsedRecipientId}
               onRemoveFile={handleRemoveFile}
+              onRemoveRecipient={handleRemoveRecipient}
               readOnly={campaign?.distributionMode !== "reception"}
               onAddRecipients={() => {
                 setAddRecipientResetKey((k) => k + 1);

@@ -16,11 +16,12 @@ interface RecipientDetailDrawerProps {
   onClose: () => void;
   onUpdateTags?: (id: string, tags: string[]) => void;
   onUpdateInfo?: (id: string, info: { name: string; listenerNote?: string }) => void;
+  onRemoveRecipient?: (id: string) => void;
   existingTags?: string[];
 }
 
 
-export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags, onUpdateInfo, existingTags = [] }: RecipientDetailDrawerProps) {
+export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags, onUpdateInfo, onRemoveRecipient, existingTags = [] }: RecipientDetailDrawerProps) {
   const [newTag, setNewTag] = useState("");
   const [editName, setEditName] = useState("");
   const [editNote, setEditNote] = useState("");
@@ -72,6 +73,14 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
     if (!onUpdateTags) return;
     const tags = recipient.tags.filter((t) => t !== tagToRemove);
     onUpdateTags(recipient.id, tags);
+  };
+
+  const handleDelete = () => {
+    if (!onRemoveRecipient || !recipient) return;
+    if (confirm(`${recipient.name} さんをリストから削除しますか？\n(受取人はこのキャンペーンのファイルを受け取れなくなります)`)) {
+      onRemoveRecipient(recipient.id);
+      onClose();
+    }
   };
 
   return (
@@ -242,7 +251,13 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
           >
             保存する
           </Button>
-          <Button variant="ghost" size="icon" className="h-11 w-11 rounded-xl text-destructive hover:bg-destructive/10">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-11 w-11 rounded-xl text-destructive hover:bg-destructive/10"
+            onClick={handleDelete}
+            title="リストから削除"
+          >
             <Trash2 className="w-5 h-5" />
           </Button>
         </div>

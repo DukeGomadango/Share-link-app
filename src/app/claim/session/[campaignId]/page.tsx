@@ -28,14 +28,18 @@ export default function ClaimSessionByCampaignPage() {
   const [noSession, setNoSession] = useState(false);
   const [isOpened, setIsOpened] = useState(false);
   const prevPendingRef = useRef<boolean | undefined>(undefined);
+  const [isRefetching, setIsRefetching] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const fetchSession = useCallback(async () => {
+  const fetchSession = useCallback(async (options?: { force?: boolean }) => {
     if (!campaignId) return;
+    if (options?.force) setIsRefetching(true);
     try {
       const r = await fetch(
-        `/api/claim/session?campaignId=${encodeURIComponent(campaignId)}`,
-        { credentials: "include" }
+        `/api/claim/session?campaignId=${encodeURIComponent(
+          campaignId
+        )}&t=${Date.now()}`,
+        { credentials: "include", cache: "no-store" }
       );
       if (r.status === 401) {
         setNoSession(true);
@@ -81,6 +85,8 @@ export default function ClaimSessionByCampaignPage() {
       setLoadError(null);
     } catch {
       setLoadError("読み込みに失敗しました");
+    } finally {
+      if (options?.force) setIsRefetching(false);
     }
   }, [campaignId]);
 
@@ -179,8 +185,13 @@ export default function ClaimSessionByCampaignPage() {
     return (
       <div className="min-h-[100dvh] flex flex-col items-center">
         <ClaimUnopenedView
-          onOpen={() => setIsOpened(true)}
+          onOpen={async () => {
+            // 開封の瞬間に最新の署名付きURLを再取得して、確実に表示されるようにする
+            await fetchSession({ force: true });
+            setIsOpened(true);
+          }}
           expiryDate={expiryDate}
+          isLoading={isRefetching}
         />
         <p className="text-[11px] text-muted-foreground/80 max-w-sm text-center px-4 pb-8">
           このブラウザでは約 {SESSION_DAYS}{" "}

@@ -14,6 +14,7 @@ interface RecipientsSectionProps {
   files: FileItem[];
   pulsedRecipientId: string | null;
   onRemoveFile: (recipientId: string, fileId: string) => void;
+  onRemoveRecipient: (recipientId: string) => void;
   readOnly?: boolean;
   onAddRecipients?: () => void;
   /** ワークフロー読み込み中など、ボタンを無効にするだけの用途（プール空でもクリック可） */
@@ -29,6 +30,7 @@ export function RecipientsSection({
   files,
   pulsedRecipientId,
   onRemoveFile,
+  onRemoveRecipient,
   readOnly = false,
   onAddRecipients,
   addRecipientsDisabled = false,
@@ -108,6 +110,7 @@ export function RecipientsSection({
         recipient={detailRecipient} 
         isOpen={!!detailRecipient} 
         onClose={() => setDetailRecipient(null)} 
+        onRemoveRecipient={onRemoveRecipient}
       />
     </>
   );

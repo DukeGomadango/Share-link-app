@@ -217,6 +217,20 @@ export function useCampaignDetail() {
     [campaignId, loadWorkflow]
   );
 
+  const handleRemoveRecipient = useCallback(
+    async (recipientId: string) => {
+      if (!campaignId) return;
+      const res = await fetch(
+        `/api/campaigns/${campaignId}/claims/${recipientId}`,
+        { method: "DELETE" }
+      );
+      if (res.ok) {
+        await loadWorkflow({ quiet: true });
+      }
+    },
+    [campaignId, loadWorkflow]
+  );
+
   const toggleSelection = useCallback((fileId: string) => {
     setSelectedFileIds((prev) => {
       const next = new Set(prev);
@@ -313,6 +327,7 @@ export function useCampaignDetail() {
     fetchLibraryFiles,
     assignFromLibrary,
     handleRemoveFile,
+    handleRemoveRecipient,
     toggleSelection,
     toggleAllSelection,
     handleDragStart,
