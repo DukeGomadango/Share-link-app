@@ -208,6 +208,18 @@ export function useCampaignDetail() {
   const handleRemoveFile = useCallback(
     async (recipientId: string, fileId: string) => {
       if (!campaignId) return;
+
+      // Local Update for immediate feedback
+      setRecipients(prev => prev.map(r => {
+        if (r.id === recipientId) {
+          return {
+            ...r,
+            assignedFileIds: (r.assignedFileIds || []).filter(id => id !== fileId)
+          };
+        }
+        return r;
+      }));
+
       const res = await fetch(
         `/api/campaigns/${campaignId}/recipient-slots/${recipientId}/assign`,
         {
@@ -216,8 +228,13 @@ export function useCampaignDetail() {
           body: JSON.stringify({ campaignAssetId: fileId, action: "remove" }),
         }
       );
-      if (res.ok) {
+      
+      if (!res.ok) {
+        // Rollback on error
         await loadWorkflow({ quiet: true });
+      } else {
+        // Just sync to be sure
+        void loadWorkflow({ quiet: true });
       }
     },
     [campaignId, loadWorkflow]
@@ -226,13 +243,18 @@ export function useCampaignDetail() {
   const handleRemoveRecipient = useCallback(
     async (id: string) => {
       if (!campaignId) return;
+
+      // Local Update
+      setRecipients(prev => prev.filter(r => r.id !== id));
+
       const res = await fetch(`/api/campaigns/${campaignId}/recipient-slots/${id}`, {
         method: "DELETE",
       });
-      if (res.ok) {
+      if (!res.ok) {
+        alert("削除に失敗しました。再度お試しください。");
         await loadWorkflow({ quiet: true });
       } else {
-        alert("削除に失敗しました。再度お試しください。");
+        void loadWorkflow({ quiet: true });
       }
     },
     [campaignId, loadWorkflow]
@@ -338,6 +360,16 @@ export function useCampaignDetail() {
       }
 
       if (targetIds.length > 0) {
+        // Local Update for all target files
+        setRecipients(prev => prev.map(r => {
+          if (r.id === claimId) {
+            const currentIds = r.assignedFileIds || [];
+            const newIds = Array.from(new Set([...currentIds, ...targetIds]));
+            return { ...r, assignedFileIds: newIds, status: 'ready' as RecipientStatus };
+          }
+          return r;
+        }));
+
         await Promise.all(
           targetIds.map((fid) =>
             fetch(`/api/campaigns/${campaignId}/recipient-slots/${claimId}/assign`, {

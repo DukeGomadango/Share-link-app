@@ -40,10 +40,11 @@ export function RecipientsSection({
   isDraft = false,
 }: RecipientsSectionProps) {
   const { t } = useTranslation();
-  const [detailRecipient, setDetailRecipient] = useState<Recipient | null>(null);
+  const [detailRecipientId, setDetailRecipientId] = useState<string | null>(null);
 
   // 事前準備された（待機中ではない）スロットのリスト
   const preparedSlots = recipients.filter(r => r.status !== 'waiting');
+  const detailRecipient = recipients.find(r => r.id === detailRecipientId) || null;
 
   return (
     <>
@@ -119,7 +120,7 @@ export function RecipientsSection({
                 onRemoveFile={onRemoveFile}
                 successPulse={pulsedRecipientId === recipient.id}
                 readOnly={readOnly}
-                onClick={() => setDetailRecipient(recipient)}
+                onClick={() => setDetailRecipientId(recipient.id)}
               />
             );
           })
@@ -128,8 +129,8 @@ export function RecipientsSection({
       </GlassCard>
       <RecipientDetailDrawer 
         recipient={detailRecipient} 
-        isOpen={!!detailRecipient} 
-        onClose={() => setDetailRecipient(null)} 
+        isOpen={!!detailRecipientId} 
+        onClose={() => setDetailRecipientId(null)} 
         onRemoveRecipient={onRemoveRecipient}
         onRemoveFile={onRemoveFile}
         campaignFiles={files}

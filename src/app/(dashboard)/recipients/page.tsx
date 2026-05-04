@@ -39,11 +39,14 @@ export default function RecipientsPage() {
     isLoading
   } = useRecipients();
   const { t } = useTranslation();
-  const [detailRecipient, setDetailRecipient] = useState<Recipient | null>(null);
-  const [assignRecipient, setAssignRecipient] = useState<Recipient | null>(null);
+  const [detailRecipientId, setDetailRecipientId] = useState<string | null>(null);
+  const [assignRecipientId, setAssignRecipientId] = useState<string | null>(null);
+
+  const detailRecipient = recipients.find(r => r.id === detailRecipientId) || null;
+  const assignRecipient = recipients.find(r => r.id === assignRecipientId) || null;
 
   const handleRowClick = (recipient: Recipient) => {
-    setDetailRecipient(recipient);
+    setDetailRecipientId(recipient.id);
   };
 
   const handleBulkAddTags = () => {
@@ -59,7 +62,7 @@ export default function RecipientsPage() {
   const handleCreateRecipient = async () => {
     const newRecipient = await addRecipient();
     if (newRecipient) {
-      setDetailRecipient(newRecipient);
+      setDetailRecipientId(newRecipient.id);
     }
   };
 
@@ -92,14 +95,14 @@ export default function RecipientsPage() {
   };
 
   const handleAssign = (recipient: Recipient) => {
-    setAssignRecipient(recipient);
+    setAssignRecipientId(recipient.id);
   };
 
   const handleQuickAssign = (recipientId: string, fileId: string) => {
     // 実際にはここで API を呼び出して紐付けを行う
     console.log(`Assigning file ${fileId} to recipient ${recipientId}`);
     window.alert(`受取人 ${recipientId} にファイル ${fileId} を割り当てました。`);
-    setAssignRecipient(null);
+    setAssignRecipientId(null);
   };
 
   return (
@@ -214,8 +217,8 @@ export default function RecipientsPage() {
       {/* Detail Drawer */}
       <RecipientDetailDrawer 
         recipient={detailRecipient} 
-        isOpen={!!detailRecipient} 
-        onClose={() => setDetailRecipient(null)} 
+        isOpen={!!detailRecipientId} 
+        onClose={() => setDetailRecipientId(null)} 
         onUpdateTags={updateRecipientTags}
         onUpdateInfo={updateRecipientInfo}
         existingTags={allUniqueTags}
@@ -224,8 +227,8 @@ export default function RecipientsPage() {
       {/* Quick Assign Modal */}
       <QuickAssignModal 
         recipient={assignRecipient}
-        isOpen={!!assignRecipient}
-        onClose={() => setAssignRecipient(null)}
+        isOpen={!!assignRecipientId}
+        onClose={() => setAssignRecipientId(null)}
         onAssign={handleQuickAssign}
       />
     </div>
