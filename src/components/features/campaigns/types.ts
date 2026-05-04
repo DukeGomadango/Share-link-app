@@ -20,6 +20,7 @@ export type WorkflowRecipient = {
   updatedAt: string;
   /** 受付チェックイン時の識別用メモ */
   listenerNote?: string;
+  streamerMemo?: string;
   assignedFileIds?: string[];
   link?: string;
   claimSecret?: string;

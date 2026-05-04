@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
@@ -8,7 +8,9 @@ import {
   campaignAssets,
   campaignRecipientSlots,
   campaigns,
+  claimAssets,
   claims,
+  slotAssets,
 } from "@/db/schema";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -23,6 +25,7 @@ export async function POST(request: Request, ctx: RouteParams) {
 
   let body: {
     campaignAssetId?: string | null;
+    campaignAssetIds?: string[];
     recipientDisplayName?: string;
     listenerNote?: string | null;
   };
@@ -53,18 +56,24 @@ export async function POST(request: Request, ctx: RouteParams) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const optionalAssetId = body.campaignAssetId?.trim();
-  if (optionalAssetId) {
-    const row = await db
+  // 複数のアセット ID を正規化
+  const assetIds = Array.from(new Set([
+    ...(body.campaignAssetId ? [body.campaignAssetId.trim()] : []),
+    ...(body.campaignAssetIds || [])
+  ])).filter(Boolean);
+
+  // 全て有効なキャンペーンアセットか確認
+  if (assetIds.length > 0) {
+    const rows = await db
       .select({ id: campaignAssets.id })
       .from(campaignAssets)
       .where(
-        and(eq(campaignAssets.id, optionalAssetId), eq(campaignAssets.campaignId, campaignId))
-      )
-      .limit(1);
-    if (!row[0]) {
+        and(inArray(campaignAssets.id, assetIds), eq(campaignAssets.campaignId, campaignId))
+      );
+    
+    if (rows.length !== assetIds.length) {
       return NextResponse.json(
-        { error: "not_found", message: "キャンペーンに紐づくアセットではありません" },
+        { error: "not_found", message: "一部のアセットがキャンペーンに紐づいていないか見つかりません" },
         { status: 404 }
       );
     }
@@ -77,21 +86,23 @@ export async function POST(request: Request, ctx: RouteParams) {
       listenerNote: body.listenerNote ?? null,
     });
 
-    if (optionalAssetId) {
+    if (assetIds.length > 0) {
+      // Slot への紐付け
       await db
         .insert(slotAssets)
-        .values({
+        .values(assetIds.map(id => ({
           slotId: created.slotId,
-          campaignAssetId: optionalAssetId,
-        })
+          campaignAssetId: id,
+        })))
         .onConflictDoNothing();
 
+      // Claim への紐付け
       await db
         .insert(claimAssets)
-        .values({
+        .values(assetIds.map(id => ({
           claimId: created.claimId,
-          campaignAssetId: optionalAssetId,
-        })
+          campaignAssetId: id,
+        })))
         .onConflictDoNothing();
 
       await db

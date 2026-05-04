@@ -139,6 +139,7 @@ export const recipients = pgTable(
       handle: string;
     }>(),
     listenerNote: text("listener_note"),
+    streamerMemo: text("streamer_memo"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

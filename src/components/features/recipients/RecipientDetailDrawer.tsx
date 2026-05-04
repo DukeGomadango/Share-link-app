@@ -16,7 +16,7 @@ interface RecipientDetailDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdateTags?: (id: string, tags: string[]) => void;
-  onUpdateInfo?: (id: string, info: { name: string; listenerNote?: string }) => void;
+  onUpdateInfo?: (id: string, info: { name: string; streamerMemo?: string }) => void;
   onRemoveRecipient?: (id: string) => void;
   onRemoveFile?: (recipientId: string, fileId: string) => void;
   existingTags?: string[];
@@ -27,7 +27,7 @@ interface RecipientDetailDrawerProps {
 export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags, onUpdateInfo, onRemoveRecipient, onRemoveFile, existingTags = [], campaignFiles = [] }: RecipientDetailDrawerProps) {
   const [newTag, setNewTag] = useState("");
   const [editName, setEditName] = useState("");
-  const [editNote, setEditNote] = useState("");
+  const [editMemo, setEditMemo] = useState("");
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
@@ -35,7 +35,7 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
   useEffect(() => {
     if (recipient && isOpen) {
       setEditName(recipient.name);
-      setEditNote(recipient.listenerNote || "");
+      setEditMemo(recipient.streamerMemo || "");
       
       // Fetch real history
       setIsLoadingHistory(true);
@@ -58,7 +58,7 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
     if (onUpdateInfo && editName.trim()) {
       onUpdateInfo(recipient.id, {
         name: editName.trim(),
-        listenerNote: editNote.trim() || undefined
+        streamerMemo: editMemo.trim() || undefined
       });
       onClose(); // Close on save for a clean workflow
     }
@@ -242,22 +242,33 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
           </section>
         )}
 
-        {/* Recipient Insights */}
-        <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
-            <User className="w-3.5 h-3.5" />
-            基本情報 & メモ
-          </h3>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-[10px] font-bold uppercase text-muted-foreground px-1">リスナーメモ (ライバーのみ閲覧可能)</p>
-              <textarea
-                value={editNote}
-                onChange={(e) => setEditNote(e.target.value)}
-                placeholder="例: 前回イベントの参加者、要返信など..."
-                className="w-full min-h-[120px] p-4 rounded-2xl bg-muted/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all resize-none"
-              />
-            </div>
+        <section className="space-y-6">
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <MessageSquare className="w-3.5 h-3.5" />
+              リスナーからのメッセージ
+            </h3>
+            {recipient.listenerNote ? (
+              <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-sm text-emerald-900 dark:text-emerald-100 italic relative">
+                <div className="absolute -left-1 top-4 w-2 h-2 bg-emerald-500/10 border-l border-t border-emerald-500/10 rotate-[-45deg]" />
+                {recipient.listenerNote}
+              </div>
+            ) : (
+              <p className="text-[10px] text-muted-foreground italic px-1">メッセージはありません</p>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+              <User className="w-3.5 h-3.5" />
+              ライバー専用メモ
+            </h3>
+            <textarea
+              value={editMemo}
+              onChange={(e) => setEditMemo(e.target.value)}
+              placeholder="例: 前回イベントの参加者、要返信など（リスナーには見えません）"
+              className="w-full min-h-[120px] p-4 rounded-2xl bg-muted/30 border border-border/50 text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all resize-none"
+            />
           </div>
         </section>
 

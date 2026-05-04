@@ -19,9 +19,8 @@ export async function PATCH(
     name?: string;
     tags?: string[];
     platformId?: any;
-    listenerNote?: string; // Note: listenerNote is in campaign_recipient_slots, 
-                           // but for the global recipient we might not have it unless we add it to recipients table.
-                           // Currently WorkflowRecipient has it, but it's usually campaign-specific.
+    listenerNote?: string;
+    streamerMemo?: string;
   };
   try {
     body = await request.json();
@@ -37,6 +36,7 @@ export async function PATCH(
       tags: body.tags,
       platformId: body.platformId,
       listenerNote: body.listenerNote,
+      streamerMemo: body.streamerMemo,
       updatedAt: new Date(),
     })
     .where(and(eq(recipients.id, id), eq(recipients.workspaceId, ctx.workspaceId)));

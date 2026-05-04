@@ -25,7 +25,6 @@ export function AddRecipientModal({
   const { t } = useTranslation();
   const [recipientName, setRecipientName] = useState("");
   const [listenerNote, setListenerNote] = useState("");
-  const [campaignAssetId, setCampaignAssetId] = useState(""); // Empty by default
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"new" | "select">("new");
@@ -46,7 +45,7 @@ export function AddRecipientModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          campaignAssetId: campaignAssetId || null,
+          campaignAssetIds: [], // モーダルでは紐づけを行わない設計に変更
           recipientDisplayName: name,
           listenerNote: listenerNote.trim() || null,
         }),
@@ -144,28 +143,9 @@ export function AddRecipientModal({
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between ml-1">
-              <label htmlFor="add-recipient-asset" className="text-sm font-semibold">
-                割り当てるファイル
-              </label>
-              <Badge variant="outline" className="text-[10px] h-4 border-emerald-500/30 text-emerald-600 bg-emerald-500/5">任意</Badge>
-            </div>
-            <select
-              id="add-recipient-asset"
-              value={campaignAssetId}
-              onChange={(e) => setCampaignAssetId(e.target.value)}
-              className="w-full rounded-2xl border border-border/60 bg-background/50 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-all appearance-none"
-            >
-              <option value="">今は設定しない (空の枠を作る)</option>
-              {poolFiles.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-            <p className="text-[10px] text-muted-foreground ml-1 italic">
-              ※ ファイルを紐付けずに作成し、後からドラッグ＆ドロップで設定可能です。
+          <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+            <p className="text-[11px] text-emerald-700 dark:text-emerald-300 leading-relaxed italic">
+              ※ 追加した後は、メイン画面の「ファイルプール」からドラッグ＆ドロップでファイルを配ることができます。
             </p>
           </div>
 
@@ -176,7 +156,7 @@ export function AddRecipientModal({
             </div>
           )}
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-2">
             <Button type="button" variant="ghost" className="flex-1 rounded-2xl h-12" onClick={onClose}>
               キャンセル
             </Button>
