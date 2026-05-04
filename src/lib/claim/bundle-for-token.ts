@@ -151,5 +151,3 @@ export async function buildClaimBundleForSecret(
     files: validFiles,
   };
 }
-
-// Fixed duplicate campaignName definition

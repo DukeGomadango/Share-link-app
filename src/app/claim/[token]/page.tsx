@@ -118,11 +118,9 @@ export default function ClaimPage() {
   }, [token, bundle]);
 
   useEffect(() => {
-    console.log("[DEBUG] useEffect started, token:", token);
     if (!token) return;
     let cancelled = false;
     void (async () => {
-      console.log("[DEBUG] fetch async block started");
       await Promise.resolve();
       if (cancelled) return;
       setClaimLoading(true);
@@ -254,12 +252,6 @@ export default function ClaimPage() {
             />
           )}
         </motion.div>
-      )}
-      {/* Debug Info (Subtle) */}
-      {bundle?.campaignId && (
-        <div className="fixed bottom-2 right-2 text-[10px] text-muted-foreground/20 pointer-events-none select-none">
-          ID: {bundle.campaignId}
-        </div>
       )}
     </AnimatePresence>
   );
