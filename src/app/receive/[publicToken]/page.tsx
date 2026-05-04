@@ -22,6 +22,25 @@ export default function PublicReceivePage() {
   const [passkeyHint, setPasskeyHint] = useState<string | null>(null);
   const [passkeyError, setPasskeyError] = useState<string | null>(null);
 
+  const tryResumeWithCookie = useCallback(async (): Promise<boolean> => {
+    if (!token) return false;
+    try {
+      const r = await fetch(
+        `/api/public/campaigns/${encodeURIComponent(token)}/check-in`,
+        { method: "GET" }
+      );
+      if (!r.ok) return false;
+      const j = (await r.json()) as { ok: boolean; campaignId?: string };
+      if (j.ok && j.campaignId) {
+        router.replace(`/claim/session/${encodeURIComponent(j.campaignId)}`);
+        return true;
+      }
+    } catch (e) {
+      console.error("Resume check failed:", e);
+    }
+    return false;
+  }, [token, router]);
+
   const tryResumeAfterAuth = useCallback(async (): Promise<boolean> => {
     if (!token) return false;
     const r = await fetch(
@@ -44,14 +63,20 @@ export default function PublicReceivePage() {
     }
     let cancelled = false;
     void (async () => {
-      const navigated = await tryResumeAfterAuth();
-      if (cancelled) return;
-      if (!navigated) setBootReady(true);
+      // 1. クッキーによる静かな再開を試みる
+      const cookieResumed = await tryResumeWithCookie();
+      if (cancelled || cookieResumed) return;
+
+      // 2. パスキーセッションによる再開を試みる（もしあれば）
+      const passkeyResumed = await tryResumeAfterAuth();
+      if (cancelled || passkeyResumed) return;
+
+      setBootReady(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [token, tryResumeAfterAuth]);
+  }, [token, tryResumeWithCookie, tryResumeAfterAuth]);
 
   const passkeyLogin = async () => {
     setPasskeyBusy(true);

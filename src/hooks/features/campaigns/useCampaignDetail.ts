@@ -226,6 +226,16 @@ export function useCampaignDetail() {
     });
   }, []);
 
+  const toggleAllSelection = useCallback(() => {
+    setSelectedFileIds((prev) => {
+      if (prev.size === files.length && files.length > 0) {
+        return new Set();
+      } else {
+        return new Set(files.map((f) => f.id));
+      }
+    });
+  }, [files]);
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const file = event.active.data.current?.file as FileItem | undefined;
     if (!file) return;
@@ -304,6 +314,7 @@ export function useCampaignDetail() {
     assignFromLibrary,
     handleRemoveFile,
     toggleSelection,
+    toggleAllSelection,
     handleDragStart,
     handleDragEnd,
     handleFilesDropped,

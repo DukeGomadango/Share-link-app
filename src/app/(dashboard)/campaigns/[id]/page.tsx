@@ -39,6 +39,7 @@ export default function CampaignDetailPage() {
     assignFromLibrary,
     handleRemoveFile,
     toggleSelection,
+    toggleAllSelection,
     handleDragStart,
     handleDragEnd,
     handleFilesDropped,
@@ -320,6 +321,7 @@ export default function CampaignDetailPage() {
               files={files}
               selectedFileIds={selectedFileIds}
               onToggleSelection={toggleSelection}
+              onToggleAllSelection={toggleAllSelection}
               onFilesDropped={handleFilesDropped}
               onOpenLibrary={() => {
                 setShowLibraryModal(true);

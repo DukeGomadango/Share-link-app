@@ -5,6 +5,7 @@ import { GlassCard } from "@/components/shared/GlassCard";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { DraggableFileItem } from "@/components/features/campaigns/DraggableFileItem";
 import { FileItem } from "@/components/features/campaigns/types";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { useTranslation } from "@/lib/i18n";
 
@@ -12,6 +13,7 @@ interface FilePoolSectionProps {
   files: FileItem[];
   selectedFileIds: Set<string>;
   onToggleSelection: (id: string) => void;
+  onToggleAllSelection: () => void;
   onFilesDropped: (files: File[]) => void;
   onOpenLibrary: () => void;
 }
@@ -20,17 +22,34 @@ export function FilePoolSection({
   files,
   selectedFileIds,
   onToggleSelection,
+  onToggleAllSelection,
   onFilesDropped,
   onOpenLibrary,
 }: FilePoolSectionProps) {
   const { t } = useTranslation();
+
+  const isAllSelected = files.length > 0 && selectedFileIds.size === files.length;
+  const isIndeterminate = selectedFileIds.size > 0 && selectedFileIds.size < files.length;
+
   return (
     <GlassCard className="flex flex-col overflow-hidden h-full">
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/50 shrink-0">
-        <h2 className="text-lg font-semibold flex items-center">
-          <FileAudio className="w-5 h-5 mr-2 text-emerald-500" />
-          {t.campaigns.filePool}
-        </h2>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <Checkbox
+              checked={isAllSelected}
+              ref={(el) => {
+                if (el) el.indeterminate = isIndeterminate;
+              }}
+              onCheckedChange={onToggleAllSelection}
+              aria-label="Select all files"
+            />
+          </div>
+          <h2 className="text-lg font-semibold flex items-center">
+            <FileAudio className="w-5 h-5 mr-2 text-emerald-500" />
+            {t.campaigns.filePool}
+          </h2>
+        </div>
         <span className="text-xs bg-muted px-2 py-1 rounded-full">
           {files.length} {t.claim.items}
         </span>

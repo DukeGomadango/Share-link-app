@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -10,7 +10,7 @@ import {
 import { createSlotAndClaim } from "@/lib/claims/create-slot-and-claim";
 import { checkInRateLimit } from "@/lib/public/check-in-rate-limit";
 import { getDb } from "@/db";
-import { campaigns } from "@/db/schema";
+import { campaigns, claims } from "@/db/schema";
 
 type RouteParams = { params: Promise<{ publicToken: string }> };
 
@@ -19,6 +19,52 @@ const MAX_PER_WINDOW = 20;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export async function GET(_request: Request, ctx: RouteParams) {
+  const { publicToken: rawToken } = await ctx.params;
+  const publicToken = decodeURIComponent(rawToken ?? "").trim();
+  if (!publicToken) {
+    return NextResponse.json({ error: "invalid_token" }, { status: 400 });
+  }
+
+  const db = getDb();
+  const camp = await db
+    .select({
+      id: campaigns.id,
+      distributionMode: campaigns.distributionMode,
+    })
+    .from(campaigns)
+    .where(eq(campaigns.publicReceptionToken, publicToken))
+    .limit(1);
+
+  const c = camp[0];
+  if (!c || c.distributionMode !== "reception") {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
+  const cookieStore = await cookies();
+  const cookieName = claimSessionCookieName(c.id);
+  const secret = cookieStore.get(cookieName)?.value;
+
+  if (secret) {
+    // 既存の Claim を検索
+    const existing = await db
+      .select({ id: claims.id })
+      .from(claims)
+      .where(and(eq(claims.campaignId, c.id), eq(claims.claimSecret, secret)))
+      .limit(1);
+
+    if (existing[0]) {
+      return NextResponse.json({
+        ok: true,
+        campaignId: c.id,
+        claimId: existing[0].id,
+      });
+    }
+  }
+
+  return NextResponse.json({ ok: false, message: "no_session" });
+}
 
 export async function POST(request: Request, ctx: RouteParams) {
   const { publicToken: rawToken } = await ctx.params;
