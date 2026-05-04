@@ -29,6 +29,8 @@ export function useLibrary() {
     setSelectedTag,
     handleFilesDropped,
     handleRename,
+    uploadError,
+    setUploadError,
   } = useLibraryFiles();
 
   // 2. Campaigns & Search
@@ -159,5 +161,7 @@ export function useLibrary() {
     openCommandDropForSelection,
     closeCommandDrop,
     assignFromCommandDrop,
+    uploadError,
+    setUploadError,
   };
 }

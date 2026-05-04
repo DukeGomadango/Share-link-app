@@ -12,12 +12,13 @@ import type { Campaign, FileItem } from "@/components/features/campaigns/types";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-function guessType(mime: string | undefined, fallbackUrl: string | null): "audio" | "image" {
+function guessType(mime: string | undefined, fallbackUrl: string | null): "audio" | "image" | "file" {
   if (mime?.startsWith("audio/")) return "audio";
   if (mime?.startsWith("image/")) return "image";
   const u = fallbackUrl?.toLowerCase() ?? "";
   if (/\.(mp3|wav|ogg|m4a|aac|flac)(\?|$)/.test(u)) return "audio";
-  return "image";
+  if (/\.(jpg|jpeg|png|gif|webp|avif|heic|heif|bmp|svg)(\?|$)/.test(u)) return "image";
+  return "file";
 }
 
 export async function GET(_request: Request, ctx: RouteParams) {
@@ -67,7 +68,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
     assetRows.map(async ({ ca, lib }) => {
       let name = ca.label?.trim() || "file";
       let previewUrl: string | undefined;
-      let type: "audio" | "image" = "image";
+      let type: "audio" | "image" | "file" = "file";
 
       if (lib) {
         name = lib.originalFilename;

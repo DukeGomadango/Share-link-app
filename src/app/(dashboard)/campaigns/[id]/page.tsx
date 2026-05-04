@@ -25,6 +25,8 @@ export default function CampaignDetailPage() {
     campaign,
     workflowLoading,
     workflowError,
+    uploadError,
+    setUploadError,
     files,
     recipients,
     activeDragFile,
@@ -314,6 +316,18 @@ export default function CampaignDetailPage() {
         <p className="text-sm text-destructive border border-destructive/30 rounded-lg px-3 py-2 bg-destructive/5">
           {workflowError}
         </p>
+      )}
+      
+      {uploadError && (
+        <div className="flex items-center justify-between text-sm text-destructive border border-destructive/30 rounded-lg px-3 py-2 bg-destructive/5">
+          <p>{uploadError}</p>
+          <button 
+            onClick={() => setUploadError(null)}
+            className="text-destructive/60 hover:text-destructive transition-colors ml-4"
+          >
+            閉じる
+          </button>
+        </div>
       )}
 
       {workflowLoading ? (

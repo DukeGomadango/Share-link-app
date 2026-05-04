@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Download, CheckCircle2 } from "lucide-react";
+import { Download, CheckCircle2, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageViewer } from "@/components/shared/ImageViewer";
 import { AudioPlayer } from "@/components/shared/AudioPlayer";
@@ -97,6 +97,15 @@ export function ClaimFileCard({
         
         {file.type === "audio" && (
           <AudioPlayer src={file.src} title={file.title || t.library.fileType.audio} />
+        )}
+
+        {file.type === "file" && (
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+              <File className="w-10 h-10" />
+            </div>
+            <p className="text-center text-sm font-medium text-muted-foreground">{file.title}</p>
+          </div>
         )}
       </div>
     </motion.div>

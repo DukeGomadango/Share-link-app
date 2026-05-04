@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
 import Image from "next/image";
-import { Check, FileAudio, FileImage } from "lucide-react";
+import { Check, FileAudio, FileImage, File } from "lucide-react";
 import { FileItem } from "./types";
 import { cn } from "@/lib/utils";
 
@@ -63,8 +63,10 @@ export function DraggableFileItem({ file, isSelected, onToggleSelection, priorit
           <Image src={file.previewUrl} alt={file.name} fill priority={priority} className="object-cover" unoptimized />
         ) : file.type === "audio" ? (
           <FileAudio className="w-6 h-6" />
-        ) : (
+        ) : file.type === "image" ? (
           <FileImage className="w-6 h-6" />
+        ) : (
+          <File className="w-6 h-6" />
         )}
       </div>
 

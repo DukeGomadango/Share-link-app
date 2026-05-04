@@ -191,7 +191,7 @@ export const en: TranslationKeys = {
     uploadArea: {
       drop: "Drop files here... ✨",
       drag: "Drag & drop files here",
-      description: "Supported formats: PNG, JPG, MP3, WAV. Max size: 50MB. (Watermarks automatically applied)",
+      description: "Supported formats: Images, Audio, PDF, ZIP, and more. Max size: 50MB.",
     },
     filterType: "Filter: File Type",
     searchAssetsPlaceholder: "Search by file name or campaign",

@@ -92,7 +92,7 @@ export default function ClaimPage() {
             if (data.files && data.files.length > 0) {
               const files: ClaimFile[] = data.files.map((f: any) => ({
                 id: f.id,
-                type: f.type === "audio" ? "audio" : "image",
+                type: (f.type === "audio" || f.type === "image" || f.type === "file") ? f.type : "file",
                 src: f.src,
                 filename: f.filename,
                 title: f.title,
@@ -135,7 +135,7 @@ export default function ClaimPage() {
         };
         const files: ClaimFile[] = data.files.map((f) => ({
           id: f.id,
-          type: f.type === "audio" ? "audio" : "image",
+          type: (f.type === "audio" || f.type === "image" || f.type === "file") ? f.type : "file",
           src: f.src,
           filename: f.filename,
           title: f.title,

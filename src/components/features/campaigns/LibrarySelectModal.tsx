@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { X, Check, FileImage, FileAudio } from "lucide-react";
+import Image from "next/image";
+import { X, Check, FileImage, FileAudio, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LibraryFile } from "./types";
 import { useTranslation } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 interface LibrarySelectModalProps {
   isOpen: boolean;
@@ -66,31 +68,48 @@ export function LibrarySelectModal({
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {libraryFiles.map((file) => {
               const isSelected = selectedIds.has(file.id);
+              const isImage = file.type.startsWith("image/");
               return (
                 <div
                   key={file.id}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center relative select-none ${
+                  className={cn(
+                    "p-2 rounded-xl border bg-background/50 cursor-pointer transition-all flex flex-col relative select-none group",
                     isSelected
-                      ? "border-emerald-500 bg-emerald-500/10 shadow-md transform scale-[1.02]"
-                      : "border-border/50 bg-background/50 hover:border-emerald-500/50 hover:bg-emerald-500/5"
-                  }`}
+                      ? "border-emerald-500 bg-emerald-500/10 shadow-md ring-1 ring-emerald-500/20"
+                      : "border-border/50 hover:border-emerald-500/50 hover:bg-emerald-500/5"
+                  )}
                   onClick={() => toggleSelection(file.id)}
                 >
-                  {isSelected && (
-                    <div className="absolute top-2 right-2 bg-emerald-500 text-white rounded-full p-1 shadow-sm">
-                      <Check className="w-3 h-3" />
-                    </div>
-                  )}
-                  <div className="w-14 h-14 bg-muted/50 rounded-full flex items-center justify-center mb-3">
-                    {file.type.startsWith("image") ? (
-                      <FileImage className="w-7 h-7 text-blue-500" />
+                  <div className={cn(
+                    "absolute top-2 right-2 z-10 w-5 h-5 rounded-md flex items-center justify-center transition-all",
+                    isSelected 
+                      ? "bg-emerald-500 text-white shadow-sm" 
+                      : "border border-border bg-background/80 opacity-0 group-hover:opacity-100"
+                  )}>
+                    {isSelected && <Check className="w-3 h-3" />}
+                  </div>
+
+                  <div className="bg-muted/30 rounded-lg shrink-0 relative overflow-hidden flex items-center justify-center w-full aspect-square mb-2">
+                    {isImage ? (
+                      <Image 
+                        src={file.url} 
+                        alt={file.name} 
+                        fill 
+                        className="object-cover transition-transform duration-300 group-hover:scale-110" 
+                        unoptimized 
+                      />
+                    ) : file.type.startsWith("audio/") ? (
+                      <FileAudio className="w-8 h-8 text-emerald-500" />
                     ) : (
-                      <FileAudio className="w-7 h-7 text-emerald-500" />
+                      <File className="w-8 h-8 text-muted-foreground" />
                     )}
                   </div>
-                  <span className="text-xs font-semibold text-center line-clamp-2 w-full leading-tight">
-                    {file.name}
-                  </span>
+                  
+                  <div className="px-1">
+                    <p className="text-[10px] font-medium text-center line-clamp-2 w-full leading-tight text-foreground/80 group-hover:text-foreground transition-colors">
+                      {file.name}
+                    </p>
+                  </div>
                 </div>
               );
             })}

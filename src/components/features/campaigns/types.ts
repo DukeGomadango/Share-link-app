@@ -1,7 +1,7 @@
 export type FileItem = {
   id: string;
   name: string;
-  type: "audio" | "image";
+  type: "audio" | "image" | "file";
   previewUrl?: string;
 };
 

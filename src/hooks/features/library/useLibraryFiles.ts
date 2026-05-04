@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { AssetFile } from "@/components/features/library/types";
+import { MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 
 export function useLibraryFiles() {
   const [files, setFiles] = useState<AssetFile[]>([]);
@@ -11,6 +12,7 @@ export function useLibraryFiles() {
   const [sizeFilter, setSizeFilter] = useState<"all" | "small" | "medium" | "large">("all");
   const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
   const [selectedTag, setSelectedTag] = useState("all");
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [nowTs] = useState(() => Date.now());
 
   const fetchFiles = useCallback(() => {
@@ -87,11 +89,20 @@ export function useLibraryFiles() {
   }, []);
 
   const handleFilesDropped = async (droppedFiles: File[]) => {
-    for (const file of droppedFiles) {
+    setUploadError(null);
+    const tooLargeFiles = droppedFiles.filter(f => f.size > MAX_UPLOAD_BYTES);
+    const validFiles = droppedFiles.filter(f => f.size <= MAX_UPLOAD_BYTES);
+
+    if (tooLargeFiles.length > 0) {
+      setUploadError(`${tooLargeFiles.length} 件のファイルが制限（50MB）を超えているためスキップされました。`);
+    }
+
+    for (const file of validFiles) {
       try {
         await uploadSingle(file);
       } catch (error) {
         console.error("Upload error:", error);
+        setUploadError("アップロード中にエラーが発生しました。");
       }
     }
     fetchFiles();
@@ -200,5 +211,7 @@ export function useLibraryFiles() {
     handleFilesDropped,
     handleRename,
     refreshFiles: fetchFiles,
+    uploadError,
+    setUploadError,
   };
 }

@@ -68,6 +68,8 @@ export default function LibraryPage() {
     assignSelectedToCampaign,
     openCommandDropForSelection,
     assignFromCommandDrop,
+    uploadError,
+    setUploadError,
   } = useLibrary();
 
   useRegisterCommandPaletteSource({
@@ -118,7 +120,18 @@ export default function LibraryPage() {
     <div className={`space-y-6 ${isIntentDockOpen ? "pb-36" : "pb-20"}`}>
       <LibraryHeader title={t.library.title} subtitle={t.library.subtitle} />
 
-      <div className="mb-8">
+      <div className="mb-8 space-y-4">
+        {uploadError && (
+          <div className="flex items-center justify-between text-sm text-destructive border border-destructive/30 rounded-lg px-3 py-2 bg-destructive/5 animate-in fade-in slide-in-from-top-2">
+            <p>{uploadError}</p>
+            <button 
+              onClick={() => setUploadError(null)}
+              className="text-destructive/60 hover:text-destructive transition-colors ml-4"
+            >
+              閉じる
+            </button>
+          </div>
+        )}
         <FileDropzone onFilesDropped={handleFilesDropped} />
       </div>
 

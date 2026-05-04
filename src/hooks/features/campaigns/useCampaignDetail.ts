@@ -16,6 +16,7 @@ import type {
   LibraryFile,
   Recipient,
 } from "@/components/features/campaigns/types";
+import { MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 
 async function uploadLibraryAssetFromFile(file: File): Promise<string> {
   const init = await fetch("/api/files/upload-url", {
@@ -97,6 +98,7 @@ export function useCampaignDetail() {
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [workflowLoading, setWorkflowLoading] = useState(true);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [activeDragFile, setActiveDragFile] = useState<FileItem | null>(null);
   const [activeDragRecipient, setActiveDragRecipient] = useState<Recipient | null>(null);
@@ -192,15 +194,26 @@ export function useCampaignDetail() {
 
   const handleFilesDropped = useCallback(
     async (droppedFiles: File[]) => {
+      setUploadError(null);
       const ids: string[] = [];
-      for (const file of droppedFiles) {
+      const tooLargeFiles = droppedFiles.filter(f => f.size > MAX_UPLOAD_BYTES);
+      const validFiles = droppedFiles.filter(f => f.size <= MAX_UPLOAD_BYTES);
+
+      if (tooLargeFiles.length > 0) {
+        setUploadError(`${tooLargeFiles.length} 件のファイルが制限（50MB）を超えているためスキップされました。`);
+      }
+
+      for (const file of validFiles) {
         try {
           ids.push(await uploadLibraryAssetFromFile(file));
         } catch (e) {
           console.error(e);
+          setUploadError("アップロード中にエラーが発生しました。");
         }
       }
-      await assignUploadedAssets(ids);
+      if (ids.length > 0) {
+        await assignUploadedAssets(ids);
+      }
     },
     [assignUploadedAssets]
   );
@@ -402,6 +415,8 @@ export function useCampaignDetail() {
     campaign,
     workflowLoading,
     workflowError,
+    uploadError,
+    setUploadError,
     files,
     recipients,
     activeDragFile,

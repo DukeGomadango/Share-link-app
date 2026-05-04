@@ -187,7 +187,7 @@ export const ja = {
     uploadArea: {
       drop: "ここにファイルをドロップ... ✨",
       drag: "ファイルをドラッグ＆ドロップ",
-      description: "対応形式: PNG, JPG, MP3, WAV。最大サイズ: 50MB（透かしが自動適用されます）",
+      description: "対応形式: 画像、音声、PDF、ZIP、その他。最大サイズ: 50MB",
     },
     filterType: "フィルタ: ファイルの種類",
     searchAssetsPlaceholder: "ファイル名・キャンペーン名で検索",

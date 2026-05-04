@@ -1,11 +1,12 @@
 "use client";
 
-import { ReactNode } from "react";
+import Image from "next/image";
 import { useDraggable } from "@dnd-kit/core";
 import { Check, GripVertical, Loader2, Pencil } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/shared/GlassCard";
+import { cn } from "@/lib/utils";
 import { AssetFile } from "./types";
 
 interface DraggableAssetCardProps {
@@ -24,6 +25,7 @@ interface DraggableAssetCardProps {
   onToggleSelection: (fileId: string) => void;
   onPreview: (file: AssetFile) => void;
   onOpenAssign: (fileId: string) => void;
+  onRename?: (fileId: string, newName: string) => Promise<void>;
 }
 
 export function DraggableAssetCard({
@@ -87,40 +89,63 @@ export function DraggableAssetCard({
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
     : undefined;
 
+  const isImage = file.type.startsWith("image/");
+
   return (
     <GlassCard
       ref={setNodeRef}
       style={style}
-      className={`relative group hover:border-emerald-500/50 transition-colors flex flex-col h-full cursor-pointer ${
-        isSelected ? "border-emerald-500" : ""
-      } ${isDragging ? "opacity-50" : ""}`}
+      className={cn(
+        "relative group hover:border-emerald-500/50 transition-all duration-300 flex flex-col h-full cursor-pointer shadow-sm hover:shadow-md",
+        isSelected ? "border-emerald-500 ring-1 ring-emerald-500/20 bg-emerald-500/5" : "border-border/50",
+        isDragging ? "opacity-50" : ""
+      )}
       onClick={() => onPreview(file)}
     >
       <div className="flex justify-between items-start mb-4">
-        <button
-          type="button"
-          aria-label={isSelected ? deselectAssetLabel : selectAssetLabel}
-          className={`w-6 h-6 rounded border flex items-center justify-center transition-colors ${
-            isSelected ? "bg-emerald-500 border-emerald-500 text-white" : "border-border hover:border-emerald-500"
-          }`}
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleSelection(file.id);
-          }}
-        >
-          {isSelected ? <Check className="w-3.5 h-3.5" /> : null}
-        </button>
-        <button
-          type="button"
-          className="p-2 rounded-md border border-border/60 hover:border-emerald-500/50 text-muted-foreground hover:text-emerald-500"
-          onClick={(event) => event.stopPropagation()}
-          {...attributes}
-          {...listeners}
-          aria-label="Drag asset"
-        >
-          <GripVertical className="w-4 h-4" />
-        </button>
-        <div className="p-3 bg-muted rounded-xl flex items-center justify-center">{getFileIcon(file.type)}</div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            aria-label={isSelected ? deselectAssetLabel : selectAssetLabel}
+            className={cn(
+              "w-6 h-6 rounded border flex items-center justify-center transition-all",
+              isSelected 
+                ? "bg-emerald-500 border-emerald-500 text-white shadow-sm" 
+                : "border-border bg-background/50 hover:border-emerald-500 hover:bg-emerald-500/5"
+            )}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleSelection(file.id);
+            }}
+          >
+            {isSelected ? <Check className="w-3.5 h-3.5" /> : null}
+          </button>
+          <button
+            type="button"
+            className="p-1 rounded-md border border-border/60 hover:border-emerald-500/50 text-muted-foreground hover:text-emerald-500 transition-all bg-background/50"
+            onClick={(event) => event.stopPropagation()}
+            {...attributes}
+            {...listeners}
+            aria-label="Drag asset"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="w-16 h-16 bg-muted/50 rounded-xl flex items-center justify-center overflow-hidden relative shrink-0 shadow-inner group-hover:shadow-none transition-shadow">
+          {isImage ? (
+            <Image 
+              src={file.url} 
+              alt={file.name} 
+              fill 
+              className="object-cover transition-transform duration-500 group-hover:scale-110" 
+              unoptimized 
+            />
+          ) : (
+            <div className="transform group-hover:scale-110 transition-transform duration-500">
+              {getFileIcon(file.type)}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1">
@@ -132,14 +157,14 @@ export function DraggableAssetCard({
               onChange={(e) => setEditValue(e.target.value)}
               onBlur={handleSave}
               onKeyDown={handleKeyDown}
-              className="w-full text-sm font-semibold bg-background border-2 border-emerald-500 rounded px-1 py-0.5 focus:outline-none"
+              className="w-full text-sm font-semibold bg-background border-2 border-emerald-500 rounded px-2 py-1 focus:outline-none shadow-sm"
               disabled={isRenaming}
             />
           </div>
         ) : (
           <div className="group/title flex items-start justify-between mb-1 min-h-[1.5rem]">
             <h3 
-              className="font-semibold text-sm line-clamp-2 hover:text-emerald-600 transition-colors cursor-text flex-1" 
+              className="font-bold text-sm line-clamp-2 hover:text-emerald-600 transition-colors cursor-text flex-1 pr-2" 
               title={file.name}
               onClick={handleStartEdit}
             >
@@ -147,9 +172,9 @@ export function DraggableAssetCard({
             </h3>
             <button
               onClick={handleStartEdit}
-              className="opacity-0 group-hover/title:opacity-100 p-1 hover:bg-emerald-50 rounded text-muted-foreground hover:text-emerald-500 transition-all"
+              className="opacity-0 group-hover/title:opacity-100 p-1.5 hover:bg-emerald-50 rounded-md text-muted-foreground hover:text-emerald-500 transition-all shrink-0"
             >
-              <Pencil className="w-3 h-3" />
+              <Pencil className="w-3.5 h-3.5" />
             </button>
           </div>
         )}

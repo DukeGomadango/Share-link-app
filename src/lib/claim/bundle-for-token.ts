@@ -21,7 +21,7 @@ export type ClaimBundleResponse = {
   passkeyLinked?: boolean;
   files: Array<{
     id: string;
-    type: "image" | "audio";
+    type: "image" | "audio" | "file";
     src: string;
     filename: string;
     title: string;
@@ -120,7 +120,12 @@ export async function buildClaimBundleForSecret(
     if (!src) return null;
 
     const mime = row.asset?.mimeType ?? "";
-    const type: "image" | "audio" = mime.startsWith("audio/") ? "audio" : "image";
+    let type: "image" | "audio" | "file" = "file";
+    if (mime.startsWith("audio/")) {
+      type = "audio";
+    } else if (mime.startsWith("image/")) {
+      type = "image";
+    }
     const filename = row.asset?.originalFilename ?? row.ca.label?.trim() ?? "download";
     const title = row.ca.label?.trim() || filename;
 
