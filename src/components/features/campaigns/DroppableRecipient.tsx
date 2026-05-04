@@ -161,58 +161,53 @@ export function DroppableRecipient({
       </div>
 
       <div
-        className={`mt-2 p-4 rounded-xl border flex flex-col items-center justify-center transition-all ${
+        className={cn(
+          "mt-2 p-3 rounded-xl border flex items-center transition-all",
           isUnlinked
-            ? "border-dashed border-amber-500/40 bg-amber-500/5 min-h-[5rem] group-hover/card:bg-amber-500/10"
-            : "border-solid border-emerald-500/20 bg-background/50 min-h-[4rem]"
-        }`}
+            ? "border-dashed border-amber-500/40 bg-amber-500/5 min-h-[4rem] group-hover/card:bg-amber-500/10 justify-center"
+            : "border-solid border-emerald-500/20 bg-background/50 min-h-[4rem] justify-between"
+        )}
       >
         {assignedFiles.length > 0 ? (
-          <div className="w-full space-y-2">
-            {assignedFiles.map((file: any) => (
-              <div
-                key={file.id}
-                className="group flex items-center justify-between w-full p-2 bg-background border border-border/50 rounded-lg shadow-sm"
-              >
-                <div className="flex items-center space-x-3 overflow-hidden">
-                  <div className="w-8 h-8 shrink-0 relative overflow-hidden rounded-md flex items-center justify-center bg-emerald-500/10">
-                    {file.type === "image" && file.previewUrl ? (
-                      <Image src={file.previewUrl} alt={file.name} fill className="object-cover" unoptimized />
-                    ) : file.type === "audio" ? (
-                      <FileAudio className="w-4 h-4 text-emerald-500" />
-                    ) : (
-                      <FileImage className="w-4 h-4 text-emerald-500" />
-                    )}
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-semibold text-emerald-600 line-clamp-1 text-xs">
-                      {file.name}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground uppercase">{file.type}</span>
-                  </div>
+          <>
+            <div className="flex -space-x-3 overflow-hidden p-1">
+              {assignedFiles.slice(0, 4).map((file: any, i: number) => (
+                <motion.div
+                  key={file.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  style={{ zIndex: 10 - i }}
+                  className="relative w-10 h-10 rounded-xl ring-2 ring-background bg-emerald-500/10 flex items-center justify-center overflow-hidden shadow-sm shrink-0"
+                >
+                  {file.type === "image" && file.previewUrl ? (
+                    <Image src={file.previewUrl} alt={file.name} fill className="object-cover" unoptimized />
+                  ) : file.type === "audio" ? (
+                    <FileAudio className="w-5 h-5 text-emerald-500" />
+                  ) : (
+                    <FileImage className="w-5 h-5 text-emerald-500" />
+                  )}
+                </motion.div>
+              ))}
+              {assignedFiles.length > 4 && (
+                <div className="w-10 h-10 rounded-xl ring-2 ring-background bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground z-0 shadow-sm shrink-0">
+                  +{assignedFiles.length - 4}
                 </div>
-                {!readOnly && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveFile(recipient.id, file.id);
-                    }}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2 text-amber-600/60 group-hover/card:text-amber-600 transition-colors">
-            <div className="p-2 rounded-full bg-amber-500/10 border border-amber-500/20 animate-pulse">
-              <Plus className="w-5 h-5" />
+              )}
             </div>
-            <span className="text-xs font-medium uppercase tracking-wider">ファイルをドロップ</span>
+            
+            <div className="text-right ml-2">
+              <span className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest block">
+                {assignedFiles.length} {t.common.files || "Files"}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-1.5 text-amber-600/60 group-hover/card:text-amber-600 transition-colors">
+            <div className="p-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 animate-pulse">
+              <Plus className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider">ファイルをドロップ</span>
           </div>
         )}
       </div>

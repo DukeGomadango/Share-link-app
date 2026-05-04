@@ -111,6 +111,8 @@ export function RecipientsSection({
         isOpen={!!detailRecipient} 
         onClose={() => setDetailRecipient(null)} 
         onRemoveRecipient={onRemoveRecipient}
+        onRemoveFile={onRemoveFile}
+        campaignFiles={files}
       />
     </>
   );

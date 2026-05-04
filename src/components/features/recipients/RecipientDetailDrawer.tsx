@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import { Sheet, SheetHeader, SheetBody, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
 import { CampaignTimeline } from "./CampaignTimeline";
-import { Recipient } from "@/components/features/campaigns/types";
+import { Recipient, FileItem } from "@/components/features/campaigns/types";
 import { Button } from "@/components/ui/button";
-import { Tag, Calendar, User, Trash2, X, Plus, Shield, MessageSquare, Globe, Clock, CheckCircle2 } from "lucide-react";
+import { Tag, Calendar, User, Trash2, X, Plus, Shield, MessageSquare, Globe, Clock, CheckCircle2, FileAudio, FileImage } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import Image from "next/image";
 
 interface RecipientDetailDrawerProps {
   recipient: Recipient | null;
@@ -17,11 +18,13 @@ interface RecipientDetailDrawerProps {
   onUpdateTags?: (id: string, tags: string[]) => void;
   onUpdateInfo?: (id: string, info: { name: string; listenerNote?: string }) => void;
   onRemoveRecipient?: (id: string) => void;
+  onRemoveFile?: (recipientId: string, fileId: string) => void;
   existingTags?: string[];
+  campaignFiles?: FileItem[];
 }
 
 
-export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags, onUpdateInfo, onRemoveRecipient, existingTags = [] }: RecipientDetailDrawerProps) {
+export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags, onUpdateInfo, onRemoveRecipient, onRemoveFile, existingTags = [], campaignFiles = [] }: RecipientDetailDrawerProps) {
   const [newTag, setNewTag] = useState("");
   const [editName, setEditName] = useState("");
   const [editNote, setEditNote] = useState("");
@@ -82,6 +85,12 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
       onClose();
     }
   };
+
+  const assignedFiles = recipient?.assignedFileIds
+    ? recipient.assignedFileIds
+        .map((id) => campaignFiles.find((f) => f.id === id))
+        .filter((f): f is FileItem => f !== undefined)
+    : [];
 
   return (
     <Sheet isOpen={isOpen} onClose={onClose}>
@@ -189,6 +198,50 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
       </SheetHeader>
 
       <SheetBody className="space-y-8">
+        {/* Assigned Files */}
+        {assignedFiles.length > 0 && (
+          <section>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
+              <Plus className="w-3.5 h-3.5" />
+              現在の配布ファイル ({assignedFiles.length})
+            </h3>
+            <div className="grid grid-cols-1 gap-2">
+              {assignedFiles.map((file) => (
+                <div 
+                  key={file.id}
+                  className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 group/file"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
+                      {file.type === "image" && file.previewUrl ? (
+                        <Image src={file.previewUrl} alt={file.name} fill className="object-cover" unoptimized />
+                      ) : file.type === "audio" ? (
+                        <FileAudio className="w-5 h-5 text-emerald-500" />
+                      ) : (
+                        <FileImage className="w-5 h-5 text-emerald-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-emerald-600 truncate">{file.name}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{file.type}</p>
+                    </div>
+                  </div>
+                  {onRemoveFile && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full opacity-0 group-hover/file:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
+                      onClick={() => onRemoveFile(recipient.id, file.id)}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Recipient Insights */}
         <section>
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
