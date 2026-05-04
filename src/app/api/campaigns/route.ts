@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { fetchCampaignsWithStats } from "@/lib/campaigns-query";
 import { getDb } from "@/db";
-import { campaigns } from "@/db/schema";
+import { campaigns, campaignAssets } from "@/db/schema";
 
 export async function GET() {
   const ctx = await getSessionWorkspaceContext();
@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     expiresAt?: string;
     securityLevel?: string;
     useOtp?: boolean;
+    assetIds?: string[];
   };
   try {
     body = await request.json();
@@ -54,6 +55,15 @@ export async function POST(request: Request) {
       useOtp: body.useOtp ?? false,
     })
     .returning();
+
+  if (body.assetIds && body.assetIds.length > 0) {
+    await db.insert(campaignAssets).values(
+      body.assetIds.map((assetId) => ({
+        campaignId: row.id,
+        assetId,
+      }))
+    ).onConflictDoNothing();
+  }
 
   const list = await fetchCampaignsWithStats(ctx.workspaceId);
   const created = list.find((c) => c.id === row.id);

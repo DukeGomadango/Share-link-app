@@ -153,7 +153,7 @@ export function useLibrary() {
     commandDropResults,
     recentCampaignIds,
     sensors,
-    handleFilesDropped,
+    handleFilesDropped: (files: File[]) => handleFilesDropped(files),
     handleRename,
     handleDelete,
     handleBulkDelete,

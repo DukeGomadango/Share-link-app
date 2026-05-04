@@ -36,6 +36,7 @@ export default function NewCampaignPage() {
     expiresAt: "", // Default empty (smart default handled in UI or effect)
     securityLevel: "standard" as "standard" | "high" | "paranoid",
     useOtp: false,
+    assetIds: [] as string[],
   });
 
   // UI state
@@ -131,9 +132,13 @@ export default function NewCampaignPage() {
             />
           )}
 
-          {/* Step 2: Placeholder for File Addition */}
+          {/* Step 2: File Addition */}
           {step === 2 && (
-            <StepFileSelect t={t} />
+            <StepFileSelect 
+              assetIds={formData.assetIds}
+              onUpdate={updateFormData}
+              t={t} 
+            />
           )}
 
           {/* Step 3: Security & Sharing */}

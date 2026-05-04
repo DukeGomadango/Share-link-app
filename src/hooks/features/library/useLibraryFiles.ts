@@ -86,6 +86,7 @@ export function useLibraryFiles() {
         typeof err?.error === "string" ? err.error : `register failed: ${reg.status}`
       );
     }
+    return meta.assetId;
   }, []);
 
   const handleFilesDropped = async (droppedFiles: File[]) => {
@@ -97,15 +98,18 @@ export function useLibraryFiles() {
       setUploadError(`${tooLargeFiles.length} 件のファイルが制限（50MB）を超えているためスキップされました。`);
     }
 
+    const newAssetIds: string[] = [];
     for (const file of validFiles) {
       try {
-        await uploadSingle(file);
+        const id = await uploadSingle(file);
+        newAssetIds.push(id);
       } catch (error) {
         console.error("Upload error:", error);
         setUploadError("アップロード中にエラーが発生しました。");
       }
     }
     fetchFiles();
+    return newAssetIds;
   };
 
   const inferSmartTags = useCallback((file: AssetFile) => {
