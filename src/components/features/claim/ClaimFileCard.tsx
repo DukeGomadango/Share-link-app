@@ -90,7 +90,7 @@ export function ClaimFileCard({
       <div className="pt-12">
         {file.type === "image" && (
           <div className="space-y-3">
-            <ImageViewer src={file.src} />
+            <ImageViewer src={file.src} priority={index === 0} />
             <p className="text-center text-sm font-medium text-muted-foreground">{file.title}</p>
           </div>
         )}

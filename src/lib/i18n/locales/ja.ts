@@ -143,6 +143,9 @@ export const ja = {
       draft: "下書き",
       completed: "完了",
     },
+    searchPlaceholderFiles: "ファイルを検索...",
+    noFilesFound: "該当するファイルが見つかりません",
+    tryAnotherSearch: "検索ワードを変えてみてください",
     peek: {
       title: "キャンペーンの詳細",
       recipients: "受取人",

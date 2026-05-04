@@ -114,9 +114,9 @@ export function DroppableRecipient({
       }
       whileHover={{ scale: isDragging ? 1 : 1.01 }}
       onClick={onClick}
-      transition={{ duration: 0.42, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn(
-        `p-4 rounded-2xl border transition-all relative group/card cursor-grab active:cursor-grabbing`,
+        `p-4 rounded-2xl border transition-[border-color,background-color,box-shadow] duration-200 relative group/card cursor-grab active:cursor-grabbing`,
         isDragging ? "opacity-0 invisible" : "opacity-100", // ドラッグ中は元の場所を消す（DragOverlayに任せる）
         isOver && !isDragging
           ? "border-emerald-500 bg-emerald-500/10 scale-[1.02] shadow-emerald-500/20 shadow-lg"
@@ -227,7 +227,7 @@ export function DroppableRecipient({
 
       <div
         className={cn(
-          "mt-2 p-3 rounded-xl border flex items-center transition-all",
+          "mt-2 p-3 rounded-xl border flex items-center transition-[border-color,background-color] duration-200",
           isUnlinked
             ? "border-dashed border-amber-500/40 bg-amber-500/5 min-h-[4rem] group-hover/card:bg-amber-500/10 justify-center"
             : "border-solid border-emerald-500/20 bg-background/50 min-h-[4rem] justify-between"

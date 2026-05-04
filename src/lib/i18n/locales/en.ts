@@ -141,12 +141,15 @@ export const en: TranslationKeys = {
     keyboardHint: "Use arrow keys / Enter for details / Esc to close / Cmd(Ctrl)+A to select all",
     quickFilters: {
       all: "All",
-      needsAttention: "Needs attention",
-      dueSoon: "Due soon",
+      needsAttention: "Needs Attention",
+      dueSoon: "Due Soon",
       active: "Active",
       draft: "Draft",
       completed: "Completed",
     },
+    searchPlaceholderFiles: "Search files...",
+    noFilesFound: "No files found",
+    tryAnotherSearch: "Try another search query",
     peek: {
       title: "Campaign details",
       recipients: "Recipients",

@@ -42,6 +42,7 @@ export default function CampaignDetailPage() {
     handleRemoveRecipient,
     handleMergeRecipients,
     toggleSelection,
+    setSelectedFiles,
     toggleAllSelection,
     handleDragStart,
     handleDragEnd,
@@ -325,6 +326,7 @@ export default function CampaignDetailPage() {
               selectedFileIds={selectedFileIds}
               onToggleSelection={toggleSelection}
               onToggleAllSelection={toggleAllSelection}
+              onSelectMultiple={setSelectedFiles}
               onFilesDropped={handleFilesDropped}
               onOpenLibrary={() => {
                 setShowLibraryModal(true);
@@ -352,7 +354,7 @@ export default function CampaignDetailPage() {
 
           <DragOverlay>
             {activeDragRecipient ? (
-              <div className="p-4 rounded-2xl border border-sky-500 bg-background/95 shadow-2xl flex items-center space-x-3 rotate-2 scale-105 cursor-grabbing min-w-[200px]">
+              <div className="p-4 rounded-2xl border border-sky-500 bg-background/95 shadow-2xl flex items-center space-x-3 rotate-2 scale-105 cursor-grabbing min-w-[200px] transition-none pointer-events-none">
                 <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center text-sky-500">
                   <Users className="w-5 h-5" />
                 </div>
@@ -367,7 +369,7 @@ export default function CampaignDetailPage() {
                   label={t.campaigns.filesSelected.replace("{count}", draggedFileIds.length.toString())}
                 />
               ) : (
-                <div className="p-3 rounded-lg border border-emerald-500 bg-background/90 shadow-2xl flex items-center space-x-3 rotate-3 scale-105 cursor-grabbing">
+                <div className="p-3 rounded-lg border border-emerald-500 bg-background/90 shadow-2xl flex items-center space-x-3 rotate-3 scale-105 cursor-grabbing transition-none pointer-events-none">
                   <div className="p-2 bg-emerald-500/20 rounded-md text-emerald-500 shrink-0 relative overflow-hidden flex items-center justify-center w-10 h-10">
                     {activeDragFile.type === "image" && activeDragFile.previewUrl ? (
                       <Image

@@ -269,6 +269,10 @@ export function useCampaignDetail() {
     });
   }, []);
 
+  const setSelectedFiles = useCallback((ids: string[]) => {
+    setSelectedFileIds(new Set(ids));
+  }, []);
+
   const toggleAllSelection = useCallback(() => {
     setSelectedFileIds((prev) => {
       if (prev.size === files.length && files.length > 0) {
@@ -415,6 +419,7 @@ export function useCampaignDetail() {
     handleRemoveRecipient,
     handleMergeRecipients,
     toggleSelection,
+    setSelectedFiles,
     toggleAllSelection,
     handleDragStart,
     handleDragEnd,
