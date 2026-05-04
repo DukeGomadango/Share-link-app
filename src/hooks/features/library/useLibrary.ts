@@ -29,6 +29,8 @@ export function useLibrary() {
     setSelectedTag,
     handleFilesDropped,
     handleRename,
+    handleDelete,
+    handleBulkDelete,
     uploadError,
     setUploadError,
   } = useLibraryFiles();
@@ -153,6 +155,8 @@ export function useLibrary() {
     sensors,
     handleFilesDropped,
     handleRename,
+    handleDelete,
+    handleBulkDelete,
     handleUndoAssign,
     handleDragStart,
     handleDragEnd,

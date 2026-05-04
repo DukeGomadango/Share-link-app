@@ -10,9 +10,12 @@ import {
   SensorDescriptor,
   SensorOptions,
 } from "@dnd-kit/core";
-import { Layers, GripVertical, FolderOpen } from "lucide-react";
+import { Layers, GripVertical, FolderOpen, Trash2, Loader2 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { GlassCard } from "@/components/shared/GlassCard";
+import { cn } from "@/lib/utils";
 import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
 import { DraggableAssetCard } from "@/components/features/library/DraggableAssetCard";
 import { CampaignDockItem } from "@/components/features/library/CampaignDockItem";
@@ -37,6 +40,9 @@ interface LibraryGridProps {
   onPreview: (file: AssetFile) => void;
   onOpenAssign: (fileId: string) => void;
   onRename: (fileId: string, newName: string) => Promise<void>;
+  onRemove: (fileId: string) => Promise<void>;
+  onRequestBulkRemove: () => void;
+  onSelectMultiple: (fileIds: string[]) => void;
   onAssignSelected: (campaignId: string) => void;
   onOpenCommandDrop: () => void;
   labels: {
@@ -80,6 +86,9 @@ export function LibraryGrid({
   onPreview,
   onOpenAssign,
   onRename,
+  onRemove,
+  onRequestBulkRemove,
+  onSelectMultiple,
   onAssignSelected,
   onOpenCommandDrop,
   labels,
@@ -90,6 +99,108 @@ export function LibraryGrid({
   const selectedCount = selectedFileIds.size;
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [columnCount, setColumnCount] = useState(1);
+  const [selectionBox, setSelectionBox] = useState<{
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+  } | null>(null);
+  const [itemRects, setItemRects] = useState<
+    { id: string; rect: { left: number; top: number; right: number; bottom: number } }[]
+  >([]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // D&D or existing button clicks should not start marquee
+    if ((e.target as HTMLElement).closest("[data-file-id]") || (e.target as HTMLElement).closest("button")) return;
+    
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left + container.scrollLeft;
+    const y = e.clientY - rect.top + container.scrollTop;
+
+    setSelectionBox({ startX: x, startY: y, endX: x, endY: y });
+
+    // Cache current visible items
+    const items = container.querySelectorAll("[data-file-id]");
+    const rects: { id: string; rect: { left: number; top: number; right: number; bottom: number } }[] = [];
+    
+    items.forEach((el) => {
+      const htmlEl = el as HTMLElement;
+      const id = htmlEl.getAttribute("data-file-id");
+      if (id) {
+        // We need coordinates relative to the scrollable content
+        // OffsetParent of AssetCard should be the virtual row or the container
+        const left = htmlEl.offsetLeft;
+        const top = htmlEl.offsetTop;
+        
+        // Since we are using absolute positioning for rows, we need to account for that.
+        // Actually, offsetTop for the card is relative to its parent (the absolute row).
+        // Let's get the absolute row's offset too.
+        const row = htmlEl.closest('[style*="translateY"]');
+        let absoluteTop = top;
+        if (row instanceof HTMLElement) {
+          const match = row.style.transform.match(/translateY\((\d+)px\)/);
+          if (match) absoluteTop += parseInt(match[1], 10);
+        }
+
+        rects.push({ 
+          id, 
+          rect: { 
+            left, 
+            top: absoluteTop, 
+            right: left + htmlEl.offsetWidth, 
+            bottom: absoluteTop + htmlEl.offsetHeight 
+          } 
+        });
+      }
+    });
+    setItemRects(rects);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!selectionBox || !scrollRef.current) return;
+
+    const container = scrollRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const currentX = e.clientX - containerRect.left + container.scrollLeft;
+    const currentY = e.clientY - containerRect.top + container.scrollTop;
+
+    setSelectionBox(prev => prev ? { ...prev, endX: currentX, endY: currentY } : null);
+
+    const box = {
+      left: Math.min(selectionBox.startX, currentX),
+      top: Math.min(selectionBox.startY, currentY),
+      right: Math.max(selectionBox.startX, currentX),
+      bottom: Math.max(selectionBox.startY, currentY)
+    };
+
+    const selectedIds = itemRects
+      .filter(({ rect }) => {
+        return !(
+          rect.left > box.right ||
+          rect.right < box.left ||
+          rect.top > box.bottom ||
+          rect.bottom < box.top
+        );
+      })
+      .map(r => r.id);
+
+    onSelectMultiple(selectedIds);
+  };
+
+  const handleMouseUp = () => {
+    setSelectionBox(null);
+    setItemRects([]);
+  };
+
+  const boxStyles = selectionBox ? {
+    left: Math.min(selectionBox.startX, selectionBox.endX),
+    top: Math.min(selectionBox.startY, selectionBox.endY),
+    width: Math.abs(selectionBox.startX - selectionBox.endX),
+    height: Math.abs(selectionBox.startY - selectionBox.endY),
+  } : null;
 
   useEffect(() => {
     const updateColumns = () => {
@@ -130,7 +241,20 @@ export function LibraryGrid({
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div ref={scrollRef} className="h-[68vh] overflow-auto pr-1">
+      <div 
+        ref={scrollRef} 
+        className="h-[68vh] overflow-auto pr-1 relative select-none"
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {boxStyles && (
+          <div 
+            className="absolute z-50 bg-emerald-500/20 border border-emerald-500/50 pointer-events-none rounded-sm"
+            style={boxStyles}
+          />
+        )}
         {filteredFiles.length === 0 ? (
           <GlassCard className="text-center py-16">
             <p className="text-sm text-muted-foreground">{labels.noFilteredFiles}</p>
@@ -175,6 +299,7 @@ export function LibraryGrid({
                         onPreview={onPreview}
                         onOpenAssign={onOpenAssign}
                         onRename={onRename}
+                        onRemove={onRemove}
                       />
                     ))}
                   </div>
@@ -234,14 +359,25 @@ export function LibraryGrid({
                   <Layers className="w-4 h-4 mr-2 text-emerald-500" />
                   {labels.campaignDock}
                 </h3>
-                <span className="text-xs text-muted-foreground">
-                  {labels.selectedAssets.replace("{count}", String(selectedCount))}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted-foreground">
+                    {labels.selectedAssets.replace("{count}", String(selectedCount))}
+                  </span>
+                  {selectedCount > 0 && (
+                    <button
+                      onClick={() => onRequestBulkRemove()}
+                      className="p-1.5 hover:bg-red-50 rounded-md text-muted-foreground hover:text-red-500 transition-all"
+                      title="選択したファイルを一括削除"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="mb-3 text-xs text-muted-foreground">
                 {labels.unassignedCount.replace("{count}", String(unassignedCount))}
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                 {dockCampaigns.map((campaign) => (
                   <CampaignDockItem
                     key={campaign.id}

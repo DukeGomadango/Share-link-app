@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { FileImage, FileAudio, File as FileIcon } from "lucide-react";
+import { FileImage, FileAudio, File as FileIcon, Trash2, Loader2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { FileDropzone } from "@/components/shared/FileDropzone";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { AssetPreviewModal } from "@/components/features/library/AssetPreviewModal";
 import { AssetAssignModal } from "@/components/features/library/AssetAssignModal";
 import { AssetFile } from "@/components/features/library/types";
@@ -19,6 +22,7 @@ import { LibraryToasts } from "@/components/features/library/LibraryToasts";
 export default function LibraryPage() {
   const { t, locale } = useTranslation();
   const [selectedFile, setSelectedFile] = useState<AssetFile | null>(null);
+  const [isBulkConfirmOpen, setIsBulkConfirmOpen] = useState(false);
 
   const {
     files,
@@ -62,6 +66,8 @@ export default function LibraryPage() {
     sensors,
     handleFilesDropped,
     handleRename,
+    handleDelete,
+    handleBulkDelete,
     handleUndoAssign,
     handleDragStart,
     handleDragEnd,
@@ -71,6 +77,23 @@ export default function LibraryPage() {
     uploadError,
     setUploadError,
   } = useLibrary();
+
+  const selectedFiles = filteredFiles.filter(f => selectedFileIds.has(f.id));
+  const linkedSelectedCount = selectedFiles.filter(f => f.linkedCampaigns.length > 0).length;
+  const [isBulkRemoving, setIsBulkRemoving] = useState(false);
+
+  const onBulkRemove = async () => {
+    setIsBulkRemoving(true);
+    try {
+      await handleBulkDelete(Array.from(selectedFileIds));
+      setIsBulkConfirmOpen(false);
+      setSelectedFileIds(new Set());
+    } catch (err: any) {
+      alert(err.message || "一括削除に失敗しました。");
+    } finally {
+      setIsBulkRemoving(false);
+    }
+  };
 
   useRegisterCommandPaletteSource({
     selectedCount,
@@ -158,6 +181,7 @@ export default function LibraryPage() {
           setCampaignQuery("");
           setIsAssignModalOpen(true);
         }}
+        onBulkDelete={() => setIsBulkConfirmOpen(true)}
         labels={{
           searchPlaceholder: t.library.searchAssetsPlaceholder,
           filtersLabel: t.library.filtersLabel,
@@ -171,6 +195,7 @@ export default function LibraryPage() {
           openCommandDrop: t.library.openCommandDrop,
           clearSelection: t.library.clearSelection,
           assignToCampaign: t.library.assignToCampaign,
+          deleteSelected: "ライブラリから削除",
         }}
       />
 
@@ -192,6 +217,9 @@ export default function LibraryPage() {
         onPreview={setSelectedFile}
         onOpenAssign={openAssignModalForFile}
         onRename={handleRename}
+        onRemove={handleDelete}
+        onRequestBulkRemove={() => setIsBulkConfirmOpen(true)}
+        onSelectMultiple={(ids) => setSelectedFileIds(new Set(ids))}
         onAssignSelected={assignSelectedToCampaign}
         onOpenCommandDrop={openCommandDropForSelection}
         formatSize={formatSize}
@@ -255,9 +283,39 @@ export default function LibraryPage() {
           assignSkipped: t.library.assignSkipped,
           undo: t.library.undo,
           assignRestoreErrorTitle: t.library.assignRestoreErrorTitle,
-          assignRestoreErrorBody: t.library.assignRestoreErrorBody,
         }}
       />
+
+      <Dialog isOpen={isBulkConfirmOpen} onClose={() => setIsBulkConfirmOpen(false)} className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>選択したファイルを一括削除しますか？</DialogTitle>
+          <DialogDescription>
+            選択された {selectedCount} 件のファイルをライブラリから完全に削除します。この操作は取り消せません。
+            {linkedSelectedCount > 0 && (
+              <span className="block mt-4 text-red-500 font-medium bg-red-50 p-3 rounded-lg border border-red-100">
+                注意: 選択中のファイルのうち {linkedSelectedCount} 件はキャンペーンに使用されているため、一括削除できません。先に紐付けを解除してください。
+              </span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button variant="ghost" onClick={() => setIsBulkConfirmOpen(false)} disabled={isBulkRemoving}>
+            キャンセル
+          </Button>
+          <Button 
+            variant="destructive" 
+            onClick={onBulkRemove} 
+            disabled={isBulkRemoving || linkedSelectedCount > 0}
+            className={cn(
+              "bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20",
+              (isBulkRemoving || linkedSelectedCount > 0) && "opacity-50 cursor-not-allowed grayscale-[0.5]"
+            )}
+          >
+            {isBulkRemoving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+            削除する
+          </Button>
+        </div>
+      </Dialog>
     </div>
   );
 }

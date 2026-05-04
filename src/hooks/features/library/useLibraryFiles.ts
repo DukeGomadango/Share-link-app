@@ -190,6 +190,47 @@ export function useLibraryFiles() {
     );
   }, []);
 
+  const handleDelete = useCallback(async (fileId: string) => {
+    const r = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
+      method: "DELETE",
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.message || `Delete failed: ${r.status}`);
+    }
+    
+    // ローカルステートを更新
+    setFiles((prev) => prev.filter((f) => f.id !== fileId));
+  }, []);
+
+  const handleBulkDelete = useCallback(async (fileIds: string[]) => {
+    const results = await Promise.allSettled(
+      fileIds.map(async (id) => {
+        const r = await fetch(`/api/files/${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        });
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          throw new Error(err.message || String(r.status));
+        }
+        return id;
+      })
+    );
+
+    const successfulIds = results
+      .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+      .map((r) => r.value);
+
+    setFiles((prev) => prev.filter((f) => !successfulIds.includes(f.id)));
+
+    const errors = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
+    if (errors.length > 0) {
+      throw new Error(
+        `${errors.length} 件のファイルの削除に失敗しました。キャンペーンに使用中の可能性があります。`
+      );
+    }
+  }, []);
+
   return {
     files,
     setFiles,
@@ -210,6 +251,8 @@ export function useLibraryFiles() {
     setSelectedTag,
     handleFilesDropped,
     handleRename,
+    handleDelete,
+    handleBulkDelete,
     refreshFiles: fetchFiles,
     uploadError,
     setUploadError,
