@@ -10,6 +10,7 @@ import {
   campaigns,
   claimAssets,
   claims,
+  recipients,
   slotAssets,
 } from "@/db/schema";
 
@@ -28,6 +29,10 @@ export async function POST(request: Request, ctx: RouteParams) {
     campaignAssetIds?: string[];
     recipientDisplayName?: string;
     listenerNote?: string | null;
+    /** 既存の名簿から選択する場合の受取人 ID */
+    recipientId?: string | null;
+    /** 新規作成時にグローバル名簿にも登録するか（デフォルト true） */
+    createGlobal?: boolean;
   };
   try {
     body = await request.json();
@@ -35,15 +40,55 @@ export async function POST(request: Request, ctx: RouteParams) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const name = body.recipientDisplayName?.trim();
-  if (!name) {
-    return NextResponse.json(
-      { error: "invalid_body", message: "recipient_display_name が必要です" },
-      { status: 400 }
-    );
+  const db = getDb();
+
+  // --- 名簿連携ロジック ---
+  let recipientId: string | null = body.recipientId?.trim() || null;
+  let name = body.recipientDisplayName?.trim() || "";
+
+  if (recipientId) {
+    // 既存の名簿から選択: 名簿の存在とワークスペース権限を検証
+    const [existing] = await db
+      .select({ id: recipients.id, name: recipients.name })
+      .from(recipients)
+      .where(and(eq(recipients.id, recipientId), eq(recipients.workspaceId, session.workspaceId)))
+      .limit(1);
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "not_found", message: "指定された受取人が見つかりません" },
+        { status: 404 }
+      );
+    }
+    // 名簿の名前を使用（表示名が空の場合）
+    if (!name) name = existing.name;
+  } else {
+    // 新規作成
+    if (!name) {
+      return NextResponse.json(
+        { error: "invalid_body", message: "recipient_display_name が必要です" },
+        { status: 400 }
+      );
+    }
+
+    // createGlobal が明示的に false でない限り、名簿にも登録
+    const createGlobal = body.createGlobal !== false;
+    if (createGlobal) {
+      const [newRecipient] = await db
+        .insert(recipients)
+        .values({
+          workspaceId: session.workspaceId,
+          name,
+          tags: [],
+          platformId: undefined,
+        })
+        .returning({ id: recipients.id });
+      if (newRecipient) {
+        recipientId = newRecipient.id;
+      }
+    }
   }
 
-  const db = getDb();
   const owned = await db
     .select({ id: campaigns.id })
     .from(campaigns)
@@ -84,6 +129,7 @@ export async function POST(request: Request, ctx: RouteParams) {
       campaignId,
       listenerDisplayName: name,
       listenerNote: body.listenerNote ?? null,
+      recipientId,
     });
 
     if (assetIds.length > 0) {
@@ -117,6 +163,7 @@ export async function POST(request: Request, ctx: RouteParams) {
         claimId: created.claimId,
         slotId: created.slotId,
         claimSecret: created.claimSecret,
+        recipientId,
       },
       { status: 201 }
     );
@@ -128,3 +175,4 @@ export async function POST(request: Request, ctx: RouteParams) {
     );
   }
 }
+

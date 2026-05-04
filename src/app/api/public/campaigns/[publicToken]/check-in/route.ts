@@ -10,7 +10,7 @@ import {
 import { createSlotAndClaim } from "@/lib/claims/create-slot-and-claim";
 import { checkInRateLimit } from "@/lib/public/check-in-rate-limit";
 import { getDb } from "@/db";
-import { campaigns, claims } from "@/db/schema";
+import { campaigns, claims, recipients } from "@/db/schema";
 
 type RouteParams = { params: Promise<{ publicToken: string }> };
 
@@ -100,6 +100,7 @@ export async function POST(request: Request, ctx: RouteParams) {
   const camp = await db
     .select({
       id: campaigns.id,
+      workspaceId: campaigns.workspaceId,
       status: campaigns.status,
       expiresAt: campaigns.expiresAt,
       distributionMode: campaigns.distributionMode,
@@ -140,10 +141,21 @@ export async function POST(request: Request, ctx: RouteParams) {
 
   let created;
   try {
+    // グローバル名簿に受取人を自動登録
+    const [newRecipient] = await db
+      .insert(recipients)
+      .values({
+        workspaceId: c.workspaceId,
+        name: displayName,
+        tags: [],
+      })
+      .returning({ id: recipients.id });
+
     created = await createSlotAndClaim({
       campaignId: c.id,
       listenerDisplayName: displayName,
       listenerNote: body.note ?? null,
+      recipientId: newRecipient?.id ?? null,
     });
   } catch (e) {
     console.error(e);

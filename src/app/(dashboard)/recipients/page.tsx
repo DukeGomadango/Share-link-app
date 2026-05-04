@@ -29,6 +29,7 @@ export default function RecipientsPage() {
     selectRecipient,
     selectAll,
     deleteSelected,
+    deleteRecipient,
     updateRecipientTags,
     updateRecipientInfo,
     addRecipient,
@@ -98,10 +99,8 @@ export default function RecipientsPage() {
     setAssignRecipientId(recipient.id);
   };
 
-  const handleQuickAssign = (recipientId: string, fileId: string) => {
-    // 実際にはここで API を呼び出して紐付けを行う
-    console.log(`Assigning file ${fileId} to recipient ${recipientId}`);
-    window.alert(`受取人 ${recipientId} にファイル ${fileId} を割り当てました。`);
+  const handleQuickAssign = (recipientId: string, fileIds: string[]) => {
+    console.log(`Assigned ${fileIds.length} files to recipient ${recipientId}`);
     setAssignRecipientId(null);
   };
 
@@ -203,6 +202,7 @@ export default function RecipientsPage() {
           onSelectRecipient={selectRecipient}
           onRowClick={handleRowClick}
           onAssign={handleAssign}
+          onDelete={deleteRecipient}
         />
       )}
 
@@ -221,6 +221,7 @@ export default function RecipientsPage() {
         onClose={() => setDetailRecipientId(null)} 
         onUpdateTags={updateRecipientTags}
         onUpdateInfo={updateRecipientInfo}
+        onRemoveRecipient={deleteRecipient}
         existingTags={allUniqueTags}
       />
 

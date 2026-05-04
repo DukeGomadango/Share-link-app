@@ -21,7 +21,10 @@ import {
 import { setListenerSessionCookieOnResponse } from "@/lib/webauthn/listener-session-cookie";
 import { getDb } from "@/db";
 import {
+  campaignRecipientSlots,
   claimIdentityLinks,
+  claims,
+  listenerIdentities,
   webauthnChallenges,
   webauthnCredentials,
 } from "@/db/schema";
@@ -159,6 +162,29 @@ export async function POST(request: Request) {
       await tx
         .delete(webauthnChallenges)
         .where(eq(webauthnChallenges.id, challengeId));
+
+      // パスキー認証した人を名簿と紐付ける
+      // claim -> recipientSlotId -> slot.recipientId -> listener_identities.linked_recipient_id
+      const [claimRow] = await tx
+        .select({ recipientSlotId: claims.recipientSlotId })
+        .from(claims)
+        .where(eq(claims.id, challengeRow.claimId!))
+        .limit(1);
+
+      if (claimRow?.recipientSlotId) {
+        const [slotRow] = await tx
+          .select({ recipientId: campaignRecipientSlots.recipientId })
+          .from(campaignRecipientSlots)
+          .where(eq(campaignRecipientSlots.id, claimRow.recipientSlotId))
+          .limit(1);
+
+        if (slotRow?.recipientId) {
+          await tx
+            .update(listenerIdentities)
+            .set({ linkedRecipientId: slotRow.recipientId })
+            .where(eq(listenerIdentities.id, challengeRow.listenerIdentityId!));
+        }
+      }
     });
   } catch (e) {
     const code =

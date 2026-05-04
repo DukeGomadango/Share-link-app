@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ClaimAuthView } from "@/components/features/claim/ClaimAuthView";
 import { ClaimUnopenedView } from "@/components/features/claim/ClaimUnopenedView";
@@ -56,9 +56,11 @@ const unboxVariants = {
 
 export default function ClaimPage() {
   const params = useParams<{ token: string }>();
+  const searchParams = useSearchParams();
   const token = typeof params?.token === "string" ? params.token : "";
+  const isPreview = searchParams?.get("preview") === "true";
   
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(isPreview);
   const [isOpened, setIsOpened] = useState(false);
   const [bundle, setBundle] = useState<{
     expiryIso: string;

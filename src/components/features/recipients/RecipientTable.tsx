@@ -29,6 +29,7 @@ interface RecipientTableProps {
   onSelectRecipient: (id: string) => void;
   onRowClick: (recipient: Recipient) => void;
   onAssign: (recipient: Recipient) => void;
+  onDelete: (id: string) => void;
 }
 
 export function RecipientTable({ 
@@ -37,12 +38,13 @@ export function RecipientTable({
   onSelectAll, 
   onSelectRecipient, 
   onRowClick,
-  onAssign
+  onAssign,
+  onDelete
 }: RecipientTableProps) {
   const isAllSelected = recipients.length > 0 && selectedRecipientIds.size === recipients.length;
 
   return (
-    <div className="glass rounded-2xl border-border/50 overflow-hidden shadow-xl">
+    <div className="glass rounded-2xl border-border/50 shadow-xl">
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b border-border/30 bg-muted/20">
@@ -169,14 +171,27 @@ export function RecipientTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40">
-                        <DropdownMenuItem className="text-xs font-medium">
+                        <DropdownMenuItem 
+                          className="text-xs font-medium"
+                          onClick={() => onRowClick(recipient)}
+                        >
                           <History className="w-3.5 h-3.5 mr-2 opacity-60" />
                           履歴を表示
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-xs font-medium">
+                        <DropdownMenuItem 
+                          className="text-xs font-medium"
+                          onClick={() => onRowClick(recipient)}
+                        >
                           編集
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-xs font-medium text-destructive hover:text-destructive hover:bg-destructive/10">
+                        <DropdownMenuItem 
+                          className="text-xs font-medium text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            if (window.confirm(`${recipient.name} さんを削除してもよろしいですか？`)) {
+                              onDelete(recipient.id);
+                            }
+                          }}
+                        >
                           削除
                         </DropdownMenuItem>
                       </DropdownMenuContent>

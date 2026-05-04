@@ -103,6 +103,20 @@ export function useRecipients() {
     fetchRecipients();
   };
 
+  const deleteRecipient = async (id: string) => {
+    try {
+      await fetch(`/api/recipients/${id}`, { method: "DELETE" });
+      setRecipients(prev => prev.filter(r => r.id !== id));
+      setSelectedRecipientIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    } catch (e) {
+      console.error(`Failed to delete recipient ${id}:`, e);
+    }
+  };
+
   const updateRecipientTags = async (id: string, tags: string[]) => {
     try {
       const res = await fetch(`/api/recipients/${id}`, {
@@ -202,6 +216,7 @@ export function useRecipients() {
     selectRecipient,
     selectAll,
     deleteSelected,
+    deleteRecipient,
     updateRecipientTags,
     updateRecipientInfo,
     addRecipient,

@@ -7,6 +7,8 @@ export type CreateSlotAndClaimInput = {
   campaignId: string;
   listenerDisplayName: string;
   listenerNote?: string | null;
+  /** グローバル名簿の受取人 ID（連携時に指定） */
+  recipientId?: string | null;
 };
 
 export type CreateSlotAndClaimResult = {
@@ -26,6 +28,7 @@ export async function createSlotAndClaim(
     .insert(campaignRecipientSlots)
     .values({
       campaignId: input.campaignId,
+      recipientId: input.recipientId ?? undefined,
       listenerDisplayName: name,
       listenerNote: input.listenerNote?.trim() || null,
       status: "unlinked",

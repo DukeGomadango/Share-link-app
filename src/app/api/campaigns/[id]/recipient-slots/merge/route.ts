@@ -7,6 +7,8 @@ import {
   campaignRecipientSlots,
   campaigns,
   claims,
+  listenerIdentities,
+  recipients,
   slotAssets,
   claimAssets,
 } from "@/db/schema";
@@ -47,7 +49,11 @@ export async function POST(request: Request, ctx: RouteParams) {
 
   // 両方のスロットが存在し、かつキャンペーンに属しているか確認
   const slots = await db
-    .select({ id: campaignRecipientSlots.id, campaignId: campaignRecipientSlots.campaignId })
+    .select({
+      id: campaignRecipientSlots.id,
+      campaignId: campaignRecipientSlots.campaignId,
+      recipientId: campaignRecipientSlots.recipientId,
+    })
     .from(campaignRecipientSlots)
     .where(inArray(campaignRecipientSlots.id, [sourceSlotId, targetSlotId]));
   
@@ -148,6 +154,35 @@ export async function POST(request: Request, ctx: RouteParams) {
           .update(campaignRecipientSlots)
           .set({ status: "ready" })
           .where(eq(campaignRecipientSlots.id, targetSlotId));
+      }
+
+      // 7. 名簿側の統合: listener_identities の紐付けを統合先に付け替え
+      const sourceSlot = slots.find(s => s.id === sourceSlotId);
+      const targetSlot = slots.find(s => s.id === targetSlotId);
+      const sourceRecipientId = sourceSlot?.recipientId;
+      const targetRecipientId = targetSlot?.recipientId;
+
+      if (sourceRecipientId && targetRecipientId && sourceRecipientId !== targetRecipientId) {
+        // ソース側の名簿に紐付いた listener_identities を統合先に付け替え
+        await tx
+          .update(listenerIdentities)
+          .set({ linkedRecipientId: targetRecipientId })
+          .where(eq(listenerIdentities.linkedRecipientId, sourceRecipientId));
+
+        // ソース側の名簿レコードを削除（統合先に集約）
+        await tx
+          .delete(recipients)
+          .where(eq(recipients.id, sourceRecipientId));
+
+        console.log(`[Merge] Merged global recipient ${sourceRecipientId} -> ${targetRecipientId}`);
+      } else if (sourceRecipientId && !targetRecipientId) {
+        // ソースにだけ名簿がある場合、統合先スロットにソースの名簿IDを引き継ぐ
+        await tx
+          .update(campaignRecipientSlots)
+          .set({ recipientId: sourceRecipientId })
+          .where(eq(campaignRecipientSlots.id, targetSlotId));
+
+        console.log(`[Merge] Inherited recipient ${sourceRecipientId} to target slot`);
       }
     });
 
