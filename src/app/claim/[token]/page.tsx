@@ -154,19 +154,6 @@ export default function ClaimPage() {
         </motion.div>
       )}
 
-      {phaseKey === "unopened" && (
-        <motion.div
-          key="unopened"
-          variants={pageVariants}
-          initial="initial"
-          animate="enter"
-          exit="exit"
-          className="w-full"
-        >
-          <ClaimUnopenedView onOpen={() => setIsOpened(true)} expiryDate={expiryDate} />
-        </motion.div>
-      )}
-
       {phaseKey === "content" && (
         <motion.div
           key="content"

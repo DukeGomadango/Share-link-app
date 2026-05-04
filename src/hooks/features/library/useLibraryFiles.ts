@@ -165,6 +165,20 @@ export function useLibraryFiles() {
     [files]
   );
 
+  const handleRename = useCallback(async (fileId: string, newName: string) => {
+    const r = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName }),
+    });
+    if (!r.ok) throw new Error(`Rename failed: ${r.status}`);
+    
+    // ローカルステートを更新
+    setFiles((prev) => 
+      prev.map((f) => f.id === fileId ? { ...f, name: newName } : f)
+    );
+  }, []);
+
   return {
     files,
     setFiles,
@@ -184,6 +198,7 @@ export function useLibraryFiles() {
     selectedTag,
     setSelectedTag,
     handleFilesDropped,
+    handleRename,
     refreshFiles: fetchFiles,
   };
 }

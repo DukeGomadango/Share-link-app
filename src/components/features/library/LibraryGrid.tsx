@@ -36,6 +36,7 @@ interface LibraryGridProps {
   onToggleSelection: (fileId: string) => void;
   onPreview: (file: AssetFile) => void;
   onOpenAssign: (fileId: string) => void;
+  onRename: (fileId: string, newName: string) => Promise<void>;
   onAssignSelected: (campaignId: string) => void;
   onOpenCommandDrop: () => void;
   labels: {
@@ -78,6 +79,7 @@ export function LibraryGrid({
   onToggleSelection,
   onPreview,
   onOpenAssign,
+  onRename,
   onAssignSelected,
   onOpenCommandDrop,
   labels,
@@ -172,6 +174,7 @@ export function LibraryGrid({
                         onToggleSelection={onToggleSelection}
                         onPreview={onPreview}
                         onOpenAssign={onOpenAssign}
+                        onRename={onRename}
                       />
                     ))}
                   </div>

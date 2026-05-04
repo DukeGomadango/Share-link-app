@@ -28,6 +28,7 @@ export function useLibrary() {
     selectedTag,
     setSelectedTag,
     handleFilesDropped,
+    handleRename,
   } = useLibraryFiles();
 
   // 2. Campaigns & Search
@@ -149,6 +150,7 @@ export function useLibrary() {
     recentCampaignIds,
     sensors,
     handleFilesDropped,
+    handleRename,
     handleUndoAssign,
     handleDragStart,
     handleDragEnd,

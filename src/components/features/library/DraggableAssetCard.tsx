@@ -2,7 +2,8 @@
 
 import { ReactNode } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { Check, GripVertical, Loader2 } from "lucide-react";
+import { Check, GripVertical, Loader2, Pencil } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { AssetFile } from "./types";
@@ -41,7 +42,42 @@ export function DraggableAssetCard({
   onToggleSelection,
   onPreview,
   onOpenAssign,
+  onRename,
 }: DraggableAssetCardProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(file.name);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [isEditing]);
+
+  const handleStartEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+    setEditValue(file.name);
+  };
+
+  const handleSave = async () => {
+    if (editValue.trim() && editValue !== file.name && onRename) {
+      setIsRenaming(true);
+      try {
+        await onRename(file.id, editValue.trim());
+      } finally {
+        setIsRenaming(false);
+      }
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSave();
+    if (e.key === "Escape") setIsEditing(false);
+  };
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `library-file-${file.id}`,
     data: { fileId: file.id },
@@ -88,9 +124,35 @@ export function DraggableAssetCard({
       </div>
 
       <div className="flex-1">
-        <h3 className="font-semibold text-sm line-clamp-2 mb-1" title={file.name}>
-          {file.name}
-        </h3>
+        {isEditing ? (
+          <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+            <input
+              ref={inputRef}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={handleKeyDown}
+              className="w-full text-sm font-semibold bg-background border-2 border-emerald-500 rounded px-1 py-0.5 focus:outline-none"
+              disabled={isRenaming}
+            />
+          </div>
+        ) : (
+          <div className="group/title flex items-start justify-between mb-1 min-h-[1.5rem]">
+            <h3 
+              className="font-semibold text-sm line-clamp-2 hover:text-emerald-600 transition-colors cursor-text flex-1" 
+              title={file.name}
+              onClick={handleStartEdit}
+            >
+              {file.name}
+            </h3>
+            <button
+              onClick={handleStartEdit}
+              className="opacity-0 group-hover/title:opacity-100 p-1 hover:bg-emerald-50 rounded text-muted-foreground hover:text-emerald-500 transition-all"
+            >
+              <Pencil className="w-3 h-3" />
+            </button>
+          </div>
+        )}
         <div className="flex justify-between text-xs text-muted-foreground mb-3">
           <span>{formatSize(file.size)}</span>
           <span>{new Date(file.createdAt).toLocaleDateString(locale === "ja" ? "ja-JP" : "en-US")}</span>

@@ -61,6 +61,7 @@ export default function LibraryPage() {
     recentCampaignIds,
     sensors,
     handleFilesDropped,
+    handleRename,
     handleUndoAssign,
     handleDragStart,
     handleDragEnd,
@@ -177,6 +178,7 @@ export default function LibraryPage() {
         onToggleSelection={toggleSelection}
         onPreview={setSelectedFile}
         onOpenAssign={openAssignModalForFile}
+        onRename={handleRename}
         onAssignSelected={assignSelectedToCampaign}
         onOpenCommandDrop={openCommandDropForSelection}
         formatSize={formatSize}
