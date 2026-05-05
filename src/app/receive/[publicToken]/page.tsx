@@ -151,9 +151,9 @@ export default function PublicReceivePage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const name = displayName.trim();
-    if (!name || !token) {
-      setError("名前を入力してください");
+    const name = displayName.trim() || "ゲスト";
+    if (!token) {
+      setError("無効なトークンです");
       return;
     }
     setBusy(true);
@@ -275,7 +275,7 @@ export default function PublicReceivePage() {
                 disabled={busy}
                 className="w-full h-12 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/10"
               >
-                {busy ? "送信中…" : "このままチェックインする"}
+                {busy ? "送信中…" : "このまま受け取る"}
               </Button>
               <button 
                 onClick={() => setDetectedName(null)}
@@ -292,7 +292,7 @@ export default function PublicReceivePage() {
               <div className="group space-y-2">
                 <label htmlFor="recv-name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1 flex items-center gap-2">
                   <User className="w-3 h-3" />
-                  表示名 (必須)
+                  表示名 (任意)
                 </label>
                 <div className="relative">
                   <input
@@ -335,10 +335,14 @@ export default function PublicReceivePage() {
 
             <Button
               type="submit"
-              disabled={busy || !displayName.trim()}
+              disabled={busy}
               className="w-full h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-base font-black shadow-xl shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
             >
-              {busy ? "送信中…" : "チェックインして待機へ"}
+              {busy 
+                ? "送信中…" 
+                : displayName.trim() 
+                  ? "この名前で受け取る" 
+                  : "入力をスキップして受け取る"}
             </Button>
           </form>
           )}

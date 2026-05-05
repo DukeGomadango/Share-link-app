@@ -89,7 +89,7 @@ export const en: TranslationKeys = {
     recipientsSectionDescription:
       "Issue claim links per asset from the file pool on the left and track them here (the pool is your stack of distributable source files).",
     recipientsNeedPoolFiles:
-      "Add files to the file pool on the left first. Once the pool has assets, use “Add Recipients” to issue links one by one.",
+      "Add files to the pool on the left first. Once the pool has assets, use “Add Recipients” to issue links one by one.",
     addRecipients: "Add Recipients",
     addRecipientsButtonTitle:
       "Issue one claim link by picking a display name and a pool asset (add files to the pool first if it’s empty)",
@@ -174,12 +174,11 @@ export const en: TranslationKeys = {
       tagsPlaceholder: "Enter tag and press Enter (e.g., Sales, Confidential)",
       expiryLabel: "Expiration Date",
       expiryDescription: "Shared links will become inaccessible after this date.",
-      securityLabel: "Security Level",
-      securityDescription: "Select the protection strength for links in this campaign.",
+      securityLabel: "Security Level / Distribution Mode",
+      securityDescription: "Choose between seamless Public distribution or secure Premium hand-delivery.",
       securityOptions: {
-        standard: "Standard (Public)",
-        high: "High (Passkey/OTP)",
-        paranoid: "Paranoid (One-time use)",
+        standard: "Public",
+        high: "Limited",
       },
       advancedSettings: "Show Advanced Settings",
       steps: {
@@ -398,6 +397,22 @@ export const en: TranslationKeys = {
     expired: "Expired",
     daysLeft: "{days}d {hours}h left",
     hoursLeft: "{hours}h {minutes}m left",
+  },
+  portal: {
+    title: "My Collection",
+    subtitle: "A collection of gifts from your favorite creators",
+    latestGift: "Latest Gift",
+    receivedContents: "Received Contents",
+    itemsCount: "{count} items included",
+    itemsCountCompact: "{count} Items",
+    viewCollection: "View Collection",
+    emptyTitle: "No gifts found yet",
+    emptyDescription: "Gifts will appear here automatically when you claim them via a link.",
+    until: "Until {date}",
+    portalLabel: "Dango Share Link",
+    settings: "Settings",
+    home: "Home",
+    synchronizing: "Synchronizing Collection...",
   },
   errors: {
     previewNotAvailable: "Preview not available for this file type.",

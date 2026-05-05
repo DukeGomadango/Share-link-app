@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "node:crypto";
 
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { fetchCampaignsWithStats } from "@/lib/campaigns-query";
@@ -40,6 +41,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "name が必要です" }, { status: 400 });
   }
 
+  const isPublic = (body.securityLevel ?? "standard") === "standard";
+  const publicReceptionToken = isPublic ? randomBytes(12).toString("hex") : null;
+
   const db = getDb();
   const [row] = await db
     .insert(campaigns)
@@ -51,6 +55,8 @@ export async function POST(request: Request) {
       status: "draft",
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
       securityLevel: body.securityLevel ?? "standard",
+      distributionMode: isPublic ? "reception" : "per_link",
+      publicReceptionToken,
     })
     .returning();
 

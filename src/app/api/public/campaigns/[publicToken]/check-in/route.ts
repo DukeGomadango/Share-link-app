@@ -10,7 +10,7 @@ import {
 import { createSlotAndClaim } from "@/lib/claims/create-slot-and-claim";
 import { checkInRateLimit } from "@/lib/public/check-in-rate-limit";
 import { getDb } from "@/db";
-import { campaigns, claimIdentityLinks, claims, listenerIdentities, recipients } from "@/db/schema";
+import { campaigns, claimAssets, claimIdentityLinks, claims, listenerIdentities, recipients, campaignAssets, campaignRecipientSlots, slotAssets } from "@/db/schema";
 import {
   LISTENER_SESSION_COOKIE,
   verifyListenerSessionToken,
@@ -108,6 +108,7 @@ export async function POST(request: Request, ctx: RouteParams) {
       workspaceId: campaigns.workspaceId,
       status: campaigns.status,
       expiresAt: campaigns.expiresAt,
+      securityLevel: campaigns.securityLevel,
       distributionMode: campaigns.distributionMode,
     })
     .from(campaigns)
@@ -165,8 +166,8 @@ export async function POST(request: Request, ctx: RouteParams) {
       }
     }
 
-    if (!recipientId) {
-      // グローバル名簿に受取人を自動登録
+    if (!recipientId && displayName !== "ゲスト") {
+      // 名前が入力されている場合のみ、グローバル名簿に受取人を自動登録
       const [newRecipient] = await db
         .insert(recipients)
         .values({
@@ -191,6 +192,40 @@ export async function POST(request: Request, ctx: RouteParams) {
         claimId: created.claimId,
         listenerIdentityId: session.listenerIdentityId,
       }).onConflictDoNothing(); // 念のため重複無視
+    }
+
+    // 公開モード (Standard) の場合、キャンペーンの全ファイルを自動紐付けする
+    if (c.securityLevel === "standard") {
+      const allAssets = await db
+        .select({ id: campaignAssets.id })
+        .from(campaignAssets)
+        .where(eq(campaignAssets.campaignId, c.id));
+
+      if (allAssets.length > 0) {
+        await db.transaction(async (tx) => {
+          // 1. claimAssets への紐付け
+          await tx.insert(claimAssets).values(
+            allAssets.map((a) => ({
+              claimId: created.claimId,
+              campaignAssetId: a.id,
+            }))
+          );
+
+          // 2. slotAssets への紐付け
+          await tx.insert(slotAssets).values(
+            allAssets.map((a) => ({
+              slotId: created.slotId,
+              campaignAssetId: a.id,
+            }))
+          );
+
+          // 3. スロットステータスを準備完了 (ready) に更新
+          await tx
+            .update(campaignRecipientSlots)
+            .set({ status: "ready" })
+            .where(eq(campaignRecipientSlots.id, created.slotId));
+        });
+      }
     }
   } catch (e) {
     console.error(e);

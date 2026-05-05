@@ -25,6 +25,7 @@ import {
   claimIdentityLinks,
   claims,
   listenerIdentities,
+  recipients,
   webauthnChallenges,
   webauthnCredentials,
 } from "@/db/schema";
@@ -36,6 +37,7 @@ type RegBody = {
   campaignId?: string;
   challengeId?: string;
   credential?: RegistrationResponseJSON;
+  displayName?: string;
 };
 
 export async function POST(request: Request) {
@@ -178,11 +180,39 @@ export async function POST(request: Request) {
           .where(eq(campaignRecipientSlots.id, claimRow.recipientSlotId))
           .limit(1);
 
-        if (slotRow?.recipientId) {
-          await tx
-            .update(listenerIdentities)
-            .set({ linkedRecipientId: slotRow.recipientId })
-            .where(eq(listenerIdentities.id, challengeRow.listenerIdentityId!));
+        if (slotRow) {
+          let rid = slotRow.recipientId;
+
+          // 名前の入力があり、かつ未紐付けの場合のみ新規作成
+          if (!rid && body.displayName?.trim()) {
+            const [newRec] = await tx
+              .insert(recipients)
+              .values({
+                workspaceId: session.workspaceId,
+                name: body.displayName.trim(),
+                tags: [],
+              })
+              .returning({ id: recipients.id });
+            
+            if (newRec) {
+              rid = newRec.id;
+              // スロット側の情報を更新
+              await tx
+                .update(campaignRecipientSlots)
+                .set({ 
+                  recipientId: rid,
+                  listenerDisplayName: body.displayName.trim()
+                })
+                .where(eq(campaignRecipientSlots.id, claimRow.recipientSlotId));
+            }
+          }
+
+          if (rid) {
+            await tx
+              .update(listenerIdentities)
+              .set({ linkedRecipientId: rid })
+              .where(eq(listenerIdentities.id, challengeRow.listenerIdentityId!));
+          }
         }
       }
     });

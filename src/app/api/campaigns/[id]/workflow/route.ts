@@ -99,8 +99,8 @@ export async function GET(_request: Request, ctx: RouteParams) {
     name: row.recipientDisplayName ?? "（無名）",
     listenerNote: row.listenerNote ?? undefined,
     tags: [] as string[],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: row.createdAt,
+    updatedAt: row.createdAt,
     assignedFileIds: row.assignedFileIds,
     link:
       distributionMode === "reception"

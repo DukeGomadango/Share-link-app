@@ -8,7 +8,7 @@ import {
   SheetDescription,
   SheetBody
 } from "@/components/ui/sheet";
-import { Gift, ChevronRight, History, Loader2 } from "lucide-react";
+import { Gift, ChevronRight, History, Loader2, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -117,8 +117,15 @@ export function CollectionDrawer({ currentToken, isOpen, onClose }: Props) {
         </div>
       </SheetBody>
 
-      <div className="absolute bottom-10 left-6 right-6">
-        <p className="text-[10px] text-center text-emerald-900/30 leading-relaxed font-medium">
+      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent pt-12">
+        <Link href="/claim/me" onClick={onClose} className="block">
+          <button className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-emerald-200/50 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group">
+            <LayoutGrid className="w-4 h-4" />
+            <span>すべてのコレクションを見る</span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </Link>
+        <p className="mt-4 text-[10px] text-center text-emerald-900/30 leading-relaxed font-medium">
           {t.claim.collectionNotice}
         </p>
       </div>

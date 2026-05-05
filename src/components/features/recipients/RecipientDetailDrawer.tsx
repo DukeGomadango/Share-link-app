@@ -5,11 +5,12 @@ import { Sheet, SheetHeader, SheetBody, SheetTitle, SheetDescription, SheetFoote
 import { CampaignTimeline } from "./CampaignTimeline";
 import { Recipient, FileItem } from "@/components/features/campaigns/types";
 import { Button } from "@/components/ui/button";
-import { Tag, Calendar, User, Trash2, X, Plus, Shield, MessageSquare, Globe, Clock, CheckCircle2, FileAudio, FileImage, ChevronDown } from "lucide-react";
+import { Tag, Calendar, User, Trash2, X, Plus, Shield, MessageSquare, Globe, Clock, CheckCircle2, FileAudio, FileImage, ChevronDown, Copy, LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import Image from "next/image";
+import Link from "next/link";
 
 interface RecipientDetailDrawerProps {
   recipient: Recipient | null;
@@ -316,6 +317,47 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
               )}
             </div>
           )}
+        </section>
+
+        {/* Listener Portal Access */}
+        <section className="p-4 rounded-2xl bg-sky-500/5 border border-sky-500/10 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-sky-700 flex items-center gap-2">
+              <LayoutGrid className="w-3.5 h-3.5" />
+              リスナー用ダッシュボード
+            </h3>
+            <Badge variant="outline" className="bg-sky-500/10 text-sky-600 border-sky-500/20 text-[9px] font-bold">
+              PORTAL
+            </Badge>
+          </div>
+          <p className="text-[10px] text-sky-900/60 leading-relaxed">
+            リスナーがこれまでに受け取ったすべてのギフトを一覧できる専用ページです。リスナーにこのURLを共有することで、過去の履歴を案内できます。
+          </p>
+          <div className="flex items-center gap-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="flex-1 h-9 rounded-xl text-[10px] font-bold border-sky-500/20 hover:bg-sky-500 hover:text-white transition-all"
+              asChild
+            >
+              <Link href="/claim/me" target="_blank">
+                <Globe className="w-3 h-3 mr-1.5" />
+                ダッシュボードを表示
+              </Link>
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="h-9 w-9 rounded-xl border-sky-500/20 hover:bg-sky-500 hover:text-white transition-all shrink-0"
+              onClick={() => {
+                const url = `${window.location.origin}/claim/me`;
+                void navigator.clipboard.writeText(url);
+                alert("ダッシュボードURLをコピーしました");
+              }}
+            >
+              <Copy className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </section>
 
         {/* Info Grid */}

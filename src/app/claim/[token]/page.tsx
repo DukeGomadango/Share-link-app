@@ -72,6 +72,9 @@ export default function ClaimPage() {
     files: ClaimFile[];
     passkeyLinked?: boolean;
     claimSecret?: string;
+    isAuthorized?: boolean;
+    authRequired?: boolean;
+    displayName?: string;
   } | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimLoading, setClaimLoading] = useState(false);
@@ -136,8 +139,16 @@ export default function ClaimPage() {
                 expiryIso: data.expiryIso, 
                 campaignName: data.campaignName, 
                 campaignId: data.campaignId,
-                files 
+                files,
+                isAuthorized: data.isAuthorized,
+                authRequired: data.authRequired,
+                passkeyLinked: data.passkeyLinked,
+                displayName: data.displayName,
               });
+              // 公開設定（認証不要）の場合は自動で開封状態にする
+              if (!data.authRequired) {
+                setIsOpened(true);
+              }
             }
           } catch (e) {
             console.error("Refetch failed", e);
@@ -180,6 +191,10 @@ export default function ClaimPage() {
             filename: string;
             title: string;
           }>;
+          isAuthorized?: boolean;
+          authRequired?: boolean;
+          passkeyLinked?: boolean;
+          displayName?: string;
         };
         const files: ClaimFile[] = data.files.map((f) => ({
           id: f.id,
@@ -193,8 +208,16 @@ export default function ClaimPage() {
             expiryIso: data.expiryIso, 
             campaignName: data.campaignName, 
             campaignId: data.campaignId,
-            files 
+            files,
+            isAuthorized: data.isAuthorized,
+            authRequired: data.authRequired,
+            passkeyLinked: data.passkeyLinked,
+            displayName: data.displayName,
           });
+          // 公開設定（認証不要）の場合は自動で開封状態にする
+          if (!data.authRequired) {
+            setIsOpened(true);
+          }
         }
       } catch {
         if (!cancelled) setClaimError("データの読み込みに失敗しました");
@@ -341,28 +364,43 @@ export default function ClaimPage() {
                 </motion.div>
               )}
 
-              <ClaimContentView 
-                files={bundle.files} 
-                expiryDate={new Date(bundle.expiryIso)} 
-                campaignName={bundle.campaignName}
-                hideActionBar={isCollectionOpen}
-              />
-              
-              {/* パスキー未登録の場合に登録を促す（プレビュー時は非表示） */}
-              {!isPreview && !bundle.passkeyLinked && bundle.campaignId && (
-                <PasskeyRegisterCard 
-                  campaignId={bundle.campaignId} 
-                  onSuccess={() => {
-                    // 登録成功時に情報を再取得
-                    void (async () => {
-                      const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`);
-                      if (r.ok) {
-                        const data = await r.json();
-                        setBundle(prev => prev ? { ...prev, passkeyLinked: true } : null);
-                      }
-                    })();
-                  }}
-                />
+              {/* 本人確認ガード表示 */}
+              {bundle.authRequired && !bundle.isAuthorized ? (
+                <div className="flex flex-col items-center gap-6 py-12 px-6 max-w-md w-full animate-in fade-in slide-in-from-bottom-4">
+                  <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center text-emerald-500 shadow-inner">
+                    <Gift className="w-10 h-10" />
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h2 className="text-2xl font-bold">{t.claim.secureContent}</h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {t.claim.authDescription}
+                    </p>
+                  </div>
+                  
+                  {bundle.campaignId && (
+                    <PasskeyRegisterCard 
+                      campaignId={bundle.campaignId} 
+                      onSuccess={() => window.location.reload()}
+                    />
+                  )}
+                </div>
+              ) : (
+                <>
+                  <ClaimContentView 
+                    files={bundle.files} 
+                    expiryDate={new Date(bundle.expiryIso)} 
+                    campaignName={bundle.campaignName}
+                    hideActionBar={isCollectionOpen}
+                  />
+                  
+                  {/* パスケー未登録の場合のオプション案内 */}
+                  {!isPreview && !bundle.passkeyLinked && bundle.campaignId && (
+                    <PasskeyRegisterCard 
+                      campaignId={bundle.campaignId} 
+                      onSuccess={() => window.location.reload()}
+                    />
+                  )}
+                </>
               )}
             </div>
           )}

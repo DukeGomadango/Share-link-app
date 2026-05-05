@@ -22,6 +22,12 @@ export type ClaimBundleResponse = {
   claimSecret?: string;
   /** この claim にパスキー（WebAuthn）が紐づいている */
   passkeyLinked?: boolean;
+  /** この閲覧に有効な認証セッションがある、またはパブリックである */
+  isAuthorized?: boolean;
+  /** プレミアム設定により認証が必須である */
+  authRequired?: boolean;
+  /** 受取人の表示名 */
+  displayName?: string;
   files: Array<{
     id: string;
     type: "image" | "audio" | "file";
@@ -31,12 +37,18 @@ export type ClaimBundleResponse = {
   }>;
 };
 
+/**
+ * 認証状態を考慮して Claim バンドルを取得する
+ * @param claimSecret URLに含まれるトークン
+ * @param sessionSecret クッキー等から取得した認証済みセッションのシークレット
+ */
 export async function buildClaimBundleForSecret(
-  claimSecret: string
+  claimSecret: string,
+  sessionSecret?: string
 ): Promise<ClaimBundleResponse | null> {
   const db = getDb();
   
-  // 1. Claim と Campaign, (あれば) Slot の情報を取得
+  // 1. Claim と Campaign の情報を取得
   const base = await db
     .select({
       claimId: claims.id,
@@ -44,7 +56,9 @@ export async function buildClaimBundleForSecret(
       campaignName: campaigns.name,
       campaignStatus: campaigns.status,
       expiresAt: campaigns.expiresAt,
+      securityLevel: campaigns.securityLevel,
       slotId: campaignRecipientSlots.id,
+      displayName: campaignRecipientSlots.listenerDisplayName,
     })
     .from(claims)
     .innerJoin(campaigns, eq(claims.campaignId, campaigns.id))
@@ -61,11 +75,39 @@ export async function buildClaimBundleForSecret(
     return null;
   }
 
+  const securityLevel = hit.securityLevel as "standard" | "high";
+  const isPublic = securityLevel === "standard";
+  
+  // パスキー紐付け状況の確認
+  const passkeyRows = await db
+    .select({ claimId: claimIdentityLinks.claimId })
+    .from(claimIdentityLinks)
+    .where(eq(claimIdentityLinks.claimId, hit.claimId))
+    .limit(1);
+  const passkeyLinked = Boolean(passkeyRows[0]);
+
+  // 認証チェック: 公開設定か、セッションがトークンと一致するか
+  const isAuthorized = isPublic || (sessionSecret === claimSecret);
+
+  // 未認証かつプレミアム設定なら、メタデータのみ返しファイル一覧は隠す
+  if (!isAuthorized) {
+    return {
+      expiryIso: (hit.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).toISOString(),
+      campaignName: (hit.campaignName && hit.campaignName.trim() !== "") ? hit.campaignName : "特別な贈り物",
+      campaignId: hit.campaignId,
+      claimSecret,
+      passkeyLinked,
+      isAuthorized: false,
+      authRequired: true,
+      displayName: hit.displayName || "ゲスト",
+      files: [],
+    };
+  }
+
   const claimId = hit.claimId;
   const slotId = hit.slotId;
 
   // 2. 紐づくアセット ID を収集
-  // 統合後は Slot にファイルが紐付いていることが多いため、両方をマージして取得する
   const [cAssets, sAssets] = await Promise.all([
     db.select().from(claimAssets).where(eq(claimAssets.claimId, claimId)),
     slotId
@@ -80,31 +122,21 @@ export async function buildClaimBundleForSecret(
 
   const expiry = hit.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  const passkeyRows = await db
-    .select({ claimId: claimIdentityLinks.claimId })
-    .from(claimIdentityLinks)
-    .where(eq(claimIdentityLinks.claimId, claimId))
-    .limit(1);
-  const passkeyLinked = Boolean(passkeyRows[0]);
-
-  const campaignName = (hit.campaignName && hit.campaignName.trim() !== "") 
-    ? hit.campaignName 
-    : "特別な贈り物";
-
-  // アセットが1つでもあれば pending は false
+  // 3. 全アセットの情報を取得して署名 URL を生成
   if (assetIds.length === 0) {
     return {
       expiryIso: expiry.toISOString(),
-      campaignName,
+      campaignName: hit.campaignName || "特別な贈り物",
       campaignId: hit.campaignId,
       pending: true,
       claimSecret,
       passkeyLinked,
+      isAuthorized: true,
+      displayName: hit.displayName || "ゲスト",
       files: [],
     };
   }
 
-  // 3. 全アセットの情報を取得して署名 URL を生成
   const assetRows = await db
     .select({
       ca: campaignAssets,
@@ -147,10 +179,12 @@ export async function buildClaimBundleForSecret(
 
   return {
     expiryIso: expiry.toISOString(),
-    campaignName,
+    campaignName: hit.campaignName || "特別な贈り物",
     campaignId: hit.campaignId,
     passkeyLinked,
+    isAuthorized: true,
     pending: validFiles.length === 0,
+    displayName: hit.displayName || "ゲスト",
     claimSecret,
     files: validFiles,
   };

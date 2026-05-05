@@ -1,6 +1,7 @@
 "use client";
 
 import { Users, MailPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
@@ -8,6 +9,7 @@ import { DroppableRecipient } from "@/components/features/campaigns/DroppableRec
 import { Recipient, FileItem } from "@/components/features/campaigns/types";
 import { useState } from "react";
 import { RecipientDetailDrawer } from "@/components/features/recipients/RecipientDetailDrawer";
+import { PublicActivityTimeline } from "@/components/features/campaigns/PublicActivityTimeline";
 
 interface RecipientsSectionProps {
   recipients: Recipient[];
@@ -24,6 +26,8 @@ interface RecipientsSectionProps {
   showPoolEmptyHint?: boolean;
   /** キャンペーンが下書き状態かどうか */
   isDraft?: boolean;
+  /** キャンペーンがパブリックモードかどうか */
+  isPublic?: boolean;
 }
 
 export function RecipientsSection({
@@ -38,6 +42,7 @@ export function RecipientsSection({
   addRecipientsDisabled = false,
   showPoolEmptyHint = false,
   isDraft = false,
+  isPublic = false,
 }: RecipientsSectionProps) {
   const { t } = useTranslation();
   const [detailRecipientId, setDetailRecipientId] = useState<string | null>(null);
@@ -53,27 +58,36 @@ export function RecipientsSection({
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold flex items-center min-w-0">
             <Users className="w-5 h-5 mr-2 shrink-0 text-blue-500" />
-            {t.campaigns.recipients}
+            <span className="truncate">{isPublic ? "参加状況・アクティビティ" : t.campaigns.recipients}</span>
+            {recipients.length > 0 && (
+              <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-black border border-blue-500/20">
+                {recipients.length}
+              </span>
+            )}
           </h2>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 shrink-0 text-emerald-500 hover:text-emerald-600"
-            disabled={addRecipientsDisabled || !onAddRecipients}
-            onClick={onAddRecipients}
-            title={
-              addRecipientsDisabled
-                ? "キャンペーンを公開すると追加できるようになります"
-                : t.campaigns.addRecipientsButtonTitle
-            }
-          >
-            <MailPlus className="w-4 h-4 mr-1" />
-            {t.campaigns.addRecipients}
-          </Button>
+          {!isPublic && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 shrink-0 text-emerald-500 hover:text-emerald-600"
+              disabled={addRecipientsDisabled || !onAddRecipients}
+              onClick={onAddRecipients}
+              title={
+                addRecipientsDisabled
+                  ? "キャンペーンを公開すると追加できるようになります"
+                  : t.campaigns.addRecipientsButtonTitle
+              }
+            >
+              <MailPlus className="w-4 h-4 mr-1" />
+              {t.campaigns.addRecipients}
+            </Button>
+          )}
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          {t.campaigns.recipientsSectionDescription}
+          {isPublic 
+            ? "このキャンペーンはパブリック配布です。リンクからアクセスしたユーザーがここに自動的に表示されます。" 
+            : t.campaigns.recipientsSectionDescription}
         </p>
         {isDraft ? (
           <p
@@ -92,11 +106,21 @@ export function RecipientsSection({
         ) : null}
       </div>
 
-      <div className="scrollbar-prominent overflow-y-auto overflow-x-hidden flex-1 pr-2 grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-max pb-20">
+      <div className={cn(
+        "scrollbar-prominent overflow-y-auto overflow-x-hidden flex-1 pr-2 pb-20",
+        isPublic ? "block" : "grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-max"
+      )}>
         {recipients.length === 0 ? (
-          <p className="text-sm text-muted-foreground col-span-full text-center py-8 px-2 border border-dashed border-border/60 rounded-xl">
-            {t.campaigns.recipientsEmpty}
+          <p className="text-sm text-muted-foreground text-center py-8 px-2 border border-dashed border-border/60 rounded-xl">
+            {isPublic ? "まだアクセスはありません" : t.campaigns.recipientsEmpty}
           </p>
+        ) : isPublic ? (
+          <PublicActivityTimeline 
+            recipients={recipients}
+            pulsedRecipientId={pulsedRecipientId}
+            onRecipientClick={(r) => setDetailRecipientId(r.id)}
+            onRemove={onRemoveRecipient}
+          />
         ) : (
           recipients.map((recipient) => {
             // この受取人が「入室したて（ファイル未紐付け）」の場合、マッチ候補を探す

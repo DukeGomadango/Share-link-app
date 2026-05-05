@@ -42,7 +42,7 @@ export function StepSecurity({ expiresAt, securityLevel, onUpdate, t }: StepSecu
             <label className="text-sm font-semibold">{t.campaigns.new.securityLabel}</label>
           </div>
           <div className="space-y-3">
-            {(["standard", "high", "paranoid"] as const).map(level => (
+            {(["standard", "high"] as const).map(level => (
               <label 
                 key={level}
                 className={cn(

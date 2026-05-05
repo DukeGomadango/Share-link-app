@@ -289,6 +289,17 @@ export function CampaignCard({
             {t.campaigns.quickFilters.dueSoon}
           </span>
         )}
+        
+        {/* 配布モードラベル */}
+        {campaign.securityLevel === "standard" ? (
+          <span className="rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs text-muted-foreground font-medium">
+            公開
+          </span>
+        ) : (
+          <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs text-indigo-300 font-bold">
+            限定
+          </span>
+        )}
       </div>
 
 

@@ -36,6 +36,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     status?: string;
     distributionMode?: string;
     expiresAt?: string | null;
+    securityLevel?: string;
   };
   try {
     body = await request.json();
@@ -50,6 +51,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     status?: (typeof campaigns.$inferSelect)["status"];
     distributionMode?: string;
     expiresAt?: Date | null;
+    securityLevel?: "standard" | "high" | "paranoid";
   };
   const patch: Patch = {};
 
@@ -86,6 +88,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }
       patch.expiresAt = d;
     }
+  }
+
+  if (body.securityLevel !== undefined) {
+    const s = body.securityLevel;
+    if (s !== "standard" && s !== "high" && s !== "paranoid") {
+      return NextResponse.json({ error: "securityLevel が不正です" }, { status: 400 });
+    }
+    patch.securityLevel = s;
   }
 
   if (Object.keys(patch).length === 0) {

@@ -62,6 +62,8 @@ export default function CampaignDetailPage() {
   const [pendingStatus, setPendingStatus] = useState<"active" | "completed" | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [securityConfirmOpen, setSecurityConfirmOpen] = useState(false);
+  const [pendingSecurityLevel, setPendingSecurityLevel] = useState<"standard" | "high" | null>(null);
   const [banner, setBanner] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
 
   const handleUpdateStatus = useCallback(
@@ -80,6 +82,32 @@ export default function CampaignDetailPage() {
         toast.success(newStatus === "active" ? "キャンペーンを公開しました" : "キャンペーンを終了しました");
       } catch {
         toast.error("ステータスの更新に失敗しました。時間をおいて再度お試しください。");
+      } finally {
+        setStatusBusy(false);
+      }
+    },
+    [campaignId, reloadWorkflow]
+  );
+
+  const handleUpdateSecurity = useCallback(
+    async (newLevel: "standard" | "high") => {
+      if (!campaignId) return;
+      setStatusBusy(true);
+      try {
+        const body: any = { securityLevel: newLevel };
+        if (newLevel === "standard") {
+          body.distributionMode = "reception";
+        }
+        const r = await fetch(`/api/campaigns/${campaignId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!r.ok) throw new Error();
+        await reloadWorkflow();
+        toast.success(newLevel === "standard" ? "公開配布に切り替えました" : "限定配布に切り替えました");
+      } catch {
+        toast.error("設定の更新に失敗しました");
       } finally {
         setStatusBusy(false);
       }
@@ -148,6 +176,8 @@ export default function CampaignDetailPage() {
     }
   }, [campaignId, t]);
 
+  const isPublic = campaign?.securityLevel === "standard";
+
   const handleBulkIssue = useCallback(async () => {
     if (!campaignId) return;
     if (files.length === 0) {
@@ -205,25 +235,64 @@ export default function CampaignDetailPage() {
           </div>
           {!workflowLoading && campaign && campaignId ? (
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-muted-foreground">配布方式</span>
-              <select
-                className="rounded-lg border border-border/60 bg-background/80 px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-                value={campaign.distributionMode ?? "per_link"}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  void (async () => {
-                    const r = await fetch(`/api/campaigns/${campaignId}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ distributionMode: v }),
-                    });
-                    if (r.ok) await reloadWorkflow();
-                  })();
-                }}
-              >
-                <option value="per_link">個別リンク（従来）</option>
-                <option value="reception">共通受付（チェックイン）</option>
-              </select>
+              <span className="text-muted-foreground">配布モード</span>
+              
+              <div className="flex items-center bg-muted/30 p-0.5 rounded-xl border border-border/50">
+                <button
+                  onClick={() => {
+                    setPendingSecurityLevel("standard");
+                    setSecurityConfirmOpen(true);
+                  }}
+                  className={cn(
+                    "px-3 py-1 text-xs font-bold rounded-lg transition-all",
+                    isPublic 
+                      ? "bg-white dark:bg-slate-800 shadow-sm text-emerald-600" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  disabled={statusBusy}
+                >
+                  公開
+                </button>
+                <button
+                  onClick={() => {
+                    setPendingSecurityLevel("high");
+                    setSecurityConfirmOpen(true);
+                  }}
+                  className={cn(
+                    "px-3 py-1 text-xs font-bold rounded-lg transition-all",
+                    !isPublic 
+                      ? "bg-white dark:bg-slate-800 shadow-sm text-blue-600" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  disabled={statusBusy}
+                >
+                  限定
+                </button>
+              </div>
+
+              {!isPublic && (
+                <>
+                  <span className="text-muted-foreground ml-2">配布方式</span>
+                  <select
+                    className="rounded-lg border border-border/60 bg-background/80 px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                    value={campaign.distributionMode ?? "per_link"}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      void (async () => {
+                        const r = await fetch(`/api/campaigns/${campaignId}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ distributionMode: v }),
+                        });
+                        if (r.ok) await reloadWorkflow();
+                      })();
+                    }}
+                  >
+                    <option value="per_link">個別リンク（手渡し）</option>
+                    <option value="reception">共通受付（チェックイン）</option>
+                  </select>
+                </>
+              )}
 
               <div className="flex items-center gap-2 ml-2 pl-4 border-l border-border/30">
                 <span className="text-muted-foreground flex items-center gap-1">
@@ -337,7 +406,7 @@ export default function CampaignDetailPage() {
           <Button
             variant="outline"
             className="glass"
-            disabled={workflowLoading || !campaignId || bulkBusy || files.length === 0 || campaign?.status !== "active"}
+            disabled={workflowLoading || !campaignId || bulkBusy || files.length === 0 || campaign?.status !== "active" || isPublic}
             onClick={() => void handleBulkIssue()}
           >
             <LinkIcon className="w-4 h-4 mr-2" />
@@ -383,6 +452,37 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
+      {isPublic && campaign?.status === "active" && campaign.publicReceptionToken && (
+        <div className="p-6 rounded-[2rem] bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-sm animate-in fade-in zoom-in-95 duration-500">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-emerald-900 dark:text-emerald-100 flex items-center gap-2">
+                <LinkIcon className="w-5 h-5 text-emerald-500" />
+                パブリック共有リンク
+              </h3>
+              <p className="text-sm text-emerald-700/70 dark:text-emerald-400/70 font-medium">
+                このリンクをSNSや概要欄に貼るだけで、誰でもファイルを受け取れます。
+              </p>
+            </div>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="flex-1 md:w-80 bg-white/50 dark:bg-black/20 backdrop-blur-sm border border-emerald-500/20 rounded-2xl px-4 py-3 font-mono text-xs text-muted-foreground truncate shadow-inner">
+                {`${window.location.origin}/receive/${campaign.publicReceptionToken}`}
+              </div>
+              <Button
+                onClick={() => {
+                  const u = `${window.location.origin}/receive/${campaign.publicReceptionToken}`;
+                  void navigator.clipboard.writeText(u);
+                  toast.success("共有リンクをコピーしました");
+                }}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl px-6 h-12 font-bold shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-95"
+              >
+                コピー
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {workflowLoading ? (
         <div className="flex-1 rounded-xl border border-border/50 bg-muted/20 animate-pulse min-h-[240px]" />
       ) : (
@@ -417,6 +517,7 @@ export default function CampaignDetailPage() {
               addRecipientsDisabled={workflowLoading || campaign?.status !== "active"}
               showPoolEmptyHint={!workflowLoading && files.length === 0}
               isDraft={campaign?.status === "draft"}
+              isPublic={isPublic}
             />
           </div>
 
@@ -525,6 +626,26 @@ export default function CampaignDetailPage() {
         confirmText={t.common.delete}
         variant="destructive"
         isLoading={isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={securityConfirmOpen}
+        onClose={() => setSecurityConfirmOpen(false)}
+        onConfirm={() => {
+          if (pendingSecurityLevel) {
+            void handleUpdateSecurity(pendingSecurityLevel);
+            setSecurityConfirmOpen(false);
+          }
+        }}
+        title={pendingSecurityLevel === "standard" ? "公開配布に切り替え" : "限定配布に切り替え"}
+        description={
+          pendingSecurityLevel === "standard"
+            ? "公開配布に切り替えますか？これ以降、リンクを知っている人なら誰でも（パスキーなしで）ファイルを閲覧・ダウンロードできるようになります。"
+            : "限定配布に切り替えますか？これ以降、閲覧にはパスキーによる本人確認が必須となります。すでにリンクを持っている人も、再度パスキーの登録や認証が必要になります。"
+        }
+        confirmText="切り替える"
+        variant={pendingSecurityLevel === "standard" ? "emerald" : "blue"}
+        isLoading={statusBusy}
       />
     </div>
   );

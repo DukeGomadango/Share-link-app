@@ -8,18 +8,23 @@ import {
   type PublicKeyCredentialCreationOptionsJSON,
   type PublicKeyCredentialRequestOptionsJSON,
 } from "@simplewebauthn/browser";
-import { KeyRound, Loader2, CheckCircle2 } from "lucide-react";
+import { KeyRound, Loader2, CheckCircle2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type Props = {
   campaignId: string;
+  currentName?: string;
   onSuccess?: () => void;
 };
 
-export function PasskeyRegisterCard({ campaignId, onSuccess }: Props) {
+export function PasskeyRegisterCard({ campaignId, currentName, onSuccess }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [newName, setNewName] = useState("");
+  
+  const isGuest = currentName === "ゲスト";
 
   const handle = async () => {
     setBusy(true);
@@ -103,6 +108,7 @@ export function PasskeyRegisterCard({ campaignId, onSuccess }: Props) {
           campaignId,
           challengeId: optJson.challengeId,
           credential: att,
+          displayName: isGuest ? newName.trim() : undefined,
         }),
       });
       if (!verRes.ok) {
@@ -152,6 +158,21 @@ export function PasskeyRegisterCard({ campaignId, onSuccess }: Props) {
         </p>
       </div>
 
+      {isGuest && (
+        <div className="space-y-2 pt-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-emerald-600 px-1 flex items-center gap-2">
+            <User className="w-3 h-3" />
+            名簿に登録するお名前
+          </label>
+          <Input 
+            placeholder="ニックネームを入力"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            className="h-11 rounded-xl bg-white border-emerald-100 focus-visible:ring-emerald-500/20"
+          />
+        </div>
+      )}
+
       {err ? (
         <p className="text-[10px] text-destructive text-center font-bold bg-destructive/5 py-2 rounded-lg border border-destructive/10">
           {err}
@@ -163,14 +184,14 @@ export function PasskeyRegisterCard({ campaignId, onSuccess }: Props) {
         variant="secondary"
         className="w-full h-12 gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold border-none transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-500/10"
         onClick={() => void handle()}
-        disabled={busy}
+        disabled={busy || (isGuest && !newName.trim())}
       >
         {busy ? (
           <Loader2 className="w-5 h-5 animate-spin" aria-hidden />
         ) : (
           <KeyRound className="w-5 h-5" aria-hidden />
         )}
-        生体認証で保存する
+        {isGuest ? "名前を決めて保存する" : "生体認証で保存する"}
       </Button>
     </div>
   );

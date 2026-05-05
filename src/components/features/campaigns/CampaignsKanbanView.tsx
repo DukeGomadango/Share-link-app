@@ -100,6 +100,15 @@ export function CampaignsKanbanView({
                       {t.campaigns.quickFilters.dueSoon}
                     </span>
                   )}
+                  {campaign.securityLevel === "standard" ? (
+                    <span className="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-[10px] text-muted-foreground font-medium">
+                      公開
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2 py-0.5 text-[10px] text-indigo-300 font-bold">
+                      限定
+                    </span>
+                  )}
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs">
                   <span>{t.campaigns.files}: {campaign.stats.totalFiles}</span>
