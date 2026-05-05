@@ -28,9 +28,10 @@ interface ClaimContentViewProps {
   files: ClaimFile[];
   expiryDate: Date;
   campaignName: string;
+  hideActionBar?: boolean;
 }
 
-export function ClaimContentView({ files, expiryDate, campaignName }: ClaimContentViewProps) {
+export function ClaimContentView({ files, expiryDate, campaignName, hideActionBar }: ClaimContentViewProps) {
   const { t } = useTranslation();
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
@@ -169,7 +170,7 @@ export function ClaimContentView({ files, expiryDate, campaignName }: ClaimConte
       </div>
 
       {/* フローティング・ダウンロードバー (Portal経由で body 直下にレンダリング) */}
-      {mounted && createPortal(
+      {!hideActionBar && mounted && createPortal(
         <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
           {/* グラデーション・マスク */}
           <div className="h-32 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent" />

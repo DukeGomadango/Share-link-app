@@ -388,6 +388,11 @@ export const en: TranslationKeys = {
     downloadAsZip: "Download as ZIP",
     downloadIndividually: "Download individually",
     downloadSelectedAlert: "Downloading {count} selected files",
+    collectionTitle: "Your Collection",
+    collectionSubtitle: "History of gifts you've received",
+    pastGifts: "Past Gifts",
+    noOtherGifts: "No other gifts yet",
+    collectionNotice: "Register a passkey to access your history anytime, even after closing your browser.",
   },
   countdown: {
     expired: "Expired",

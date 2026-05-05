@@ -384,6 +384,11 @@ export const ja = {
     downloadAsZip: "ZIPでまとめて保存",
     downloadIndividually: "個別に保存",
     downloadSelectedAlert: "選択した {count} 件のファイルをダウンロードします",
+    collectionTitle: "自分のコレクション",
+    collectionSubtitle: "これまでに受け取ったギフトの履歴です",
+    pastGifts: "過去のギフト",
+    noOtherGifts: "まだ他のギフトはありません",
+    collectionNotice: "生体認証を登録すると、ブラウザを閉じてもここからいつでも過去のギフトを確認できます。",
   },
   countdown: {
     expired: "期限切れ",
