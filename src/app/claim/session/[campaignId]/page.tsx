@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Gift } from "lucide-react";
 import { ClaimUnopenedView } from "@/components/features/claim/ClaimUnopenedView";
@@ -9,6 +9,7 @@ import { ClaimContentView } from "@/components/features/claim/ClaimContentView";
 import { PasskeyRegisterCard } from "@/components/features/claim/PasskeyRegisterCard";
 import type { ClaimFile } from "@/components/features/claim/types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { debounce } from "@/lib/utils";
 import { CLAIM_SESSION_MAX_AGE_SEC } from "@/lib/claims/constants";
 
 const POLL_MS = 4000;
@@ -99,6 +100,13 @@ export default function ClaimSessionByCampaignPage() {
     }
   }, [campaignId]);
 
+  const debouncedFetchSession = useMemo(
+    () => debounce((options?: { force?: boolean }) => {
+      void fetchSession(options);
+    }, 500),
+    [fetchSession]
+  );
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- マウント時にセッション取得（非同期）
     void fetchSession();
@@ -128,19 +136,23 @@ export default function ClaimSessionByCampaignPage() {
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
           table: "claims",
-          // セッションに基づいた絞り込みは難しい（Secretがクッキーにあるため）ので、
-          // ひとまずキャンペーン内の更新をすべて受けて、fetchSession で自分の分を確認する
           filter: `campaign_id=eq.${campaignId}`,
         },
         () => {
-          // 何か更新があったらデータを再取得
-          void fetchSession({ force: true });
+          debouncedFetchSession({ force: true });
         }
       )
-      .subscribe();
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({
+            user_type: "recipient",
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
 
     return () => {
       void supabase.removeChannel(channel);

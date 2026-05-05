@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ClaimUnopenedView } from "@/components/features/claim/ClaimUnopenedView";
@@ -8,6 +8,7 @@ import { ClaimContentView } from "@/components/features/claim/ClaimContentView";
 import { PasskeyRegisterCard } from "@/components/features/claim/PasskeyRegisterCard";
 import { CollectionDrawer } from "@/components/features/claim/CollectionDrawer";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { debounce } from "@/lib/utils";
 import { Gift } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import type { ClaimFile } from "@/components/features/claim/types";
@@ -106,6 +107,39 @@ export default function ClaimPage() {
     })();
   }, [token, isPreview, bundle?.passkeyLinked, !!bundle]);
 
+  const debouncedRefetch = useMemo(
+    () => debounce(async () => {
+      if (!token) return;
+      try {
+        const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`, { cache: "no-store" });
+        if (!r.ok) return;
+        const data = await r.json();
+        if (data.files && data.files.length > 0) {
+          const files: ClaimFile[] = data.files.map((f: any) => ({
+            id: f.id,
+            type: (f.type === "audio" || f.type === "image" || f.type === "file") ? f.type : "file",
+            src: f.src,
+            filename: f.filename,
+            title: f.title,
+          }));
+          setBundle({ 
+            expiryIso: data.expiryIso, 
+            campaignName: data.campaignName, 
+            campaignId: data.campaignId,
+            files,
+            isAuthorized: data.isAuthorized,
+            authRequired: data.authRequired,
+            passkeyLinked: data.passkeyLinked,
+            displayName: data.displayName,
+          });
+        }
+      } catch (e) {
+        console.error("Refetch failed", e);
+      }
+    }, 500),
+    [token]
+  );
+
   // リアルタイム監視 (Supabase Realtime)
   useEffect(() => {
     if (!token) return;
@@ -121,37 +155,19 @@ export default function ClaimPage() {
           table: "claims",
           filter: `claim_secret=eq.${token}`,
         },
-        async () => {
+        () => {
           // 更新があったらデータを再取得
-          try {
-            const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`, { cache: "no-store" });
-            if (!r.ok) return;
-            const data = await r.json();
-            if (data.files && data.files.length > 0) {
-              const files: ClaimFile[] = data.files.map((f: any) => ({
-                id: f.id,
-                type: (f.type === "audio" || f.type === "image" || f.type === "file") ? f.type : "file",
-                src: f.src,
-                filename: f.filename,
-                title: f.title,
-              }));
-              setBundle({ 
-                expiryIso: data.expiryIso, 
-                campaignName: data.campaignName, 
-                campaignId: data.campaignId,
-                files,
-                isAuthorized: data.isAuthorized,
-                authRequired: data.authRequired,
-                passkeyLinked: data.passkeyLinked,
-                displayName: data.displayName,
-              });
-            }
-          } catch (e) {
-            console.error("Refetch failed", e);
-          }
+          debouncedRefetch();
         }
       )
-      .subscribe();
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({
+            user_type: "recipient",
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
 
     return () => {
       void supabase.removeChannel(channel);

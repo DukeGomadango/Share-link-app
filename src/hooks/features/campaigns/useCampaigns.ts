@@ -3,6 +3,9 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useTranslation } from "@/lib/i18n";
 import type { Campaign, QuickFilter, ViewMode } from "@/components/features/campaigns/types";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { debounce } from "@/lib/utils";
+import { useWorkspaceStats } from "@/hooks/features/workspace/useWorkspaceStats";
 
 const STATUS_ORDER: Campaign["status"][] = ["draft", "active", "completed"];
 
@@ -22,6 +25,7 @@ export function useCampaigns() {
   } | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const { t, locale } = useTranslation();
+  const { stats: workspaceStats } = useWorkspaceStats();
 
   const fetchCampaigns = useCallback(() => {
     fetch("/api/campaigns")
@@ -30,9 +34,69 @@ export function useCampaigns() {
       .catch((e) => console.error("Failed to fetch campaigns:", e));
   }, []);
 
+  const debouncedFetchCampaigns = useMemo(
+    () => debounce(() => fetchCampaigns(), 500),
+    [fetchCampaigns]
+  );
+
   useEffect(() => {
     fetchCampaigns();
   }, [fetchCampaigns]);
+
+  // リアルタイム更新 (Supabase Realtime)
+  useEffect(() => {
+    const workspaceId = workspaceStats?.workspaceId;
+    if (!workspaceId) return;
+
+    const supabase = createSupabaseBrowserClient();
+    const channel = supabase
+      .channel(`campaign-list-updates-${workspaceId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "campaigns",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
+        (payload) => {
+          const updated = payload.new;
+          setCampaigns((prev) =>
+            prev.map((c) =>
+              c.id === updated.id
+                ? {
+                    ...c,
+                    name: updated.name,
+                    status: updated.status,
+                    tags: updated.tags || [],
+                    expiresAt: updated.expires_at,
+                    description: updated.description,
+                  }
+                : c
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "campaigns",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT" || payload.eventType === "DELETE") {
+            debouncedFetchCampaigns();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [workspaceStats?.workspaceId, debouncedFetchCampaigns]);
 
   const formatDate = useCallback((value: string) =>
     new Date(value).toLocaleDateString(locale === "ja" ? "ja-JP" : "en-US"),

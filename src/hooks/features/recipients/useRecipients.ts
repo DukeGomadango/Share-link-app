@@ -36,7 +36,7 @@ export function useRecipients() {
       const matchesFilter =
         activeFilter === "all" ||
         (activeFilter === "noTags" && r.tags.length === 0) ||
-        activeFilter === r.status;
+        (activeFilter === "verified" ? r.passkeyVerified : activeFilter === r.status);
 
       return matchesSearch && matchesFilter;
     });
@@ -45,7 +45,7 @@ export function useRecipients() {
   const stats = useMemo(() => {
     const total = recipients.length;
     const waiting = recipients.filter((r) => r.status === "waiting").length;
-    const verified = recipients.filter((r) => r.status === "verified").length;
+    const verified = recipients.filter((r) => r.passkeyVerified).length;
     const claimed = recipients.filter((r) => r.status === "claimed").length;
 
     return {

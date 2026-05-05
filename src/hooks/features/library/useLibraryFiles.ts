@@ -4,6 +4,9 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { AssetFile } from "@/components/features/library/types";
 import { MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 import { toast } from "sonner";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { debounce } from "@/lib/utils";
+import { useWorkspaceStats } from "@/hooks/features/workspace/useWorkspaceStats";
 
 export function useLibraryFiles() {
   const [files, setFiles] = useState<AssetFile[]>([]);
@@ -19,6 +22,7 @@ export function useLibraryFiles() {
   const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
   const [selectedTag, setSelectedTag] = useState("all");
   const [nowTs] = useState(() => Date.now());
+  const { stats: workspaceStats } = useWorkspaceStats();
 
   const fetchFiles = useCallback(() => {
     fetch("/api/files")
@@ -35,9 +39,66 @@ export function useLibraryFiles() {
       .catch((e) => console.error("Failed to fetch files:", e));
   }, []);
 
+  const debouncedFetchFiles = useMemo(
+    () => debounce(() => fetchFiles(), 500),
+    [fetchFiles]
+  );
+
   useEffect(() => {
     fetchFiles();
   }, [fetchFiles]);
+
+  // リアルタイム更新 (Supabase Realtime)
+  useEffect(() => {
+    const workspaceId = workspaceStats?.workspaceId;
+    if (!workspaceId) return;
+
+    const supabase = createSupabaseBrowserClient();
+    const channel = supabase
+      .channel(`library-updates-${workspaceId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "assets",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
+        (payload) => {
+          const updated = payload.new;
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.id === updated.id
+                ? {
+                    ...f,
+                    name: updated.original_filename,
+                    size: updated.size_bytes,
+                  }
+                : f
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "assets",
+          filter: `workspace_id=eq.${workspaceId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT" || payload.eventType === "DELETE") {
+            debouncedFetchFiles();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [workspaceStats?.workspaceId, debouncedFetchFiles]);
 
   const uploadSingle = useCallback(async (file: File) => {
     const init = await fetch("/api/files/upload-url", {

@@ -68,6 +68,10 @@ export const campaigns = pgTable(
     publicReceptionToken: text("public_reception_token"),
     /** 外部連携（ガチャ等）によって作成されたか */
     isExternalLinked: boolean("is_external_linked").default(false).notNull(),
+    /** 統計情報（トリガーで自動更新） */
+    totalFilesCount: integer("total_files_count").default(0).notNull(),
+    assignedRecipientsCount: integer("assigned_recipients_count").default(0).notNull(),
+    claimedRecipientsCount: integer("claimed_recipients_count").default(0).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

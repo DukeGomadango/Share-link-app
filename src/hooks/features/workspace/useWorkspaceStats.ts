@@ -7,6 +7,7 @@ export function useWorkspaceStats() {
     usedBytes: number;
     limitBytes: number;
     planTier: string;
+    workspaceId: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 

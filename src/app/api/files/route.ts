@@ -58,6 +58,7 @@ export async function GET() {
       usedBytes: Number(usage?.totalBytes || 0),
       limitBytes: workspace?.storageLimit || 2147483648,
       planTier: workspace?.planTier || "free",
+      workspaceId: ctx.workspaceId,
     },
   });
 }

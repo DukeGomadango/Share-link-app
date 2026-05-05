@@ -115,7 +115,7 @@ export function RecipientTable({
                 </td>
                 <td className="p-5">
                   <div className="flex flex-col gap-2">
-                    {recipient.platformId ? (
+                    {recipient.platformId && (
                       <div className="flex items-center text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
                         {recipient.platformId.type === "twitter" ? (
                           <Globe className="w-3 h-3 mr-1 text-sky-400" />
@@ -124,8 +124,6 @@ export function RecipientTable({
                         )}
                         {recipient.platformId.handle}
                       </div>
-                    ) : (
-                      <div className="text-[10px] italic text-muted-foreground/40">ID未連携</div>
                     )}
                     <div className="flex flex-wrap gap-1">
                       {recipient.tags.map((tag) => (

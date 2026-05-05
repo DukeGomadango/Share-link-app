@@ -51,6 +51,7 @@ export default function CampaignDetailPage() {
     handleFilesDropped,
     deleteCampaign,
     reloadWorkflow,
+    liveViewers,
   } = useCampaignDetail();
 
   const [exportBusy, setExportBusy] = useState(false);
@@ -205,6 +206,17 @@ export default function CampaignDetailPage() {
               >
                 {t.campaigns.status[campaign.status]}
               </span>
+            )}
+            {!workflowLoading && liveViewers > 0 && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 shadow-sm animate-in fade-in zoom-in-95">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tight font-mono">
+                  LIVE {liveViewers}
+                </span>
+              </div>
             )}
           </div>
           {!workflowLoading && campaign && campaignId ? (

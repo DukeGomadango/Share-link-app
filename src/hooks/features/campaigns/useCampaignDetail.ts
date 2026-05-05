@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   DragEndEvent,
@@ -21,6 +21,7 @@ import type {
 } from "@/components/features/campaigns/types";
 import { MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { debounce } from "@/lib/utils";
 
 async function uploadLibraryAssetFromFile(file: File): Promise<string> {
   const init = await fetch("/api/files/upload-url", {
@@ -101,6 +102,7 @@ export function useCampaignDetail() {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [recipients, setRecipients] = useState<Recipient[]>([]);
+  const [liveViewers, setLiveViewers] = useState(0);
   const [workflowLoading, setWorkflowLoading] = useState(true);
   const [workflowError, setWorkflowError] = useState<string | null>(null);
 
@@ -144,6 +146,13 @@ export function useCampaignDetail() {
     [campaignId]
   );
 
+  const debouncedLoadWorkflow = useMemo(
+    () => debounce((opts?: { quiet?: boolean }) => {
+      void loadWorkflow(opts);
+    }, 500),
+    [loadWorkflow]
+  );
+
   useEffect(() => {
     // 初回読み込み
     void loadWorkflow();
@@ -156,6 +165,83 @@ export function useCampaignDetail() {
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
       .channel(`admin-campaign-updates-${campaignId}`)
+      // 受取人のステータス更新 (開封など)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "claims",
+          filter: `campaign_id=eq.${campaignId}`,
+        },
+        (payload) => {
+          const updated = payload.new;
+          setRecipients((prev) =>
+            prev.map((r) =>
+              (r.id === updated.recipient_slot_id || r.claimSecret === updated.claim_secret)
+                ? { ...r, status: updated.status === "claimed" ? "claimed" : r.status }
+                : r
+            )
+          );
+        }
+      )
+      // 受取人情報（名前・メモ）の更新
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "campaign_recipient_slots",
+          filter: `campaign_id=eq.${campaignId}`,
+        },
+        (payload) => {
+          const updated = payload.new;
+          setRecipients((prev) =>
+            prev.map((r) =>
+              r.id === updated.id
+                ? {
+                    ...r,
+                    name: updated.listener_display_name || r.name,
+                    listenerNote: updated.listener_note || r.listenerNote,
+                  }
+                : r
+            )
+          );
+        }
+      )
+      // ファイル割り当ての更新
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "slot_assets",
+        },
+        (payload) => {
+          // slot_assets は自分に関係あるか JS 側で判定（Egress 節約のため API は叩かない）
+          const data = payload.eventType === "DELETE" ? payload.old : payload.new;
+          const slotId = data.slot_id;
+          const assetId = data.campaign_asset_id;
+
+          setRecipients((prev) => {
+            const hasSlot = prev.some((r) => r.id === slotId);
+            if (!hasSlot) return prev; // 自分のキャンペーンの枠でなければ無視
+
+            return prev.map((r) => {
+              if (r.id !== slotId) return r;
+              const current = r.assignedFileIds || [];
+              if (payload.eventType === "INSERT") {
+                return { ...r, assignedFileIds: Array.from(new Set([...current, assetId])) };
+              }
+              if (payload.eventType === "DELETE") {
+                return { ...r, assignedFileIds: current.filter((id) => id !== assetId) };
+              }
+              return r;
+            });
+          });
+        }
+      )
+      // フォールバック用の再取得（新規作成・削除など）
       .on(
         "postgres_changes",
         {
@@ -164,37 +250,28 @@ export function useCampaignDetail() {
           table: "campaign_recipient_slots",
           filter: `campaign_id=eq.${campaignId}`,
         },
-        () => {
-          void loadWorkflow({ quiet: true });
+        (payload) => {
+          if (payload.eventType === "INSERT" || payload.eventType === "DELETE") {
+            debouncedLoadWorkflow({ quiet: true });
+          }
         }
       )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "slot_assets",
-        },
-        () => {
-          // slot_assets には campaign_id がないので全体を拾うか、
-          // あるいは slot が更新されたタイミングで workflow が更新されるので
-          // 補助的なトリガーとして機能させる
-          void loadWorkflow({ quiet: true });
+      // Presence (ライブ接続状況)
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        // 自分（admin）以外のユニークな接続をカウント
+        const counts = Object.values(state).flat().filter((p: any) => p.user_type !== "admin").length;
+        setLiveViewers(counts);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          // 管理者として存在をアピール（自分はカウントから除外するため）
+          await channel.track({
+            user_type: "admin",
+            online_at: new Date().toISOString(),
+          });
         }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "claims",
-          filter: `campaign_id=eq.${campaignId}`,
-        },
-        () => {
-          void loadWorkflow({ quiet: true });
-        }
-      )
-      .subscribe();
+      });
 
     return () => {
       void supabase.removeChannel(channel);
