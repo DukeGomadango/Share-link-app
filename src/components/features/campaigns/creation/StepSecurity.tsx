@@ -5,8 +5,8 @@ import { cn } from "@/lib/utils";
 
 interface StepSecurityProps {
   expiresAt: string;
-  securityLevel: "standard" | "high" | "paranoid";
-  onUpdate: (data: Partial<{ expiresAt: string; securityLevel: "standard" | "high" | "paranoid" }>) => void;
+  securityLevel: "standard" | "high";
+  onUpdate: (data: Partial<{ expiresAt: string; securityLevel: "standard" | "high" }>) => void;
   t: any;
 }
 

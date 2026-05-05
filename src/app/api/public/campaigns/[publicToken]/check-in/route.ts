@@ -36,6 +36,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
     .select({
       id: campaigns.id,
       distributionMode: campaigns.distributionMode,
+      securityLevel: campaigns.securityLevel,
     })
     .from(campaigns)
     .where(eq(campaigns.publicReceptionToken, publicToken))
@@ -63,12 +64,17 @@ export async function GET(_request: Request, ctx: RouteParams) {
         ok: true,
         campaignId: c.id,
         claimId: existing[0].id,
-        claimSecret: secret, // トークンを返す
+        claimSecret: secret,
+        securityLevel: c.securityLevel,
       });
     }
   }
 
-  return NextResponse.json({ ok: false, message: "no_session" });
+  return NextResponse.json({ 
+    ok: false, 
+    message: "no_session",
+    securityLevel: c.securityLevel,
+  });
 }
 
 export async function POST(request: Request, ctx: RouteParams) {
@@ -149,7 +155,7 @@ export async function POST(request: Request, ctx: RouteParams) {
   const listenerTok = cookieStore.get(LISTENER_SESSION_COOKIE)?.value;
   const session = verifyListenerSessionToken(listenerTok);
 
-  let created;
+  let created: { claimId: string; slotId: string; claimSecret: string };
   try {
     let recipientId: string | null = null;
 

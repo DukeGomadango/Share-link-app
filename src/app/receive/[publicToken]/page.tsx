@@ -22,6 +22,7 @@ export default function PublicReceivePage() {
   const [passkeyError, setPasskeyError] = useState<string | null>(null);
   const [passkeyHint, setPasskeyHint] = useState<string | null>(null);
   const [detectedName, setDetectedName] = useState<string | null>(null);
+  const [securityLevel, setSecurityLevel] = useState<"standard" | "high">("standard");
 
   const tryResumeWithCookie = useCallback(async (): Promise<boolean> => {
     if (!token) return false;
@@ -31,7 +32,10 @@ export default function PublicReceivePage() {
         { method: "GET" }
       );
       if (!r.ok) return false;
-      const j = (await r.json()) as { ok: boolean; campaignId?: string; claimSecret?: string };
+      const j = (await r.json()) as { ok: boolean; campaignId?: string; claimSecret?: string; securityLevel?: "standard" | "high" };
+      if (j.securityLevel) {
+        setSecurityLevel(j.securityLevel);
+      }
       if (j.ok && j.claimSecret) {
         router.replace(`/claim/${encodeURIComponent(j.claimSecret)}`);
         return true;
@@ -151,7 +155,15 @@ export default function PublicReceivePage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const name = displayName.trim() || "ゲスト";
+    const isHigh = securityLevel === "high";
+    const name = displayName.trim();
+    
+    if (isHigh && !name) {
+      setError("限定配布のため、お名前の入力が必要です");
+      return;
+    }
+
+    const finalName = name || "ゲスト";
     if (!token) {
       setError("無効なトークンです");
       return;
@@ -163,7 +175,7 @@ export default function PublicReceivePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          displayName: name,
+          displayName: finalName,
           note: note.trim() || null,
         }),
       });
@@ -292,7 +304,7 @@ export default function PublicReceivePage() {
               <div className="group space-y-2">
                 <label htmlFor="recv-name" className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1 flex items-center gap-2">
                   <User className="w-3 h-3" />
-                  表示名 (任意)
+                  表示名 {securityLevel === "high" ? "(必須)" : "(任意)"}
                 </label>
                 <div className="relative">
                   <input
@@ -342,7 +354,9 @@ export default function PublicReceivePage() {
                 ? "送信中…" 
                 : displayName.trim() 
                   ? "この名前で受け取る" 
-                  : "入力をスキップして受け取る"}
+                  : securityLevel === "high"
+                    ? "名前を入力して受け取る"
+                    : "入力をスキップして受け取る"}
             </Button>
           </form>
           )}

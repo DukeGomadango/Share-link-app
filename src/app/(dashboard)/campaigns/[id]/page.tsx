@@ -644,7 +644,7 @@ export default function CampaignDetailPage() {
             : "限定配布に切り替えますか？これ以降、閲覧にはパスキーによる本人確認が必須となります。すでにリンクを持っている人も、再度パスキーの登録や認証が必要になります。"
         }
         confirmText="切り替える"
-        variant={pendingSecurityLevel === "standard" ? "emerald" : "blue"}
+        variant={pendingSecurityLevel === "standard" ? "emerald" : "default"}
         isLoading={statusBusy}
       />
     </div>

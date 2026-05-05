@@ -68,7 +68,7 @@ export interface Campaign {
   type: string;
   createdAt: string;
   expiresAt?: string;
-  securityLevel: "standard" | "high" | "paranoid";
+  securityLevel: "standard" | "high";
   /** `reception` のとき共通受付 URL（チェックイン）を使う */
   distributionMode?: DistributionMode;
   /** 受付ページ `/receive/[token]` 用（サーバが初回アクセス時に生成することあり） */
