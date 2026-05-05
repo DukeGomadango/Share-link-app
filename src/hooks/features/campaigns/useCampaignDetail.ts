@@ -20,6 +20,7 @@ import type {
   SlotStatus,
 } from "@/components/features/campaigns/types";
 import { MAX_UPLOAD_BYTES } from "@/lib/storage/config";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 async function uploadLibraryAssetFromFile(file: File): Promise<string> {
   const init = await fetch("/api/files/upload-url", {
@@ -149,15 +150,31 @@ export function useCampaignDetail() {
   }, [campaignId]); // campaignId が変わった時だけ（実質マウント時のみ）
 
   useEffect(() => {
-    // 受付モード時のみ、8秒おきにサイレント更新
-    if (campaign?.distributionMode !== "reception") return;
-    
-    const timer = setInterval(() => {
-      void loadWorkflow({ quiet: true });
-    }, 8000);
+    // リアルタイム監視 (Supabase Realtime)
+    if (!campaignId) return;
 
-    return () => clearInterval(timer);
-  }, [campaign?.distributionMode, campaignId]); // loadWorkflow を外して、モード変更時のみ反応させる
+    const supabase = createSupabaseBrowserClient();
+    const channel = supabase
+      .channel(`admin-campaign-updates-${campaignId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*", // INSERT, UPDATE, DELETE すべて拾う
+          schema: "public",
+          table: "claims",
+          filter: `campaign_id=eq.${campaignId}`,
+        },
+        () => {
+          // 何か変更があったらサイレント更新
+          void loadWorkflow({ quiet: true });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [campaignId, loadWorkflow]);
 
   const fetchLibraryFiles = useCallback(() => {
     fetch("/api/files")

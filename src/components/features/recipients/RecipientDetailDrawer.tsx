@@ -5,7 +5,7 @@ import { Sheet, SheetHeader, SheetBody, SheetTitle, SheetDescription, SheetFoote
 import { CampaignTimeline } from "./CampaignTimeline";
 import { Recipient, FileItem } from "@/components/features/campaigns/types";
 import { Button } from "@/components/ui/button";
-import { Tag, Calendar, User, Trash2, X, Plus, Shield, MessageSquare, Globe, Clock, CheckCircle2, FileAudio, FileImage } from "lucide-react";
+import { Tag, Calendar, User, Trash2, X, Plus, Shield, MessageSquare, Globe, Clock, CheckCircle2, FileAudio, FileImage, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -30,6 +30,7 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
   const [editMemo, setEditMemo] = useState("");
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
 
   // Sync state when recipient changes or drawer opens
   useEffect(() => {
@@ -39,7 +40,8 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
       
       // Fetch real history
       setIsLoadingHistory(true);
-      fetch(`/api/recipients/${recipient.id}/history`)
+      const targetId = recipient.globalRecipientId || recipient.id;
+      fetch(`/api/recipients/${targetId}/history`)
         .then(res => res.json())
         .then(data => {
           setHistory(data);
@@ -273,17 +275,46 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
         </section>
 
         <section>
-          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
-            <Calendar className="w-3.5 h-3.5" />
-            アクティビティ履歴
-          </h3>
+          <div 
+            className="flex items-center justify-between mb-4 cursor-pointer group/header"
+            onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+          >
+            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 group-hover/header:text-foreground transition-colors">
+              <Calendar className="w-3.5 h-3.5" />
+              アクティビティ履歴
+              {history.length > 0 && (
+                <Badge variant="outline" className="ml-1 px-1.5 h-4 text-[9px] bg-emerald-500/5 border-emerald-500/20 text-emerald-600">
+                  {history.length}
+                </Badge>
+              )}
+            </h3>
+            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-300 ${isHistoryExpanded ? "rotate-180" : ""}`} />
+          </div>
+
           {isLoadingHistory ? (
             <div className="py-12 flex flex-col items-center justify-center space-y-2 opacity-50">
               <div className="w-6 h-6 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
               <p className="text-[10px] font-medium">履歴を読み込み中...</p>
             </div>
           ) : (
-            <CampaignTimeline items={history} />
+            <div className="space-y-4">
+              <CampaignTimeline items={isHistoryExpanded ? history : history.slice(0, 2)} />
+              
+              {history.length > 2 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full h-9 rounded-xl text-[10px] font-bold text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 mt-2"
+                  onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+                >
+                  {isHistoryExpanded ? (
+                    <>履歴をたたむ</>
+                  ) : (
+                    <>残りの {history.length - 2} 件を表示</>
+                  )}
+                </Button>
+              )}
+            </div>
           )}
         </section>
 

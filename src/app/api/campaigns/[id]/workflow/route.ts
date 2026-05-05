@@ -108,6 +108,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
         : `/claim/${encodeURIComponent(row.claimSecret)}`,
     claimSecret: row.claimSecret,
     passkeyVerified: row.passkeyVerified,
+    globalRecipientId: row.globalRecipientId ?? undefined,
   }));
 
   return NextResponse.json({

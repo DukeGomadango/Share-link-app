@@ -20,6 +20,7 @@ export type WorkflowRecipientRow = {
   recipientSlotId: string | null;
   /** claim と listener_identity が WebAuthn で紐づいている */
   passkeyVerified: boolean;
+  globalRecipientId: string | null;
 };
 
 export async function fetchWorkflowRecipientsForCampaign(
@@ -113,6 +114,7 @@ export async function fetchWorkflowRecipientsForCampaign(
       distributionMode,
       recipientSlotId: r.claim.recipientSlotId,
       passkeyVerified: existing?.passkeyVerified || linked.has(claimId),
+      globalRecipientId: r.slot?.recipientId || existing?.globalRecipientId || null,
     });
   }
 

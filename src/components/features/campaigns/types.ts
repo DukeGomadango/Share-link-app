@@ -28,6 +28,8 @@ export type WorkflowRecipient = {
   claimSecret?: string;
   /** パスキー登録により本人確認済み（補助情報） */
   passkeyVerified?: boolean;
+  /** グローバルな受取人 ID（紐付いている場合） */
+  globalRecipientId?: string;
 };
 
 /** @deprecated WorkflowRecipient を優先（後方互換の別名） */
