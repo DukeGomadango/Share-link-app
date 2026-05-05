@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users, Calendar, X, Trash2 } from "lucide-react";
+import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users, Calendar, X, Trash2, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -61,6 +61,7 @@ export default function CampaignDetailPage() {
   const [pendingStatus, setPendingStatus] = useState<"active" | "completed" | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [banner, setBanner] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
 
   const handleUpdateStatus = useCallback(
     async (newStatus: "active" | "completed") => {
@@ -357,6 +358,28 @@ export default function CampaignDetailPage() {
         <p className="text-sm text-destructive border border-destructive/30 rounded-lg px-3 py-2 bg-destructive/5">
           {workflowError}
         </p>
+      )}
+
+      {banner && (
+        <div
+          className={cn(
+            "p-4 rounded-xl border flex items-center justify-between animate-in fade-in slide-in-from-top-2",
+            banner.tone === "ok"
+              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+              : "bg-destructive/10 border-destructive/20 text-destructive"
+          )}
+        >
+          <div className="flex items-center gap-2">
+            {banner.tone === "ok" ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            <p className="text-sm font-medium">{banner.text}</p>
+          </div>
+          <button
+            onClick={() => setBanner(null)}
+            className="p-1 hover:bg-black/5 rounded-full transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       )}
 
       {workflowLoading ? (

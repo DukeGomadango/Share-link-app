@@ -16,6 +16,8 @@ import type {
   FileItem,
   LibraryFile,
   Recipient,
+  RecipientStatus,
+  SlotStatus,
 } from "@/components/features/campaigns/types";
 import { MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 
@@ -386,7 +388,7 @@ export function useCampaignDetail() {
           if (r.id === claimId) {
             const currentIds = r.assignedFileIds || [];
             const newIds = Array.from(new Set([...currentIds, ...targetIds]));
-            return { ...r, assignedFileIds: newIds, status: 'ready' as RecipientStatus };
+            return { ...r, assignedFileIds: newIds, status: 'verified' as RecipientStatus };
           }
           return r;
         }));
