@@ -145,10 +145,6 @@ export default function ClaimPage() {
                 passkeyLinked: data.passkeyLinked,
                 displayName: data.displayName,
               });
-              // 公開設定（認証不要）の場合は自動で開封状態にする
-              if (!data.authRequired) {
-                setIsOpened(true);
-              }
             }
           } catch (e) {
             console.error("Refetch failed", e);
@@ -214,10 +210,6 @@ export default function ClaimPage() {
             passkeyLinked: data.passkeyLinked,
             displayName: data.displayName,
           });
-          // 公開設定（認証不要）の場合は自動で開封状態にする
-          if (!data.authRequired) {
-            setIsOpened(true);
-          }
         }
       } catch {
         if (!cancelled) setClaimError("データの読み込みに失敗しました");
@@ -231,6 +223,9 @@ export default function ClaimPage() {
   }, [token]);
 
   const handleOpen = async () => {
+    // ファイルがない場合は開かせない
+    if (!bundle || bundle.files.length === 0) return;
+
     // ステータスを「開封済み」に更新
     try {
       await fetch(`/api/claim/${encodeURIComponent(token)}/claim`, {
@@ -242,7 +237,9 @@ export default function ClaimPage() {
     setIsOpened(true);
   };
 
-  const phaseKey = !isOpened ? "unopened" : "content";
+  // フェーズ判定のロジックを復元
+  const isAuthRequired = bundle?.authRequired && !bundle?.isAuthorized;
+  const phaseKey = isAuthRequired ? "auth" : !isOpened ? "unopened" : "content";
 
   const expiryDate = bundle
     ? new Date(bundle.expiryIso)
@@ -254,6 +251,36 @@ export default function ClaimPage() {
 
   return (
     <AnimatePresence mode="wait">
+      {phaseKey === "auth" && (
+        <motion.div
+          key="auth"
+          variants={pageVariants}
+          initial="initial"
+          animate="enter"
+          exit="exit"
+          className="w-full"
+        >
+          <div className="flex flex-col items-center gap-6 py-12 px-6 max-w-md w-full mx-auto">
+            <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center text-emerald-500 shadow-inner">
+              <Gift className="w-10 h-10" />
+            </div>
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold">{t.claim.secureContent}</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {t.claim.authDescription}
+              </p>
+            </div>
+            
+            {bundle?.campaignId && (
+              <PasskeyRegisterCard 
+                campaignId={bundle.campaignId} 
+                onSuccess={() => window.location.reload()}
+              />
+            )}
+          </div>
+        </motion.div>
+      )}
+
       {phaseKey === "unopened" && (
         <motion.div
           key="unopened"
@@ -273,6 +300,7 @@ export default function ClaimPage() {
               onOpen={handleOpen} 
               expiryDate={expiryDate} 
               campaignName={bundle?.campaignName}
+              isEmpty={bundle?.files.length === 0}
             />
           )}
         </motion.div>
@@ -364,27 +392,6 @@ export default function ClaimPage() {
                 </motion.div>
               )}
 
-              {/* 本人確認ガード表示 */}
-              {bundle.authRequired && !bundle.isAuthorized ? (
-                <div className="flex flex-col items-center gap-6 py-12 px-6 max-w-md w-full animate-in fade-in slide-in-from-bottom-4">
-                  <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center text-emerald-500 shadow-inner">
-                    <Gift className="w-10 h-10" />
-                  </div>
-                  <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-bold">{t.claim.secureContent}</h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {t.claim.authDescription}
-                    </p>
-                  </div>
-                  
-                  {bundle.campaignId && (
-                    <PasskeyRegisterCard 
-                      campaignId={bundle.campaignId} 
-                      onSuccess={() => window.location.reload()}
-                    />
-                  )}
-                </div>
-              ) : (
                 <>
                   <ClaimContentView 
                     files={bundle.files} 
