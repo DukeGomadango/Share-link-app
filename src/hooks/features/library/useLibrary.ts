@@ -32,6 +32,7 @@ export function useLibrary() {
     handleRename,
     handleDelete,
     handleBulkDelete,
+    storageStats,
   } = useLibraryFiles();
 
   // 2. Campaigns & Search
@@ -172,5 +173,6 @@ export function useLibrary() {
     openCommandDropForSelection,
     closeCommandDrop,
     assignFromCommandDrop,
+    storageStats,
   };
 }

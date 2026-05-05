@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { assertObjectKeyBelongsToWorkspace } from "@/lib/assets/object-key";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { getDb } from "@/db";
-import { assets } from "@/db/schema";
+import { assets, workspaces } from "@/db/schema";
 import { getStorageBucket, MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 
 export async function POST(request: Request) {
@@ -55,6 +55,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ id: assetId, ok: true, dedup: true });
   }
 
+  // ワークスペースのプラン情報を取得して保持期限を計算 (free: 90日, pro: 365日)
+  const workspace = await db
+    .select({ planTier: workspaces.planTier })
+    .from(workspaces)
+    .where(eq(workspaces.id, ctx.workspaceId))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  const retentionDays = workspace?.planTier === "pro" ? 365 : 90;
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + retentionDays);
+
   await db.insert(assets).values({
     id: assetId,
     workspaceId: ctx.workspaceId,
@@ -63,6 +75,7 @@ export async function POST(request: Request) {
     originalFilename,
     mimeType: mimeType || "application/octet-stream",
     sizeBytes,
+    expiresAt,
   });
 
   return NextResponse.json({ id: assetId, ok: true, dedup: false });

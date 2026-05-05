@@ -4,7 +4,8 @@ import { randomBytes } from "node:crypto";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { fetchCampaignsWithStats } from "@/lib/campaigns-query";
 import { getDb } from "@/db";
-import { campaigns, campaignAssets } from "@/db/schema";
+import { campaigns, campaignAssets, workspaces } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function GET() {
   const ctx = await getSessionWorkspaceContext();
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
   const publicReceptionToken = isPublic ? randomBytes(12).toString("hex") : null;
 
   const db = getDb();
+
   const [row] = await db
     .insert(campaigns)
     .values({

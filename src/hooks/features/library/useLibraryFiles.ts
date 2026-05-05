@@ -7,6 +7,11 @@ import { toast } from "sonner";
 
 export function useLibraryFiles() {
   const [files, setFiles] = useState<AssetFile[]>([]);
+  const [storageStats, setStorageStats] = useState<{ usedBytes: number; limitBytes: number; planTier: string }>({
+    usedBytes: 0,
+    limitBytes: 2147483648,
+    planTier: "free",
+  });
   const [fileTypeFilter, setFileTypeFilter] = useState<"all" | "image" | "audio">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [unassignedOnly, setUnassignedOnly] = useState(false);
@@ -21,7 +26,12 @@ export function useLibraryFiles() {
         if (!r.ok) throw new Error(String(r.status));
         return r.json();
       })
-      .then((data) => setFiles(data as AssetFile[]))
+      .then((data) => {
+        setFiles(data.files as AssetFile[]);
+        if (data.stats) {
+          setStorageStats(data.stats);
+        }
+      })
       .catch((e) => console.error("Failed to fetch files:", e));
   }, []);
 
@@ -260,5 +270,6 @@ export function useLibraryFiles() {
     handleDelete,
     handleBulkDelete,
     refreshFiles: fetchFiles,
+    storageStats,
   };
 }

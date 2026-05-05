@@ -1,4 +1,5 @@
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -26,6 +27,8 @@ export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   planTier: planTierEnum("plan_tier").default("free").notNull(),
+  /** Storage limit in bytes. Default 2GB. */
+  storageLimit: bigint("storage_limit", { mode: "number" }).default(2147483648).notNull(), // 2GB
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

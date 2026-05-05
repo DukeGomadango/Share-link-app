@@ -5,9 +5,12 @@ import { LayoutDashboard, Megaphone, Settings, Gift, FolderOpen, Plug, Users } f
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
 import { useTranslation } from "@/lib/i18n";
+import { PlanStatusWidget } from "@/components/shared/PlanStatusWidget";
+import { useWorkspaceStats } from "@/hooks/features/workspace/useWorkspaceStats";
 
 export function DashboardSidebar() {
   const { t } = useTranslation();
+  const { stats } = useWorkspaceStats();
 
   return (
     <aside className="w-64 h-full hidden lg:flex flex-col glass border-r-0 rounded-l-none">
@@ -17,6 +20,7 @@ export function DashboardSidebar() {
       </div>
 
       <nav className="flex-1 px-4 space-y-2 mt-4">
+        {/* ... (navigation links) ... */}
         <Link
           href="/dashboard"
           className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-emerald-500/10 text-foreground/80 hover:text-emerald-500 transition-colors"
@@ -60,6 +64,14 @@ export function DashboardSidebar() {
           <span>{t.nav.settings}</span>
         </Link>
       </nav>
+
+      <div className="px-4 mb-4">
+        <PlanStatusWidget 
+          planTier={stats?.planTier as any || "free"} 
+          usedBytes={stats?.usedBytes || 0}
+          limitBytes={stats?.limitBytes || 2147483648}
+        />
+      </div>
 
       <div className="p-4 border-t border-border/10 space-y-2">
         <LanguageToggle className="w-full justify-center" />

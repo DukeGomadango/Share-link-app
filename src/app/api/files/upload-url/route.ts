@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-
 import { NextResponse } from "next/server";
-
+import { eq, sql } from "drizzle-orm";
+import { getDb } from "@/db";
+import { assets, workspaces } from "@/db/schema";
 import { createSignedUploadToStorage } from "@/lib/assets/signed-urls";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -44,6 +45,32 @@ export async function POST(request: Request) {
   }
   if (size > MAX_UPLOAD_BYTES) {
     return NextResponse.json({ error: "file_too_large" }, { status: 413 });
+  }
+
+  // 容量制限（Quota）のチェック
+  const db = getDb();
+  const [workspace] = await db
+    .select({ storageLimit: workspaces.storageLimit })
+    .from(workspaces)
+    .where(eq(workspaces.id, ctx.workspaceId))
+    .limit(1);
+
+  const [usage] = await db
+    .select({ totalBytes: sql<number>`COALESCE(SUM(${assets.sizeBytes}), 0)::bigint` })
+    .from(assets)
+    .where(eq(assets.workspaceId, ctx.workspaceId));
+
+  const currentUsed = Number(usage?.totalBytes || 0);
+  const limit = workspace?.storageLimit || 2147483648;
+
+  if (currentUsed + size > limit) {
+    return NextResponse.json(
+      { 
+        error: "quota_exceeded", 
+        message: "ストレージ容量制限を超えています。不要なファイルを削除するかProプランを検討してください。" 
+      },
+      { status: 403 }
+    );
   }
 
   const assetId = randomUUID();

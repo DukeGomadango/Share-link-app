@@ -19,6 +19,7 @@ import { LibraryHeader } from "@/components/features/library/LibraryHeader";
 import { LibraryFilters } from "@/components/features/library/LibraryFilters";
 import { LibraryGrid } from "@/components/features/library/LibraryGrid";
 import { LibraryToasts } from "@/components/features/library/LibraryToasts";
+import { LibraryRetentionBanner } from "@/components/features/library/LibraryRetentionBanner";
 
 export default function LibraryPage() {
   const { t, locale } = useTranslation();
@@ -60,6 +61,7 @@ export default function LibraryPage() {
     filteredFiles,
     selectedCount,
     unassignedCount,
+    expiringSoonCount,
     filteredCampaigns,
     recentCampaigns,
     commandDropResults,
@@ -75,8 +77,6 @@ export default function LibraryPage() {
     assignSelectedToCampaign,
     openCommandDropForSelection,
     assignFromCommandDrop,
-    uploadError,
-    setUploadError,
   } = useLibrary();
 
   const selectedFiles = filteredFiles.filter(f => selectedFileIds.has(f.id));
@@ -144,6 +144,8 @@ export default function LibraryPage() {
     <div className={`space-y-6 ${isIntentDockOpen ? "pb-36" : "pb-20"}`}>
       <LibraryHeader title={t.library.title} subtitle={t.library.subtitle} />
 
+      <LibraryRetentionBanner expiringSoonCount={expiringSoonCount} totalFiles={files.length} />
+
       <div className="mb-8 space-y-4">
         <FileDropzone onFilesDropped={handleFilesDropped} />
       </div>
@@ -171,6 +173,8 @@ export default function LibraryPage() {
           setCampaignQuery("");
           setIsAssignModalOpen(true);
         }}
+        onBulkDelete={() => setIsBulkConfirmOpen(true)}
+        onOpenCommandDrop={openCommandDropForSelection}
         onBulkDelete={() => setIsBulkConfirmOpen(true)}
         labels={{
           searchPlaceholder: t.library.searchAssetsPlaceholder,
@@ -273,6 +277,7 @@ export default function LibraryPage() {
           assignSkipped: t.library.assignSkipped,
           undo: t.library.undo,
           assignRestoreErrorTitle: t.library.assignRestoreErrorTitle,
+          assignRestoreErrorBody: t.library.assignRestoreErrorBody,
         }}
       />
 
