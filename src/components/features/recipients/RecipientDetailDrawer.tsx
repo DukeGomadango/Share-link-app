@@ -32,6 +32,7 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
   const [history, setHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+  const [isFilesExpanded, setIsFilesExpanded] = useState(true);
 
   // Sync state when recipient changes or drawer opens
   useEffect(() => {
@@ -204,44 +205,56 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
         {/* Assigned Files */}
         {assignedFiles.length > 0 && (
           <section>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4 flex items-center gap-2">
-              <Plus className="w-3.5 h-3.5" />
-              現在の配布ファイル ({assignedFiles.length})
-            </h3>
-            <div className="grid grid-cols-1 gap-2">
-              {assignedFiles.map((file) => (
-                <div 
-                  key={file.id}
-                  className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 group/file"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="relative w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
-                      {file.type === "image" && file.previewUrl ? (
-                        <Image src={file.previewUrl} alt={file.name} fill className="object-cover" unoptimized />
-                      ) : file.type === "audio" ? (
-                        <FileAudio className="w-5 h-5 text-emerald-500" />
-                      ) : (
-                        <FileImage className="w-5 h-5 text-emerald-500" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-emerald-600 truncate">{file.name}</p>
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{file.type}</p>
-                    </div>
-                  </div>
-                  {onRemoveFile && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-full opacity-0 group-hover/file:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
-                      onClick={() => onRemoveFile(recipient.id, file.id)}
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+            <div 
+              className="flex items-center justify-between mb-4 cursor-pointer group/header"
+              onClick={() => setIsFilesExpanded(!isFilesExpanded)}
+            >
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 group-hover/header:text-foreground transition-colors">
+                <Plus className="w-3.5 h-3.5" />
+                現在の配布ファイル ({assignedFiles.length})
+              </h3>
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-300 ${isFilesExpanded ? "rotate-180" : ""}`} />
             </div>
+
+            {isFilesExpanded && (
+              <div className="grid grid-cols-1 gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                {assignedFiles.map((file) => (
+                  <div 
+                    key={file.id}
+                    className="flex items-center justify-between p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 group/file"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="relative w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
+                        {file.type === "image" && file.previewUrl ? (
+                          <Image src={file.previewUrl} alt={file.name} fill className="object-cover" unoptimized />
+                        ) : file.type === "audio" ? (
+                          <FileAudio className="w-5 h-5 text-emerald-500" />
+                        ) : (
+                          <FileImage className="w-5 h-5 text-emerald-500" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-emerald-600 truncate">{file.name}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">{file.type}</p>
+                      </div>
+                    </div>
+                    {onRemoveFile && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full opacity-0 group-hover/file:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveFile(recipient.id, file.id);
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 

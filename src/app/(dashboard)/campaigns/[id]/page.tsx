@@ -54,7 +54,6 @@ export default function CampaignDetailPage() {
   } = useCampaignDetail();
 
   const [exportBusy, setExportBusy] = useState(false);
-  const [bulkBusy, setBulkBusy] = useState(false);
   const [addRecipientOpen, setAddRecipientOpen] = useState(false);
   const [addRecipientResetKey, setAddRecipientResetKey] = useState(0);
   const [statusBusy, setStatusBusy] = useState(false);
@@ -65,6 +64,7 @@ export default function CampaignDetailPage() {
   const [securityConfirmOpen, setSecurityConfirmOpen] = useState(false);
   const [pendingSecurityLevel, setPendingSecurityLevel] = useState<"standard" | "high" | null>(null);
   const [banner, setBanner] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [recipientsViewMode, setRecipientsViewMode] = useState<"grid" | "list">("grid");
 
   const handleUpdateStatus = useCallback(
     async (newStatus: "active" | "completed") => {
@@ -178,32 +178,6 @@ export default function CampaignDetailPage() {
 
   const isPublic = campaign?.securityLevel === "standard";
 
-  const handleBulkIssue = useCallback(async () => {
-    if (!campaignId) return;
-    if (files.length === 0) {
-      toast.error(t.campaigns.bulkIssueNoAssets);
-      return;
-    }
-    setBulkBusy(true);
-    setBanner(null);
-    try {
-      const r = await fetch(`/api/campaigns/${campaignId}/bulk-issue`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-      if (!r.ok) {
-        const j = (await r.json().catch(() => ({}))) as { message?: string };
-        throw new Error(j.message ?? "");
-      }
-      await reloadWorkflow();
-      toast.success(t.campaigns.bulkIssueDone);
-    } catch {
-      toast.error(t.campaigns.bulkIssueFailed);
-    } finally {
-      setBulkBusy(false);
-    }
-  }, [campaignId, files.length, reloadWorkflow, t]);
 
   return (
     <div className="space-y-6 h-[calc(100vh-8rem)] flex flex-col">
@@ -404,15 +378,6 @@ export default function CampaignDetailPage() {
             {exportBusy ? t.campaigns.exporting : t.campaigns.exportLinks}
           </Button>
           <Button
-            variant="outline"
-            className="glass"
-            disabled={workflowLoading || !campaignId || bulkBusy || files.length === 0 || campaign?.status !== "active" || isPublic}
-            onClick={() => void handleBulkIssue()}
-          >
-            <LinkIcon className="w-4 h-4 mr-2" />
-            {bulkBusy ? t.campaigns.bulkIssuing : t.campaigns.generateAll}
-          </Button>
-          <Button
             variant="ghost"
             className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             disabled={workflowLoading || !campaignId || isDeleting}
@@ -502,14 +467,14 @@ export default function CampaignDetailPage() {
               onUnassignFiles={handleUnassignFromCampaign}
             />
 
-              <RecipientsSection
-                recipients={recipients}
-                files={files}
-                pulsedRecipientId={pulsedRecipientId}
-                onRemoveFile={handleRemoveFile}
-                onRemoveRecipient={handleRemoveRecipient}
-                onMerge={handleMergeRecipients}
-                readOnly={false}
+            <RecipientsSection
+              recipients={recipients}
+              files={files}
+              pulsedRecipientId={pulsedRecipientId}
+              onRemoveFile={handleRemoveFile}
+              onRemoveRecipient={handleRemoveRecipient}
+              onMerge={handleMergeRecipients}
+              readOnly={false}
               onAddRecipients={() => {
                 setAddRecipientResetKey((k) => k + 1);
                 setAddRecipientOpen(true);
@@ -518,6 +483,8 @@ export default function CampaignDetailPage() {
               showPoolEmptyHint={!workflowLoading && files.length === 0}
               isDraft={campaign?.status === "draft"}
               isPublic={isPublic}
+              viewMode={recipientsViewMode}
+              onViewModeChange={setRecipientsViewMode}
             />
           </div>
 
@@ -579,6 +546,7 @@ export default function CampaignDetailPage() {
           onClose={() => setAddRecipientOpen(false)}
           campaignId={campaignId}
           poolFiles={files}
+          existingRecipients={recipients}
           onIssued={async () => {
             await reloadWorkflow();
             toast.success(t.campaigns.addRecipientSuccess);

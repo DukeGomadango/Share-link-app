@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { X, Search, UserPlus, Users, Check, BookUser } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { X, Search, UserPlus, Users, Check, BookUser, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { FileItem } from "./types";
+import type { FileItem, Recipient } from "./types";
 import { useTranslation } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 type RegistryRecipient = {
   id: string;
@@ -19,6 +20,7 @@ interface AddRecipientModalProps {
   onClose: () => void;
   campaignId: string;
   poolFiles: FileItem[];
+  existingRecipients: Recipient[];
   onIssued: () => void | Promise<void>;
 }
 
@@ -27,15 +29,21 @@ export function AddRecipientModal({
   onClose,
   campaignId,
   poolFiles,
+  existingRecipients,
   onIssued,
 }: AddRecipientModalProps) {
   const { t } = useTranslation();
   const [recipientName, setRecipientName] = useState("");
+  const [bulkNamesList, setBulkNamesList] = useState<string[]>([]);
+  const [bulkInput, setBulkInput] = useState("");
+  const [isBulk, setIsBulk] = useState(false);
   const [listenerNote, setListenerNote] = useState("");
   const [createGlobal, setCreateGlobal] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"new" | "select">("new");
+
+  const bulkInputRef = useRef<HTMLInputElement>(null);
 
   // --- 名簿選択モード用 ---
   const [registry, setRegistry] = useState<RegistryRecipient[]>([]);
@@ -58,6 +66,9 @@ export function AddRecipientModal({
   useEffect(() => {
     if (!isOpen) {
       setRecipientName("");
+      setBulkNamesList([]);
+      setBulkInput("");
+      setIsBulk(false);
       setListenerNote("");
       setCreateGlobal(true);
       setError(null);
@@ -77,6 +88,10 @@ export function AddRecipientModal({
     );
   }, [registry, registrySearch]);
 
+  const existingIds = useMemo(() => {
+    return new Set(existingRecipients.map((r) => r.globalRecipientId || r.id));
+  }, [existingRecipients]);
+
   const selectedRegistryRecipient = registry.find((r) => r.id === selectedRecipientId) || null;
 
   if (!isOpen) return null;
@@ -90,9 +105,9 @@ export function AddRecipientModal({
         return;
       }
     } else {
-      const name = recipientName.trim();
+      const name = isBulk ? (bulkNamesList.length > 0 || bulkInput.trim()) : recipientName.trim();
       if (!name) {
-        setError(t.campaigns.addRecipientValidation);
+        setError(isBulk ? "名前を入力してください。" : t.campaigns.addRecipientValidation);
         return;
       }
     }
@@ -108,6 +123,36 @@ export function AddRecipientModal({
       if (mode === "select") {
         payload.recipientId = selectedRecipientId;
         // 名前は省略可能（API が名簿から自動取得）
+      } else if (isBulk) {
+        // 一括追加
+        const finalNames = Array.from(new Set([
+          ...bulkNamesList,
+          ...(bulkInput.trim() ? [bulkInput.trim()] : [])
+        ])).filter(Boolean);
+
+        if (finalNames.length === 0) {
+          setError("名前を入力してください。");
+          return;
+        }
+        
+        const res = await fetch(`/api/campaigns/${campaignId}/recipient-slots/bulk`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            names: finalNames,
+            listenerNote: listenerNote.trim() || null,
+            createGlobal,
+            campaignAssetIds: [],
+          }),
+        });
+        const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+        if (!res.ok) {
+          setError(data.message ?? data.error ?? t.campaigns.addRecipientError);
+          return;
+        }
+        await onIssued();
+        onClose();
+        return;
       } else {
         payload.recipientDisplayName = recipientName.trim();
         payload.createGlobal = createGlobal;
@@ -135,7 +180,49 @@ export function AddRecipientModal({
   const canSubmit =
     mode === "select"
       ? !!selectedRecipientId && !submitting
-      : !!recipientName.trim() && !submitting;
+      : (isBulk ? (bulkNamesList.length > 0 || !!bulkInput.trim()) : !!recipientName.trim()) && !submitting;
+
+  // --- スマート・チップ用ロジック ---
+  const handleBulkInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const val = bulkInput.trim().replace(/,$/, "");
+      if (val && !bulkNamesList.includes(val)) {
+        setBulkNamesList((prev) => [...prev, val]);
+        setBulkInput("");
+      } else {
+        setBulkInput("");
+      }
+    } else if (e.key === "Backspace" && !bulkInput && bulkNamesList.length > 0) {
+      setBulkNamesList((prev) => prev.slice(0, -1));
+    }
+  };
+
+  const handleBulkInputPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text");
+    const newNames = text
+      .split(/[\n,]/)
+      .map((n) => n.trim())
+      .filter((n) => n && !bulkNamesList.includes(n));
+    
+    if (newNames.length > 0) {
+      setBulkNamesList((prev) => Array.from(new Set([...prev, ...newNames])));
+      setBulkInput("");
+    }
+  };
+
+  const handleBulkInputBlur = () => {
+    const val = bulkInput.trim().replace(/,$/, "");
+    if (val && !bulkNamesList.includes(val)) {
+      setBulkNamesList((prev) => [...prev, val]);
+      setBulkInput("");
+    }
+  };
+
+  const removeBulkName = (index: number) => {
+    setBulkNamesList((prev) => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
@@ -161,7 +248,7 @@ export function AddRecipientModal({
             onClick={() => { setMode('new'); setError(null); }}
           >
             <UserPlus className="w-3.5 h-3.5 mr-2" />
-            新規作成
+            {t.campaigns.directInput}
           </Button>
           <Button 
             variant="ghost" 
@@ -170,31 +257,101 @@ export function AddRecipientModal({
             onClick={() => { setMode('select'); setError(null); }}
           >
             <BookUser className="w-3.5 h-3.5 mr-2" />
-            名簿から選択
+            {t.campaigns.selectFromRegistry}
           </Button>
         </div>
 
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
           {mode === 'new' ? (
             <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label htmlFor="add-recipient-name" className="text-sm font-semibold ml-1">
-                  名前
-                </label>
-                <input
-                  id="add-recipient-name"
-                  type="text"
-                  autoComplete="off"
-                  maxLength={200}
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="リスナーの名前を入力..."
-                  className="w-full rounded-2xl border border-border/60 bg-background/50 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-all"
-                />
+              <div className="flex items-center justify-between px-1">
+                <label className="text-sm font-semibold">名前</label>
+                <div className="flex bg-muted/50 p-0.5 rounded-lg border border-border/40 scale-90 origin-right">
+                  <button
+                    type="button"
+                    onClick={() => setIsBulk(false)}
+                    className={cn(
+                      "px-3 py-1 text-[10px] font-bold rounded-md transition-all",
+                      !isBulk ? "bg-background shadow-sm text-emerald-600" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {t.campaigns.individualAdd}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsBulk(true)}
+                    className={cn(
+                      "px-3 py-1 text-[10px] font-bold rounded-md transition-all",
+                      isBulk ? "bg-background shadow-sm text-emerald-600" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {t.campaigns.bulkAdd}
+                  </button>
+                </div>
               </div>
+
+              {isBulk ? (
+                <div className="space-y-1.5">
+                  <div 
+                    className="w-full rounded-2xl border border-border/60 bg-background/50 px-3 py-1.5 min-h-[48px] max-h-[200px] focus-within:ring-2 focus-within:ring-emerald-500/40 transition-all flex flex-wrap gap-1.5 content-start cursor-text overflow-y-auto scrollbar-thin"
+                    onClick={() => bulkInputRef.current?.focus()}
+                  >
+                    {bulkNamesList.map((name, i) => (
+                      <div 
+                        key={`${name}-${i}`} 
+                        className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 text-emerald-700 rounded-lg border border-emerald-500/20 text-[11px] font-bold animate-in zoom-in-95 group/chip hover:bg-emerald-500/20 transition-colors"
+                      >
+                        <span className="max-w-[120px] truncate">{name}</span>
+                        <button 
+                          type="button" 
+                          onClick={(e) => { e.stopPropagation(); removeBulkName(i); }} 
+                          className="hover:bg-emerald-500/30 rounded-full p-0.5 transition-colors"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                    <input
+                      ref={bulkInputRef}
+                      type="text"
+                      autoComplete="off"
+                      value={bulkInput}
+                      onChange={(e) => setBulkInput(e.target.value)}
+                      onKeyDown={handleBulkInputKeyDown}
+                      onPaste={handleBulkInputPaste}
+                      onBlur={handleBulkInputBlur}
+                      placeholder={bulkNamesList.length === 0 ? t.campaigns.bulkAddPlaceholder : ""}
+                      className="flex-1 min-w-[80px] bg-transparent outline-none py-1 text-sm"
+                    />
+                  </div>
+                  <div className="flex justify-between items-center px-1">
+                    <p className="text-[9px] text-muted-foreground opacity-70">
+                      {t.campaigns.bulkAddHint}
+                    </p>
+                    {bulkNamesList.length > 0 && (
+                      <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-500/5 px-2 py-0.5 rounded-full border border-emerald-500/10">
+                        {bulkNamesList.length} 名
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <input
+                    id="add-recipient-name"
+                    type="text"
+                    autoComplete="off"
+                    maxLength={200}
+                    value={recipientName}
+                    onChange={(e) => setRecipientName(e.target.value)}
+                    placeholder="リスナーの名前を入力..."
+                    className="w-full rounded-2xl border border-border/60 bg-background/50 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-all"
+                  />
+                </div>
+              )}
               <div className="space-y-1.5">
                 <label htmlFor="add-recipient-note" className="text-sm font-semibold ml-1">
-                  識別用メモ（任意）
+                  {isBulk ? t.campaigns.commonNote : t.campaigns.addRecipientNameLabel}
                 </label>
                 <input
                   id="add-recipient-note"
@@ -203,24 +360,24 @@ export function AddRecipientModal({
                   maxLength={300}
                   value={listenerNote}
                   onChange={(e) => setListenerNote(e.target.value)}
-                  placeholder="@や通称など、同名との区別に使うメモ"
-                  className="w-full rounded-2xl border border-border/60 bg-background/50 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-all"
+                  placeholder={isBulk ? t.campaigns.commonNotePlaceholder : t.campaigns.addRecipientNamePlaceholder}
+                  className="w-full rounded-2xl border border-border/60 bg-background/50 px-4 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 transition-all"
                 />
               </div>
               {/* 名簿登録オプション */}
-              <label className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/30 cursor-pointer hover:bg-muted/50 transition-colors">
+              <label className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/30 border border-border/30 cursor-pointer hover:bg-muted/50 transition-colors">
                 <input
                   type="checkbox"
                   checked={createGlobal}
                   onChange={(e) => setCreateGlobal(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-5 h-5 rounded-md border-2 border-border/60 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 flex items-center justify-center transition-all shrink-0">
-                  {createGlobal && <Check className="w-3.5 h-3.5 text-white" />}
+                <div className="w-4 h-4 rounded border-2 border-border/60 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 flex items-center justify-center transition-all shrink-0">
+                  {createGlobal && <Check className="w-2.5 h-2.5 text-white" />}
                 </div>
                 <div>
-                  <p className="text-sm font-medium">受取人名簿にも保存する</p>
-                  <p className="text-[10px] text-muted-foreground">次回以降のキャンペーンでも選択できるようになります</p>
+                  <p className="text-xs font-medium">受取人名簿にも保存する</p>
+                  <p className="text-[9px] text-muted-foreground">次回以降も選択可能になります</p>
                 </div>
               </label>
             </div>
@@ -257,67 +414,81 @@ export function AddRecipientModal({
                 ) : (
                   filteredRegistry.map((r) => {
                     const isSelected = selectedRecipientId === r.id;
+                    const isAlreadyInCampaign = existingIds.has(r.id);
+
                     return (
                       <button
                         key={r.id}
                         type="button"
+                        disabled={isAlreadyInCampaign}
                         onClick={() => setSelectedRecipientId(isSelected ? null : r.id)}
-                        className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors hover:bg-muted/40 ${
-                          isSelected ? "bg-emerald-500/10" : ""
-                        }`}
+                        className={cn(
+                          "w-full text-left px-4 py-3 flex items-center gap-3 transition-colors",
+                          isSelected ? "bg-emerald-500/10" : isAlreadyInCampaign ? "opacity-50 cursor-not-allowed bg-muted/20" : "hover:bg-muted/40"
+                        )}
                       >
                         {/* Selection indicator */}
                         <div
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
+                          className={cn(
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all",
                             isSelected
                               ? "border-emerald-500 bg-emerald-500"
+                              : isAlreadyInCampaign
+                              ? "border-muted bg-muted"
                               : "border-border/60"
-                          }`}
+                          )}
                         >
                           {isSelected && <Check className="w-3 h-3 text-white" />}
+                          {isAlreadyInCampaign && <Check className="w-3 h-3 text-muted-foreground" />}
                         </div>
 
                         {/* Avatar */}
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400/20 to-sky-400/20 flex items-center justify-center text-xs font-bold text-foreground/70 shrink-0">
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0",
+                          isAlreadyInCampaign 
+                            ? "bg-muted text-muted-foreground" 
+                            : "bg-gradient-to-br from-emerald-400/20 to-sky-400/20 text-foreground/70"
+                        )}>
                           {r.name.charAt(0)}
                         </div>
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{r.name}</p>
+                          <p className={cn("text-sm font-medium truncate", isAlreadyInCampaign && "text-muted-foreground")}>
+                            {r.name}
+                          </p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {r.platformId?.handle && (
                               <span className="text-[10px] text-muted-foreground truncate">
                                 @{r.platformId.handle}
                               </span>
                             )}
-                            {r.tags.slice(0, 2).map((tag) => (
-                              <span
-                                key={tag}
-                                className="text-[9px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground"
-                              >
-                                {tag}
+                            {isAlreadyInCampaign && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-500 font-bold">
+                                追加済み
                               </span>
-                            ))}
+                            )}
                           </div>
                         </div>
 
                         {/* Status badge */}
-                        <span
-                          className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                            r.status === "claimed"
-                              ? "bg-sky-500/10 text-sky-500"
+                        {!isAlreadyInCampaign && (
+                          <span
+                            className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                              r.status === "claimed"
+                                ? "bg-sky-500/10 text-sky-500"
+                                : r.status === "verified"
+                                ? "bg-emerald-500/10 text-emerald-500"
+                                : "bg-amber-500/10 text-amber-500"
+                            }`}
+                          >
+                            {r.status === "claimed"
+                              ? "受取済"
                               : r.status === "verified"
-                              ? "bg-emerald-500/10 text-emerald-500"
-                              : "bg-amber-500/10 text-amber-500"
-                          }`}
-                        >
-                          {r.status === "claimed"
-                            ? "受取済"
-                            : r.status === "verified"
-                            ? "認証済"
-                            : "待機中"}
-                        </span>
+                              ? "認証済"
+                              : "待機中"}
+                          </span>
+                        )}
                       </button>
                     );
                   })
