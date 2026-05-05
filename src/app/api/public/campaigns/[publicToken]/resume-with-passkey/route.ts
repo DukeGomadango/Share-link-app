@@ -139,5 +139,6 @@ export async function POST(request: Request, ctx: RouteParams) {
     ok: true,
     campaignId: camp.id,
     claimId: resolved.claimId,
+    claimSecret: resolved.claimSecret,
   });
 }

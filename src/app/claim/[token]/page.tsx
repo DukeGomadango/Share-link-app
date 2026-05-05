@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ClaimAuthView } from "@/components/features/claim/ClaimAuthView";
 import { ClaimUnopenedView } from "@/components/features/claim/ClaimUnopenedView";
 import { ClaimContentView } from "@/components/features/claim/ClaimContentView";
+import { PasskeyRegisterCard } from "@/components/features/claim/PasskeyRegisterCard";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { ClaimFile } from "@/components/features/claim/types";
 
@@ -60,7 +60,6 @@ export default function ClaimPage() {
   const token = typeof params?.token === "string" ? params.token : "";
   const isPreview = searchParams?.get("preview") === "true";
   
-  const [isAuthenticated, setIsAuthenticated] = useState(isPreview);
   const [isOpened, setIsOpened] = useState(false);
   const [bundle, setBundle] = useState<{
     expiryIso: string;
@@ -71,6 +70,31 @@ export default function ClaimPage() {
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimLoading, setClaimLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [detectedName, setDetectedName] = useState<string | null>(null);
+
+  // オートリンク（リピーター自動認識）
+  useEffect(() => {
+    if (!token || isPreview || !bundle || bundle.passkeyLinked) return;
+
+    void (async () => {
+      try {
+        const r = await fetch(`/api/claim/${encodeURIComponent(token)}/auto-link`, {
+          method: "POST",
+          credentials: "include",
+        });
+        if (r.ok) {
+          const data = await r.json();
+          if (data.ok) {
+            setDetectedName(data.detectedName);
+            // 紐付けに成功したので、bundle の状態を更新して登録カードを消す
+            setBundle((prev) => (prev ? { ...prev, passkeyLinked: true } : null));
+          }
+        }
+      } catch (e) {
+        console.error("Auto-link attempt failed", e);
+      }
+    })();
+  }, [token, isPreview, bundle?.passkeyLinked, !!bundle]);
 
   // リアルタイム監視 (Supabase Realtime)
   useEffect(() => {
@@ -176,15 +200,19 @@ export default function ClaimPage() {
     };
   }, [token]);
 
-  const handleAuth = () => {
-    setIsVerifying(true);
-    setTimeout(() => {
-      setIsAuthenticated(true);
-      setIsVerifying(false);
-    }, 1500);
+  const handleOpen = async () => {
+    // ステータスを「開封済み」に更新
+    try {
+      await fetch(`/api/claim/${encodeURIComponent(token)}/claim`, {
+        method: "POST",
+      });
+    } catch (e) {
+      console.error("Failed to update status to claimed:", e);
+    }
+    setIsOpened(true);
   };
 
-  const phaseKey = !isAuthenticated ? "auth" : !isOpened ? "unopened" : "content";
+  const phaseKey = !isOpened ? "unopened" : "content";
 
   const expiryDate = bundle
     ? new Date(bundle.expiryIso)
@@ -196,19 +224,6 @@ export default function ClaimPage() {
 
   return (
     <AnimatePresence mode="wait">
-      {phaseKey === "auth" && (
-        <motion.div
-          key="auth"
-          variants={pageVariants}
-          initial="initial"
-          animate="enter"
-          exit="exit"
-          className="w-full"
-        >
-          <ClaimAuthView onVerify={handleAuth} isVerifying={isVerifying} />
-        </motion.div>
-      )}
-
       {phaseKey === "unopened" && (
         <motion.div
           key="unopened"
@@ -225,7 +240,7 @@ export default function ClaimPage() {
             </div>
           ) : (
             <ClaimUnopenedView 
-              onOpen={() => setIsOpened(true)} 
+              onOpen={handleOpen} 
               expiryDate={expiryDate} 
               campaignName={bundle?.campaignName}
             />
@@ -267,11 +282,43 @@ export default function ClaimPage() {
             </div>
           )}
           {!claimLoading && bundle && !claimError && (
-            <ClaimContentView 
-              files={bundle.files} 
-              expiryDate={new Date(bundle.expiryIso)} 
-              campaignName={bundle.campaignName}
-            />
+            <div className="flex flex-col items-center gap-8">
+              {detectedName && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-6 py-3 flex items-center gap-3"
+                >
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <p className="text-sm font-bold text-emerald-700">
+                    おかえりなさい、{detectedName} さん
+                  </p>
+                </motion.div>
+              )}
+              
+              <ClaimContentView 
+                files={bundle.files} 
+                expiryDate={new Date(bundle.expiryIso)} 
+                campaignName={bundle.campaignName}
+              />
+              
+              {/* パスキー未登録の場合に登録を促す（プレビュー時は非表示） */}
+              {!isPreview && !bundle.passkeyLinked && bundle.campaignId && (
+                <PasskeyRegisterCard 
+                  campaignId={bundle.campaignId} 
+                  onSuccess={() => {
+                    // 登録成功時に情報を再取得
+                    void (async () => {
+                      const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`);
+                      if (r.ok) {
+                        const data = await r.json();
+                        setBundle(prev => prev ? { ...prev, passkeyLinked: true } : null);
+                      }
+                    })();
+                  }}
+                />
+              )}
+            </div>
           )}
         </motion.div>
       )}

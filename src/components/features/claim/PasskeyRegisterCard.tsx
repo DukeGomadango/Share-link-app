@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import {
   startRegistration,
+  startAuthentication,
   type PublicKeyCredentialCreationOptionsJSON,
+  type PublicKeyCredentialRequestOptionsJSON,
 } from "@simplewebauthn/browser";
-import { KeyRound, Loader2 } from "lucide-react";
+import { KeyRound, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -22,12 +25,56 @@ export function PasskeyRegisterCard({ campaignId, onSuccess }: Props) {
     setBusy(true);
     setErr(null);
     try {
+      // --- ステップ1: 既存のパスキーがあるか確認（ログイン試行） ---
+      const loginOptRes = await fetch("/api/webauthn/login/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      const loginOptJson = (await loginOptRes.json()) as {
+        options?: PublicKeyCredentialRequestOptionsJSON;
+        challengeId?: string;
+      };
+
+      if (loginOptRes.ok && loginOptJson.options && loginOptJson.challengeId) {
+        try {
+          // ブラウザに既存の鍵を探させる
+          const assertion = await startAuthentication({ optionsJSON: loginOptJson.options });
+          
+          // 既存の鍵が見つかった場合はログイン検証へ
+          const verRes = await fetch("/api/webauthn/login/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              challengeId: loginOptJson.challengeId,
+              credential: assertion,
+            }),
+          });
+
+          if (verRes.ok) {
+            // ログイン成功 ＝ 既存アカウントとの紐付け完了
+            setDone(true);
+            onSuccess?.();
+            return;
+          }
+        } catch (authErr: any) {
+          // 鍵が見つからない（NotFoundError）以外はエラーとして中断
+          if (authErr.name !== "NotFoundError" && authErr.name !== "NotAllowedError") {
+            throw authErr;
+          }
+          // NotFoundError（鍵がない）の場合は、そのままステップ2の新規登録へ進む
+        }
+      }
+
+      // --- ステップ2: 新規パスキー作成（登録フロー） ---
       const optRes = await fetch("/api/webauthn/register/options", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ campaignId }),
       });
+      // (以下、既存の登録ロジック)
       const optJson = (await optRes.json()) as {
         error?: string;
         message?: string;
@@ -58,25 +105,21 @@ export function PasskeyRegisterCard({ campaignId, onSuccess }: Props) {
           credential: att,
         }),
       });
-      const verJson = (await verRes.json().catch(() => ({}))) as {
-        error?: string;
-        message?: string;
-      };
       if (!verRes.ok) {
-        setErr(verJson.message ?? verJson.error ?? "登録に失敗しました");
+        const verJson = (await verRes.json().catch(() => ({}))) as { error?: string };
+        setErr(verJson.error ?? "登録に失敗しました");
         return;
       }
       setDone(true);
       onSuccess?.();
     } catch (e: any) {
-      // ユーザーによるキャンセルやタイムアウトなどのハンドリング
       if (e?.name === "NotAllowedError") {
-        // キャンセルの場合はエラーを表示しない
         setErr(null);
       } else if (e?.name === "TimeoutError") {
         setErr("タイムアウトしました。もう一度お試しください。");
       } else {
-        setErr("登録が中断されました。");
+        console.error("Passkey process failed:", e);
+        setErr("本人確認が中断されました。");
       }
     } finally {
       setBusy(false);
@@ -85,31 +128,49 @@ export function PasskeyRegisterCard({ campaignId, onSuccess }: Props) {
 
   if (done) {
     return (
-      <p className="text-xs text-emerald-600/90 text-center max-w-md">
-        この端末で本人確認の登録が済みました。次回以降はパスキーで続けられます。
-      </p>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-emerald-50 border border-emerald-100"
+      >
+        <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+        <p className="text-xs font-bold text-emerald-700 text-center">
+          本人確認を保存しました。次回からは指紋や顔認証だけでアクセスできます。
+        </p>
+      </motion.div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-muted/30 px-4 py-3 space-y-3 max-w-md w-full">
-      <p className="text-sm text-muted-foreground leading-relaxed">
-        このスマホに保存すると、次回から同じブラウザで名前入力の手間を減らせます（任意）。
-      </p>
-      {err ? <p className="text-xs text-destructive">{err}</p> : null}
+    <div className="rounded-[2rem] border border-black/[0.05] bg-white/50 backdrop-blur-sm p-6 space-y-4 max-w-md w-full shadow-sm">
+      <div className="space-y-2 text-center">
+        <p className="text-sm font-bold text-foreground">
+          このギフトを保存しますか？
+        </p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+          生体認証を登録すると、URLを忘れても指紋や顔認証で再アクセスできるようになります（任意）。
+        </p>
+      </div>
+
+      {err ? (
+        <p className="text-[10px] text-destructive text-center font-bold bg-destructive/5 py-2 rounded-lg border border-destructive/10">
+          {err}
+        </p>
+      ) : null}
+
       <Button
         type="button"
         variant="secondary"
-        className="w-full gap-2 rounded-xl"
+        className="w-full h-12 gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold border-none transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md shadow-emerald-500/10"
         onClick={() => void handle()}
         disabled={busy}
       >
         {busy ? (
-          <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+          <Loader2 className="w-5 h-5 animate-spin" aria-hidden />
         ) : (
-          <KeyRound className="w-4 h-4" aria-hidden />
+          <KeyRound className="w-5 h-5" aria-hidden />
         )}
-        この端末で受け取りを覚えておく
+        生体認証で保存する
       </Button>
     </div>
   );

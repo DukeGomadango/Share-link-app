@@ -31,7 +31,11 @@ export default function PublicReceivePage() {
         { method: "GET" }
       );
       if (!r.ok) return false;
-      const j = (await r.json()) as { ok: boolean; campaignId?: string };
+      const j = (await r.json()) as { ok: boolean; campaignId?: string; claimSecret?: string };
+      if (j.ok && j.claimSecret) {
+        router.replace(`/claim/${encodeURIComponent(j.claimSecret)}`);
+        return true;
+      }
       if (j.ok && j.campaignId) {
         router.replace(`/claim/session/${encodeURIComponent(j.campaignId)}`);
         return true;
@@ -49,7 +53,11 @@ export default function PublicReceivePage() {
       { method: "POST", credentials: "include" }
     );
     if (!r.ok) return { resumed: false };
-    const j = (await r.json()) as { campaignId?: string; detectedName?: string };
+    const j = (await r.json()) as { campaignId?: string; detectedName?: string; claimSecret?: string };
+    if (j.claimSecret) {
+      router.replace(`/claim/${encodeURIComponent(j.claimSecret)}`);
+      return { resumed: true };
+    }
     if (j.campaignId && typeof j.campaignId === "string") {
       router.replace(`/claim/session/${encodeURIComponent(j.campaignId)}`);
       return { resumed: true };
@@ -163,12 +171,15 @@ export default function PublicReceivePage() {
         message?: string;
         error?: string;
         campaignId?: string;
+        claimSecret?: string;
       };
       if (!r.ok) {
         setError(j.message ?? j.error ?? "チェックインに失敗しました");
         return;
       }
-      if (j.campaignId && typeof j.campaignId === "string") {
+      if (j.claimSecret) {
+        router.push(`/claim/${encodeURIComponent(j.claimSecret)}`);
+      } else if (j.campaignId && typeof j.campaignId === "string") {
         router.push(`/claim/session/${encodeURIComponent(j.campaignId)}`);
       } else {
         router.push("/claim");

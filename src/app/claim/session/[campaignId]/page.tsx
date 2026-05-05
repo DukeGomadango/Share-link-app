@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Gift } from "lucide-react";
@@ -18,6 +18,7 @@ export default function ClaimSessionByCampaignPage() {
   const params = useParams<{ campaignId: string }>();
   const campaignId =
     typeof params?.campaignId === "string" ? params.campaignId : "";
+  const router = useRouter();
 
   const [bundle, setBundle] = useState<{
     expiryIso: string;
@@ -82,6 +83,13 @@ export default function ClaimSessionByCampaignPage() {
         passkeyLinked: data.passkeyLinked,
         files,
       });
+      
+      // 新しい個別トークン形式の URL へ自動移行（リダイレクト）
+      if (data.claimSecret) {
+        router.replace(`/claim/${encodeURIComponent(data.claimSecret)}`);
+        return;
+      }
+
       setNoSession(false);
       setLoadError(null);
     } catch {
@@ -210,6 +218,15 @@ export default function ClaimSessionByCampaignPage() {
       <div className="min-h-[100dvh] flex flex-col items-center">
         <ClaimUnopenedView
           onOpen={async () => {
+            // ステータスを「開封済み」に更新
+            try {
+              await fetch(`/api/claim/session/claim?campaignId=${encodeURIComponent(campaignId)}`, {
+                method: "POST",
+                credentials: "include",
+              });
+            } catch (e) {
+              console.error("Failed to update status to claimed:", e);
+            }
             // 開封の瞬間に最新の署名付きURLを再取得して、確実に表示されるようにする
             await fetchSession({ force: true });
             setIsOpened(true);

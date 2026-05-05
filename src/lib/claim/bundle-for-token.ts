@@ -18,6 +18,8 @@ export type ClaimBundleResponse = {
   campaignId?: string;
   /** ライバー未割当・ファイルなし（リスナーは待機ポーリング） */
   pending?: boolean;
+  /** この claim のトークン（リダイレクト等で使用） */
+  claimSecret?: string;
   /** この claim にパスキー（WebAuthn）が紐づいている */
   passkeyLinked?: boolean;
   files: Array<{
@@ -96,6 +98,7 @@ export async function buildClaimBundleForSecret(
       campaignName,
       campaignId: hit.campaignId,
       pending: true,
+      claimSecret,
       passkeyLinked,
       files: [],
     };
@@ -148,6 +151,7 @@ export async function buildClaimBundleForSecret(
     campaignId: hit.campaignId,
     passkeyLinked,
     pending: validFiles.length === 0,
+    claimSecret,
     files: validFiles,
   };
 }

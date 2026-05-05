@@ -63,6 +63,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
         ok: true,
         campaignId: c.id,
         claimId: existing[0].id,
+        claimSecret: secret, // トークンを返す
       });
     }
   }
@@ -213,5 +214,6 @@ export async function POST(request: Request, ctx: RouteParams) {
     ok: true,
     claimId: created.claimId,
     campaignId: c.id,
+    claimSecret: created.claimSecret,
   });
 }
