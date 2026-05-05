@@ -66,6 +66,8 @@ export const campaigns = pgTable(
     distributionMode: text("distribution_mode").default("per_link").notNull(),
     /** `/receive/[token]` 用。公開UUIDより推測されにくいランダムトークン */
     publicReceptionToken: text("public_reception_token"),
+    /** 外部連携（ガチャ等）によって作成されたか */
+    isExternalLinked: boolean("is_external_linked").default(false).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

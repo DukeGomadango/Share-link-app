@@ -129,6 +129,16 @@
   html {
     @apply font-sans;
   }
+  /* Fix native select options readability */
+  select option {
+    background-color: white;
+    color: #1a1a2e;
+  }
+
+  .dark select option {
+    background-color: #1a1a2e;
+    color: #ededed;
+  }
 }
 
 @layer utilities {

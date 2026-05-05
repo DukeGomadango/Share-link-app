@@ -77,6 +77,7 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
       securityLevel: (row.securityLevel as Campaign["securityLevel"]) || "standard",
       distributionMode: (row.distributionMode as Campaign["distributionMode"]) ?? "per_link",
       publicReceptionToken: row.publicReceptionToken ?? undefined,
+      isExternalLinked: row.isExternalLinked,
       stats: {
         totalFiles,
         assignedRecipients,

@@ -211,6 +211,13 @@ export default function CampaignDetailPage() {
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted-foreground">配布モード</span>
               
+              {campaign.isExternalLinked && (
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 border border-purple-500/20 text-[10px] font-bold">
+                  <LinkIcon className="w-3 h-3" />
+                  ガチャ連携済み
+                </div>
+              )}
+              
               <div className="flex items-center bg-muted/30 p-0.5 rounded-xl border border-border/50">
                 <button
                   onClick={() => {
@@ -223,7 +230,7 @@ export default function CampaignDetailPage() {
                       ? "bg-white dark:bg-slate-800 shadow-sm text-emerald-600" 
                       : "text-muted-foreground hover:text-foreground"
                   )}
-                  disabled={statusBusy}
+                  disabled={statusBusy || campaign?.isExternalLinked}
                 >
                   公開
                 </button>
@@ -238,7 +245,7 @@ export default function CampaignDetailPage() {
                       ? "bg-white dark:bg-slate-800 shadow-sm text-blue-600" 
                       : "text-muted-foreground hover:text-foreground"
                   )}
-                  disabled={statusBusy}
+                  disabled={statusBusy || campaign?.isExternalLinked}
                 >
                   限定
                 </button>
@@ -250,6 +257,7 @@ export default function CampaignDetailPage() {
                   <select
                     className="rounded-lg border border-border/60 bg-background/80 px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                     value={campaign.distributionMode ?? "per_link"}
+                    disabled={campaign.isExternalLinked}
                     onChange={(e) => {
                       const v = e.target.value;
                       void (async () => {

@@ -75,6 +75,8 @@ export interface Campaign {
   distributionMode?: DistributionMode;
   /** 受付ページ `/receive/[token]` 用（サーバが初回アクセス時に生成することあり） */
   publicReceptionToken?: string;
+  /** ガチャ等の外部連携が行われているか（公開設定をロックする） */
+  isExternalLinked?: boolean;
   stats: {
     totalFiles: number;
     assignedRecipients: number;

@@ -179,7 +179,10 @@ export function useCampaignDetail() {
   const fetchLibraryFiles = useCallback(() => {
     fetch("/api/files")
       .then((r) => r.json())
-      .then((data) => setLibraryFiles(data as LibraryFile[]))
+      .then((data) => {
+        const files = Array.isArray(data) ? data : (data.files || []);
+        setLibraryFiles(files as LibraryFile[]);
+      })
       .catch((e) => console.error(e));
   }, []);
 
