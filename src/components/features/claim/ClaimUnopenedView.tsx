@@ -11,12 +11,24 @@ interface ClaimUnopenedViewProps {
   campaignName?: string;
   isLoading?: boolean;
   isEmpty?: boolean;
+  onOpenCollection?: () => void;
 }
 
-export function ClaimUnopenedView({ onOpen, expiryDate, campaignName, isLoading, isEmpty }: ClaimUnopenedViewProps) {
+export function ClaimUnopenedView({ onOpen, expiryDate, campaignName, isLoading, isEmpty, onOpenCollection }: ClaimUnopenedViewProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-12">
+    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center space-y-12 relative">
+      {onOpenCollection && (
+        <div className="absolute top-0 right-0 p-6">
+          <button 
+            onClick={onOpenCollection}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/50 backdrop-blur-md border border-emerald-100 text-emerald-600 text-xs font-bold hover:bg-emerald-50 transition-all shadow-sm"
+          >
+            <Gift className="w-4 h-4" />
+            {t.claim.collectionTitle}
+          </button>
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -25,10 +37,10 @@ export function ClaimUnopenedView({ onOpen, expiryDate, campaignName, isLoading,
       >
         <CountdownBadge expiresAt={expiryDate} />
         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-emerald-600">
-          {t.claim.receivedGift}
+          {isEmpty ? t.claim.giftComingSoon : t.claim.receivedGift}
         </h1>
         <p className="text-muted-foreground/80 text-sm">
-          {t.claim.from.replace("{sender}", campaignName || "特別な贈り物")}
+          {t.claim.from.replace("{sender}", campaignName || t.claim.headerTitle)}
         </p>
       </motion.div>
 
@@ -36,7 +48,7 @@ export function ClaimUnopenedView({ onOpen, expiryDate, campaignName, isLoading,
       <motion.button
         onClick={onOpen}
         disabled={isEmpty || isLoading}
-        className={`relative group focus:outline-none ${(isEmpty || isLoading) ? "cursor-wait" : ""}`}
+        className={`relative group focus:outline-none flex flex-col items-center ${(isEmpty || isLoading) ? "cursor-wait" : ""}`}
         initial={{ scale: 0.85, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -51,7 +63,7 @@ export function ClaimUnopenedView({ onOpen, expiryDate, campaignName, isLoading,
         />
 
         {/* ボックス本体 */}
-        <div className={`relative w-44 h-44 bg-gradient-to-br rounded-3xl flex items-center justify-center shadow-2xl ${
+        <div className={`relative w-44 h-44 bg-gradient-to-br rounded-3xl flex items-center justify-center shadow-2xl mx-auto ${
           isEmpty 
             ? "from-slate-400 to-slate-500 shadow-slate-500/30" 
             : "from-emerald-400 to-emerald-600 shadow-emerald-500/50"
@@ -71,11 +83,11 @@ export function ClaimUnopenedView({ onOpen, expiryDate, campaignName, isLoading,
         </div>
 
         <motion.p
-          className={`mt-8 text-sm font-bold tracking-[0.2em] uppercase ${isEmpty ? "text-slate-400" : "text-emerald-500"}`}
-          animate={{ opacity: [0.5, 1, 0.5] }}
+          className={`mt-8 text-sm font-bold px-6 max-w-[280px] leading-relaxed mx-auto ${isEmpty ? "text-slate-500" : "text-emerald-500 tracking-[0.2em] uppercase"}`}
+          animate={isEmpty ? { opacity: [0.7, 1, 0.7] } : { opacity: [0.5, 1, 0.5] }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         >
-          {isEmpty ? "コンテンツを準備中..." : t.claim.tapToOpen}
+          {isEmpty ? t.claim.preparingContent : t.claim.tapToOpen}
         </motion.p>
       </motion.button>
     </div>

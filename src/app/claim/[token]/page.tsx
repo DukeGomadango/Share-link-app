@@ -301,6 +301,7 @@ export default function ClaimPage() {
               expiryDate={expiryDate} 
               campaignName={bundle?.campaignName}
               isEmpty={bundle?.files.length === 0}
+              onOpenCollection={() => setIsCollectionOpen(true)}
             />
           )}
         </motion.div>
@@ -341,7 +342,7 @@ export default function ClaimPage() {
           )}
           {!claimLoading && bundle && !claimError && (
             <div className="flex flex-col items-center gap-8">
-              {detectedName && (
+              {(detectedName || bundle.displayName) && (
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -349,7 +350,7 @@ export default function ClaimPage() {
                 >
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <p className="text-sm font-bold text-emerald-700">
-                    おかえりなさい、{detectedName} さん
+                    おかえりなさい、{detectedName || bundle.displayName} さん
                   </p>
                 </motion.div>
               )}
@@ -361,54 +362,23 @@ export default function ClaimPage() {
                 onClose={() => setIsCollectionOpen(false)} 
               />
 
-              {/* フローティング・コレクションボタン */}
-              {!isPreview && (
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="fixed top-6 left-6 z-[60] flex items-center gap-3"
-                >
-                  <div className="relative group/btn">
-                    <button
-                      onClick={() => setIsCollectionOpen(true)}
-                      className="w-12 h-12 bg-white/70 backdrop-blur-xl border border-white shadow-xl rounded-2xl flex items-center justify-center text-emerald-600 hover:scale-105 active:scale-95 transition-all group"
-                    >
-                      <Gift className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-                      
-                      {/* 通知バッジ */}
-                      <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-white shadow-sm"></span>
-                      </span>
-                    </button>
-
-                    {/* ホバーラベル (デスクトップ用) */}
-                    <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 opacity-0 group-hover/btn:opacity-100 translate-x-2 group-hover/btn:translate-x-0 transition-all duration-300 pointer-events-none whitespace-nowrap">
-                      <div className="bg-emerald-950 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-xl">
-                        {t.claim.collectionTitle}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-                <>
-                  <ClaimContentView 
-                    files={bundle.files} 
-                    expiryDate={new Date(bundle.expiryIso)} 
-                    campaignName={bundle.campaignName}
-                    hideActionBar={isCollectionOpen}
+              <>
+                <ClaimContentView 
+                  files={bundle.files} 
+                  expiryDate={new Date(bundle.expiryIso)} 
+                  campaignName={bundle.campaignName}
+                  hideActionBar={isCollectionOpen}
+                  onOpenCollection={() => setIsCollectionOpen(true)}
+                />
+                
+                {/* パスケー未登録の場合のオプション案内 */}
+                {!isPreview && !bundle.passkeyLinked && bundle.campaignId && (
+                  <PasskeyRegisterCard 
+                    campaignId={bundle.campaignId} 
+                    onSuccess={() => window.location.reload()}
                   />
-                  
-                  {/* パスケー未登録の場合のオプション案内 */}
-                  {!isPreview && !bundle.passkeyLinked && bundle.campaignId && (
-                    <PasskeyRegisterCard 
-                      campaignId={bundle.campaignId} 
-                      onSuccess={() => window.location.reload()}
-                    />
-                  )}
-                </>
-              )}
+                )}
+              </>
             </div>
           )}
         </motion.div>

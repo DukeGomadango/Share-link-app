@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { CountdownBadge } from "@/components/shared/CountdownBadge";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Gift } from "lucide-react";
 import { ClaimFile } from "./types";
 import { useTranslation } from "@/lib/i18n";
 
@@ -29,9 +29,10 @@ interface ClaimContentViewProps {
   expiryDate: Date;
   campaignName: string;
   hideActionBar?: boolean;
+  onOpenCollection?: () => void;
 }
 
-export function ClaimContentView({ files, expiryDate, campaignName, hideActionBar }: ClaimContentViewProps) {
+export function ClaimContentView({ files, expiryDate, campaignName, hideActionBar, onOpenCollection }: ClaimContentViewProps) {
   const { t } = useTranslation();
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
@@ -125,9 +126,21 @@ export function ClaimContentView({ files, expiryDate, campaignName, hideActionBa
       >
         <div>
           <h2 className="text-3xl font-bold text-foreground">{campaignName}</h2>
-          <p className="text-emerald-500 text-sm mt-1.5 font-medium tracking-wide">{t.claim.headerSubtitle}</p>
         </div>
-        <CountdownBadge expiresAt={expiryDate} />
+        <div className="flex flex-col items-end gap-3">
+          <CountdownBadge expiresAt={expiryDate} />
+          {onOpenCollection && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onOpenCollection}
+              className="rounded-xl border-emerald-100 bg-white/50 backdrop-blur-sm text-emerald-600 hover:bg-emerald-50 transition-colors gap-2 font-bold px-4 h-9 shadow-sm"
+            >
+              <Gift className="w-4 h-4" />
+              {t.claim.collectionTitle}
+            </Button>
+          )}
+        </div>
       </motion.div>
 
       <ClaimActionBar 
