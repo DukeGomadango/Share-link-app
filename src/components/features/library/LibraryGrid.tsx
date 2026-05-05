@@ -18,6 +18,7 @@ import { GlassCard } from "@/components/shared/GlassCard";
 import { cn } from "@/lib/utils";
 import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
 import { DraggableAssetCard } from "@/components/features/library/DraggableAssetCard";
+import { CompactAssetCard } from "@/components/features/library/CompactAssetCard";
 import { CampaignDockItem } from "@/components/features/library/CampaignDockItem";
 import { CampaignSearchDropZone } from "@/components/features/library/CampaignSearchDropZone";
 import { AssetFile, CampaignSummary } from "@/components/features/library/types";
@@ -34,6 +35,7 @@ interface LibraryGridProps {
   unassignedCount: number;
   locale: string;
   sensors: SensorDescriptor<SensorOptions>[];
+  viewMode: "detail" | "compact";
   onDragStart: (event: DragStartEvent) => void;
   onDragEnd: (event: DragEndEvent) => void;
   onToggleSelection: (fileId: string) => void;
@@ -80,6 +82,7 @@ export function LibraryGrid({
   unassignedCount,
   locale,
   sensors,
+  viewMode,
   onDragStart,
   onDragEnd,
   onToggleSelection,
@@ -131,13 +134,9 @@ export function LibraryGrid({
       const id = htmlEl.getAttribute("data-file-id");
       if (id) {
         // We need coordinates relative to the scrollable content
-        // OffsetParent of AssetCard should be the virtual row or the container
         const left = htmlEl.offsetLeft;
         const top = htmlEl.offsetTop;
         
-        // Since we are using absolute positioning for rows, we need to account for that.
-        // Actually, offsetTop for the card is relative to its parent (the absolute row).
-        // Let's get the absolute row's offset too.
         const row = htmlEl.closest('[style*="translateY"]');
         let absoluteTop = top;
         if (row instanceof HTMLElement) {
@@ -205,22 +204,30 @@ export function LibraryGrid({
   useEffect(() => {
     const updateColumns = () => {
       const width = scrollRef.current?.clientWidth ?? window.innerWidth;
-      if (width >= 1280) setColumnCount(4);
-      else if (width >= 1024) setColumnCount(3);
-      else if (width >= 768) setColumnCount(2);
-      else setColumnCount(1);
+      if (viewMode === "compact") {
+        if (width >= 1280) setColumnCount(8);
+        else if (width >= 1024) setColumnCount(6);
+        else if (width >= 768) setColumnCount(4);
+        else if (width >= 480) setColumnCount(3);
+        else setColumnCount(2);
+      } else {
+        if (width >= 1280) setColumnCount(4);
+        else if (width >= 1024) setColumnCount(3);
+        else if (width >= 768) setColumnCount(2);
+        else setColumnCount(1);
+      }
     };
     updateColumns();
     window.addEventListener("resize", updateColumns);
     return () => window.removeEventListener("resize", updateColumns);
-  }, []);
+  }, [viewMode]);
 
   const rowCount = Math.ceil(filteredFiles.length / columnCount);
   // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 360,
+    estimateSize: () => viewMode === "compact" ? 200 : 360,
     overscan: 4,
   });
   const dockCampaigns = (recentCampaigns.length > 0 ? recentCampaigns : campaigns).slice(0, 5);
@@ -243,6 +250,7 @@ export function LibraryGrid({
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <div 
         ref={scrollRef} 
+        key={viewMode}
         className="h-[68vh] overflow-auto pr-1 relative select-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -270,37 +278,51 @@ export function LibraryGrid({
               return (
                 <div
                   key={virtualRow.key}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={virtualRow.index}
                   className="absolute left-0 top-0 w-full px-1"
                   style={{
                     transform: `translateY(${virtualRow.start}px)`,
-                    height: `${virtualRow.size}px`,
                   }}
                 >
                   <div
-                    className="grid gap-6"
+                    className={cn("grid", viewMode === "compact" ? "gap-4" : "gap-6")}
                     style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
                   >
                     {rowItems.map((file) => (
-                      <DraggableAssetCard
-                        key={file.id}
-                        file={file}
-                        isSelected={selectedFileIds.has(file.id)}
-                        locale={locale}
-                        assigning={assigningCampaignIds.size > 0}
-                        selectAssetLabel={labels.selectAsset}
-                        deselectAssetLabel={labels.deselectAsset}
-                        linkedCampaignsLabel={labels.linkedCampaigns}
-                        noneLabel={labels.none}
-                        unassignedLabel={labels.unassigned}
-                        assignToCampaignLabel={labels.assignToCampaign}
-                        formatSize={formatSize}
-                        getFileIcon={getFileIcon}
-                        onToggleSelection={onToggleSelection}
-                        onPreview={onPreview}
-                        onOpenAssign={onOpenAssign}
-                        onRename={onRename}
-                        onRemove={onRemove}
-                      />
+                      viewMode === "compact" ? (
+                        <CompactAssetCard
+                          key={file.id}
+                          file={file}
+                          isSelected={selectedFileIds.has(file.id)}
+                          onToggleSelection={onToggleSelection}
+                          onPreview={onPreview}
+                          onRename={onRename}
+                          onRemove={(id) => onRemove(id)}
+                          getFileIcon={getFileIcon}
+                        />
+                      ) : (
+                        <DraggableAssetCard
+                          key={file.id}
+                          file={file}
+                          isSelected={selectedFileIds.has(file.id)}
+                          locale={locale}
+                          assigning={assigningCampaignIds.size > 0}
+                          selectAssetLabel={labels.selectAsset}
+                          deselectAssetLabel={labels.deselectAsset}
+                          linkedCampaignsLabel={labels.linkedCampaigns}
+                          noneLabel={labels.none}
+                          unassignedLabel={labels.unassigned}
+                          assignToCampaignLabel={labels.assignToCampaign}
+                          formatSize={formatSize}
+                          getFileIcon={getFileIcon}
+                          onToggleSelection={onToggleSelection}
+                          onPreview={onPreview}
+                          onOpenAssign={onOpenAssign}
+                          onRename={onRename}
+                          onRemove={onRemove}
+                        />
+                      )
                     ))}
                   </div>
                 </div>

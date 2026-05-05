@@ -212,6 +212,8 @@ export const ja = {
     sizeLabel: "サイズ",
     dateLabel: "期間",
     tagLabel: "タグ",
+    viewModeDetail: "詳細表示",
+    viewModeCompact: "コンパクト表示",
     sizeOptions: {
       all: "すべて",
       small: "〜1MB",

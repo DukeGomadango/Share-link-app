@@ -206,6 +206,8 @@ export const en: TranslationKeys = {
     sizeLabel: "Size",
     dateLabel: "Date",
     tagLabel: "Tag",
+    viewModeDetail: "Detail View",
+    viewModeCompact: "Compact View",
     sizeOptions: {
       all: "All",
       small: "Up to 1MB",

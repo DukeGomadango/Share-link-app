@@ -81,6 +81,7 @@ export default function LibraryPage() {
 
   const selectedFiles = filteredFiles.filter(f => selectedFileIds.has(f.id));
   const linkedSelectedCount = selectedFiles.filter(f => f.linkedCampaigns.length > 0).length;
+  const [viewMode, setViewMode] = useState<"detail" | "compact">("detail");
   const [isBulkRemoving, setIsBulkRemoving] = useState(false);
 
   const onBulkRemove = async () => {
@@ -166,6 +167,8 @@ export default function LibraryPage() {
         onSelectedTagChange={setSelectedTag}
         selectedCount={selectedCount}
         campaignsCount={campaigns.length}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
         onClearSelection={() => setSelectedFileIds(new Set())}
         onOpenCommandDrop={openCommandDropForSelection}
         onOpenAssignModal={() => {
@@ -174,8 +177,6 @@ export default function LibraryPage() {
           setIsAssignModalOpen(true);
         }}
         onBulkDelete={() => setIsBulkConfirmOpen(true)}
-        onOpenCommandDrop={openCommandDropForSelection}
-        onBulkDelete={() => setIsBulkConfirmOpen(true)}
         labels={{
           searchPlaceholder: t.library.searchAssetsPlaceholder,
           filtersLabel: t.library.filtersLabel,
@@ -183,6 +184,8 @@ export default function LibraryPage() {
           sizeLabel: t.library.sizeLabel,
           dateLabel: t.library.dateLabel,
           tagLabel: t.library.tagLabel,
+          viewModeDetail: t.library.viewModeDetail,
+          viewModeCompact: t.library.viewModeCompact,
           dateOptions: t.library.dateOptions,
           sizeOptions: t.library.sizeOptions,
           fileType: t.library.fileType,
@@ -205,6 +208,7 @@ export default function LibraryPage() {
         unassignedCount={unassignedCount}
         locale={locale}
         sensors={sensors}
+        viewMode={viewMode}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onToggleSelection={toggleSelection}
