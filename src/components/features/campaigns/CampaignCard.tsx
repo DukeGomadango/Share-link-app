@@ -242,7 +242,14 @@ export function CampaignCard({
                 <Edit2 className="h-3 w-3 text-muted-foreground opacity-0 group-hover/name:opacity-100 transition-opacity" />
               </div>
             )}
-            <p className="text-xs text-muted-foreground">{formatDate(campaign.createdAt)}</p>
+            <p className="text-xs text-muted-foreground">
+              {formatDate(campaign.createdAt)}
+              {campaign.expiresAt && (
+                <span className="ml-2 pl-2 border-l border-border/50">
+                  {t.campaigns.new.expiryLabel}: {formatDate(campaign.expiresAt)}
+                </span>
+              )}
+            </p>
           </div>
         </div>
       </div>

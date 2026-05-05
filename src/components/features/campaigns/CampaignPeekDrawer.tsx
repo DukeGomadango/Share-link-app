@@ -60,6 +60,12 @@ export function CampaignPeekDrawer({
                 <p className="text-xs text-muted-foreground mb-2">{t.campaigns.peek.recipients}</p>
                 <p className="font-medium">{peekCampaign.stats.assignedRecipients}</p>
               </GlassCard>
+              {peekCampaign.expiresAt && (
+                <GlassCard className="p-4">
+                  <p className="text-xs text-muted-foreground mb-2">{t.campaigns.new.expiryLabel}</p>
+                  <p className="font-medium">{formatDate(peekCampaign.expiresAt)}</p>
+                </GlassCard>
+              )}
 
               {peekCampaign.description && (
                 <GlassCard className="p-4">

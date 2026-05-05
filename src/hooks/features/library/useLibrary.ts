@@ -6,6 +6,7 @@ import { useLibraryFiles } from "./useLibraryFiles";
 import { useLibraryCampaigns } from "./useLibraryCampaigns";
 import { useLibraryAssignment } from "./useLibraryAssignment";
 import { useLibraryDnd } from "./useLibraryDnd";
+import { AssetFile } from "@/components/features/library/types";
 
 export function useLibrary() {
   // 1. Files & Filters
@@ -107,6 +108,13 @@ export function useLibrary() {
     setSelectedFileIds(new Set());
   };
 
+  const expiringSoonCount = files.filter((f) => {
+    if (!f.expiresAt) return false;
+    const diffMs = new Date(f.expiresAt).getTime() - new Date().getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    return diffDays > 0 && diffDays <= 14;
+  }).length;
+
   return {
     files,
     campaigns,
@@ -143,6 +151,7 @@ export function useLibrary() {
     filteredFiles,
     selectedCount,
     unassignedCount,
+    expiringSoonCount,
     filteredCampaigns,
     recentCampaigns,
     isCommandDropOpen,

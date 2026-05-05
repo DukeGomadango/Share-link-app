@@ -88,10 +88,15 @@ export function DraggableFileItem({ file, isSelected, onToggleSelection, onRemov
       </div>
 
       {/* Info */}
-      <div className="min-w-0 flex-1">
-        <p className="font-medium truncate text-[10px] text-center">
+      <div className="min-w-0 flex-1 flex flex-col items-center">
+        <p className="font-medium truncate text-[10px] text-center w-full">
           {file.name}
         </p>
+        {file.expiresAt && (
+          <p className="text-[8px] text-muted-foreground/60 mt-0.5">
+            Expires: {new Date(file.expiresAt).toLocaleDateString()}
+          </p>
+        )}
       </div>
     </div>
   );

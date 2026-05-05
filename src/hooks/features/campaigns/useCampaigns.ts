@@ -40,9 +40,7 @@ export function useCampaigns() {
   );
 
   const getEstimatedDeadline = useCallback((campaign: Campaign) => {
-    const deadline = new Date(campaign.createdAt);
-    deadline.setDate(deadline.getDate() + 14);
-    return deadline;
+    return campaign.expiresAt ? new Date(campaign.expiresAt) : null;
   }, []);
 
   const isNeedsAttention = useCallback((campaign: Campaign) =>
@@ -54,8 +52,9 @@ export function useCampaigns() {
     if (campaign.status === "completed") return false;
     const now = new Date();
     const due = getEstimatedDeadline(campaign);
+    if (!due) return false;
     const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays <= 3;
+    return diffDays >= 0 && diffDays <= 7; // 7日以内を「まもなく」とする
   }, [getEstimatedDeadline]);
 
   const visibleCampaigns = useMemo(() => {

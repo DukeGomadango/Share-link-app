@@ -130,13 +130,18 @@ export function LibrarySelectModal({
                     )}
                   </div>
                   
-                  <div className="px-1">
+                  <div className="px-1 flex flex-col items-center">
                     <p className={cn(
                       "text-[10px] font-medium text-center line-clamp-2 w-full leading-tight transition-colors",
                       isAlreadyAdded ? "text-muted-foreground" : "text-foreground/80 group-hover:text-foreground"
                     )}>
                       {file.name}
                     </p>
+                    {file.expiresAt && (
+                      <p className="text-[8px] text-muted-foreground/60 mt-0.5">
+                        {new Date(file.expiresAt).toLocaleDateString()} 消去
+                      </p>
+                    )}
                   </div>
                 </div>
               );

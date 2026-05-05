@@ -216,9 +216,44 @@ export function DraggableAssetCard({
               </div>
             </div>
           )}
-          <div className="flex justify-between text-xs text-muted-foreground mb-3">
-            <span>{formatSize(file.size)}</span>
-            <span>{new Date(file.createdAt).toLocaleDateString(locale === "ja" ? "ja-JP" : "en-US")}</span>
+          <div className="flex flex-col mb-3 space-y-1.5">
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              <span>{formatSize(file.size)}</span>
+              <span>{new Date(file.createdAt).toLocaleDateString(locale === "ja" ? "ja-JP" : "en-US")}</span>
+            </div>
+            
+            {file.expiresAt && (() => {
+              const totalDays = 90; // 基本の保持期間
+              const diffMs = new Date(file.expiresAt).getTime() - new Date().getTime();
+              const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+              const progress = Math.max(0, Math.min(100, (diffDays / totalDays) * 100));
+              
+              const colorClass = 
+                diffDays <= 7 ? "bg-red-500" : 
+                diffDays <= 30 ? "bg-amber-500" : 
+                "bg-emerald-500";
+              const textClass = 
+                diffDays <= 7 ? "text-red-500 font-bold" : 
+                diffDays <= 30 ? "text-amber-500 font-bold" : 
+                "text-emerald-500/80";
+
+              return (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] text-muted-foreground/70 uppercase tracking-tighter">Retention</span>
+                    <span className={cn("text-[10px]", textClass)}>
+                      {diffDays <= 0 ? "Expired" : diffDays === 1 ? "Last day" : `あと ${diffDays}日`}
+                    </span>
+                  </div>
+                  <div className="h-1 w-full bg-muted/50 rounded-full overflow-hidden">
+                    <div 
+                      className={cn("h-full transition-all duration-1000", colorClass)}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {file.linkedCampaigns.length === 0 ? (

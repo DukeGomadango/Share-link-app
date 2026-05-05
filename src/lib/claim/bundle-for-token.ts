@@ -75,6 +75,7 @@ export async function buildClaimBundleForSecret(
     return null;
   }
 
+
   const securityLevel = hit.securityLevel as "standard" | "high";
   const isPublic = securityLevel === "standard";
   
@@ -88,6 +89,14 @@ export async function buildClaimBundleForSecret(
 
   // 認証チェック: 公開設定か、セッションがトークンと一致するか
   const isAuthorized = isPublic || (sessionSecret === claimSecret);
+
+  // 有効期限チェック
+  if (hit.expiresAt && hit.expiresAt < new Date()) {
+    // 受け取り済み（パスキー紐付け済み）かつ認証済みであれば、コレクションとして閲覧を許可する
+    if (!(passkeyLinked && isAuthorized)) {
+      return null;
+    }
+  }
 
   // 未認証かつプレミアム設定なら、メタデータのみ返しファイル一覧は隠す
   if (!isAuthorized) {
@@ -149,6 +158,10 @@ export async function buildClaimBundleForSecret(
   const files = await Promise.all(assetRows.map(async (row) => {
     let src: string | null = null;
     if (row.asset) {
+      // ストレージ保持期限チェック
+      if (row.asset.expiresAt && row.asset.expiresAt < new Date()) {
+        return null;
+      }
       src = await createSignedReadUrl(row.asset.bucket, row.asset.objectKey);
     } else if (row.ca.assetUrl?.trim()) {
       src = row.ca.assetUrl.trim();

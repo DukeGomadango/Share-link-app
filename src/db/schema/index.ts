@@ -20,10 +20,12 @@ export const campaignStatusEnum = pgEnum("campaign_status", [
 ]);
 
 export const claimStatusEnum = pgEnum("claim_status", ["issued", "claimed"]);
+export const planTierEnum = pgEnum("plan_tier", ["free", "pro"]);
 
 export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  planTier: planTierEnum("plan_tier").default("free").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -84,6 +86,7 @@ export const assets = pgTable(
     originalFilename: text("original_filename").notNull(),
     mimeType: text("mime_type").notNull(),
     sizeBytes: integer("size_bytes").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

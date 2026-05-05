@@ -5,6 +5,7 @@ export type FileItem = {
   previewUrl?: string;
   /** 元のライブラリアセットID（紐付いている場合） */
   libraryAssetId?: string;
+  expiresAt?: string;
 };
 
 export type RecipientStatus = "waiting" | "verified" | "claimed";
@@ -53,6 +54,7 @@ export type LibraryFile = {
   type: string;
   size: number;
   createdAt: string;
+  expiresAt?: string;
   url: string;
   linkedCampaigns: string[];
 };

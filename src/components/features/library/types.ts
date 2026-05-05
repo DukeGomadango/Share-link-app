@@ -4,6 +4,7 @@ export interface AssetFile {
   type: string;
   size: number;
   createdAt: string;
+  expiresAt?: string;
   url: string;
   /** 画像プレビュー用（任意・署名 URL と同一のことが多い） */
   previewUrl?: string;
