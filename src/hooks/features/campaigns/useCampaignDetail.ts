@@ -415,7 +415,7 @@ export function useCampaignDetail() {
     },
     [campaign?.status, campaignId, draggedFileIds, handleMergeRecipients, loadWorkflow]
   );
-  
+
   const deleteCampaign = useCallback(async () => {
     if (!campaignId) return false;
     try {
@@ -431,6 +431,27 @@ export function useCampaignDetail() {
       return false;
     }
   }, [campaignId, router]);
+
+  const handleUnassignFromCampaign = useCallback(
+    async (fileIds: string[]) => {
+      if (!campaignId || fileIds.length === 0) return;
+      
+      const res = await fetch("/api/files/unassign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaignId, assetIds: fileIds }),
+      });
+
+      if (res.ok) {
+        setSelectedFileIds(new Set());
+        await loadWorkflow();
+        toast.success("ファイルをキャンペーンから外しました");
+      } else {
+        toast.error("ファイルの解除に失敗しました");
+      }
+    },
+    [campaignId, loadWorkflow]
+  );
 
   return {
     campaignId,
@@ -450,6 +471,7 @@ export function useCampaignDetail() {
     sensors,
     fetchLibraryFiles,
     assignFromLibrary,
+    handleUnassignFromCampaign,
     handleRemoveFile,
     handleRemoveRecipient,
     handleMergeRecipients,

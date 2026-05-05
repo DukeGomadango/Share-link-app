@@ -85,6 +85,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
         name,
         type,
         previewUrl,
+        libraryAssetId: ca.assetId || undefined,
       };
     })
   );

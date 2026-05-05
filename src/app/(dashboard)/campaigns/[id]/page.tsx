@@ -39,6 +39,7 @@ export default function CampaignDetailPage() {
     sensors,
     fetchLibraryFiles,
     assignFromLibrary,
+    handleUnassignFromCampaign,
     handleRemoveFile,
     handleRemoveRecipient,
     handleMergeRecipients,
@@ -398,6 +399,7 @@ export default function CampaignDetailPage() {
                 setShowLibraryModal(true);
                 fetchLibraryFiles();
               }}
+              onUnassignFiles={handleUnassignFromCampaign}
             />
 
               <RecipientsSection
@@ -465,6 +467,7 @@ export default function CampaignDetailPage() {
         isOpen={showLibraryModal}
         onClose={() => setShowLibraryModal(false)}
         libraryFiles={libraryFiles}
+        assignedAssetIds={files.map((f) => f.libraryAssetId).filter(Boolean) as string[]}
         onAssignSelected={assignFromLibrary}
       />
 

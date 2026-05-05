@@ -3,6 +3,8 @@ export type FileItem = {
   name: string;
   type: "audio" | "image" | "file";
   previewUrl?: string;
+  /** 元のライブラリアセットID（紐付いている場合） */
+  libraryAssetId?: string;
 };
 
 export type RecipientStatus = "waiting" | "verified" | "claimed";

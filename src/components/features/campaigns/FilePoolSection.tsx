@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { FileAudio, FolderOpen, Search, LayoutGrid, List, X } from "lucide-react";
+import { FileAudio, FolderOpen, Search, LayoutGrid, List, X, Trash2 } from "lucide-react";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { DraggableFileItem } from "@/components/features/campaigns/DraggableFileItem";
@@ -19,6 +19,7 @@ interface FilePoolSectionProps {
   onSelectMultiple?: (ids: string[]) => void;
   onFilesDropped: (files: File[]) => void;
   onOpenLibrary: () => void;
+  onUnassignFiles?: (fileIds: string[]) => void;
 }
 
 export function FilePoolSection({
@@ -29,6 +30,7 @@ export function FilePoolSection({
   onSelectMultiple,
   onFilesDropped,
   onOpenLibrary,
+  onUnassignFiles,
 }: FilePoolSectionProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -163,9 +165,33 @@ export function FilePoolSection({
               {t.campaigns.filePool}
             </h2>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-            {files.length} {t.claim.items}
-          </span>
+          <div className="flex items-center gap-2">
+            {selectedFileIds.size > 0 && (
+              <div className="flex items-center gap-1 animate-in fade-in slide-in-from-right-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-[10px] uppercase font-bold text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => {
+                    const libraryIds = files
+                      .filter(f => selectedFileIds.has(f.id))
+                      .map(f => f.libraryAssetId)
+                      .filter(Boolean) as string[];
+                    if (confirm(`${selectedFileIds.size} 件のファイルをキャンペーンから外しますか？`)) {
+                      onUnassignFiles?.(libraryIds);
+                    }
+                  }}
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  解除 ({selectedFileIds.size})
+                </Button>
+                <div className="w-px h-3 bg-border/50 mx-1" />
+              </div>
+            )}
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+              {files.length} {t.claim.items}
+            </span>
+          </div>
         </div>
 
         <div className="relative group">
@@ -218,6 +244,11 @@ export function FilePoolSection({
                 file={file}
                 isSelected={selectedFileIds.has(file.id)}
                 onToggleSelection={onToggleSelection}
+                onRemove={file.libraryAssetId ? () => {
+                  if (confirm(`${file.name} をキャンペーンから外しますか？`)) {
+                    onUnassignFiles?.([file.libraryAssetId!]);
+                  }
+                } : undefined}
                 priority={index < 4}
               />
             ))}

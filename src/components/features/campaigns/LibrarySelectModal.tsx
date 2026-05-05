@@ -12,6 +12,8 @@ interface LibrarySelectModalProps {
   isOpen: boolean;
   onClose: () => void;
   libraryFiles: LibraryFile[];
+  /** すでに対象キャンペーンに追加済みのアセットID（ライブラリID） */
+  assignedAssetIds?: string[];
   /** 選択されたライブラリアセット ID でサーバーにアサインする */
   onAssignSelected: (libraryAssetIds: string[]) => void | Promise<void>;
 }
@@ -20,6 +22,7 @@ export function LibrarySelectModal({
   isOpen,
   onClose,
   libraryFiles,
+  assignedAssetIds = [],
   onAssignSelected,
 }: LibrarySelectModalProps) {
   const { t } = useTranslation();
@@ -42,6 +45,7 @@ export function LibrarySelectModal({
   };
 
   const toggleSelection = (id: string) => {
+    if (assignedAssetIds.includes(id)) return;
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
@@ -68,7 +72,9 @@ export function LibrarySelectModal({
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {libraryFiles.map((file) => {
               const isSelected = selectedIds.has(file.id);
+              const isAlreadyAdded = assignedAssetIds.includes(file.id);
               const isImage = file.type.startsWith("image/");
+              
               return (
                 <div
                   key={file.id}
@@ -76,17 +82,23 @@ export function LibrarySelectModal({
                     "p-2 rounded-xl border bg-background/50 cursor-pointer transition-all flex flex-col relative select-none group",
                     isSelected
                       ? "border-emerald-500 bg-emerald-500/10 shadow-md ring-1 ring-emerald-500/20"
+                      : isAlreadyAdded
+                      ? "border-border/30 bg-muted/20 opacity-70 cursor-default"
                       : "border-border/50 hover:border-emerald-500/50 hover:bg-emerald-500/5"
                   )}
-                  onClick={() => toggleSelection(file.id)}
+                  onClick={() => !isAlreadyAdded && toggleSelection(file.id)}
                 >
+                  {/* Status Indicator */}
                   <div className={cn(
                     "absolute top-2 right-2 z-10 w-5 h-5 rounded-md flex items-center justify-center transition-all",
                     isSelected 
                       ? "bg-emerald-500 text-white shadow-sm" 
+                      : isAlreadyAdded
+                      ? "bg-muted text-muted-foreground"
                       : "border border-border bg-background/80 opacity-0 group-hover:opacity-100"
                   )}>
                     {isSelected && <Check className="w-3 h-3" />}
+                    {isAlreadyAdded && <Check className="w-3 h-3 opacity-50" />}
                   </div>
 
                   <div className="bg-muted/30 rounded-lg shrink-0 relative overflow-hidden flex items-center justify-center w-full aspect-square mb-2">
@@ -95,18 +107,34 @@ export function LibrarySelectModal({
                         src={file.url} 
                         alt={file.name} 
                         fill 
-                        className="object-cover transition-transform duration-300 group-hover:scale-110" 
+                        className={cn(
+                          "object-cover transition-transform duration-300",
+                          !isAlreadyAdded && "group-hover:scale-110",
+                          isAlreadyAdded && "filter grayscale-[0.3]"
+                        )} 
                         unoptimized 
                       />
                     ) : file.type.startsWith("audio/") ? (
-                      <FileAudio className="w-8 h-8 text-emerald-500" />
+                      <FileAudio className={cn("w-8 h-8", isAlreadyAdded ? "text-muted-foreground" : "text-emerald-500")} />
                     ) : (
                       <File className="w-8 h-8 text-muted-foreground" />
+                    )}
+
+                    {/* Added Overlay */}
+                    {isAlreadyAdded && (
+                      <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] flex items-center justify-center">
+                        <span className="text-[10px] font-bold bg-muted-foreground/80 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          追加済み
+                        </span>
+                      </div>
                     )}
                   </div>
                   
                   <div className="px-1">
-                    <p className="text-[10px] font-medium text-center line-clamp-2 w-full leading-tight text-foreground/80 group-hover:text-foreground transition-colors">
+                    <p className={cn(
+                      "text-[10px] font-medium text-center line-clamp-2 w-full leading-tight transition-colors",
+                      isAlreadyAdded ? "text-muted-foreground" : "text-foreground/80 group-hover:text-foreground"
+                    )}>
                       {file.name}
                     </p>
                   </div>

@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
 import Image from "next/image";
-import { Check, FileAudio, FileImage, File } from "lucide-react";
+import { Check, FileAudio, FileImage, File, Trash2 } from "lucide-react";
 import { FileItem } from "./types";
 import { cn } from "@/lib/utils";
 
@@ -8,10 +8,11 @@ interface DraggableFileItemProps {
   file: FileItem;
   isSelected: boolean;
   onToggleSelection: (fileId: string) => void;
+  onRemove?: () => void;
   priority?: boolean;
 }
 
-export function DraggableFileItem({ file, isSelected, onToggleSelection, priority = false }: DraggableFileItemProps) {
+export function DraggableFileItem({ file, isSelected, onToggleSelection, onRemove, priority = false }: DraggableFileItemProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `file-${file.id}`,
     data: { file },
@@ -56,6 +57,22 @@ export function DraggableFileItem({ file, isSelected, onToggleSelection, priorit
       >
         {isSelected ? <Check className="w-2.5 h-2.5" /> : null}
       </button>
+
+      {/* Remove Button */}
+      {onRemove && (
+        <button
+          type="button"
+          aria-label="Remove from campaign"
+          className="z-10 absolute top-2 right-2 w-4 h-4 flex items-center justify-center text-muted-foreground hover:text-destructive transition-all opacity-0 group-hover:opacity-100"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRemove();
+          }}
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+      )}
 
       {/* Thumbnail */}
       <div className="bg-emerald-500/10 rounded-lg text-emerald-500 shrink-0 relative overflow-hidden flex items-center justify-center w-full aspect-square mb-2">
