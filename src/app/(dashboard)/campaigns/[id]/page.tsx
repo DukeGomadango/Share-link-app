@@ -257,7 +257,7 @@ export default function CampaignDetailPage() {
                   <select
                     className="rounded-lg border border-border/60 bg-background/80 px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                     value={campaign.distributionMode ?? "per_link"}
-                    disabled={campaign.isExternalLinked}
+                    disabled={statusBusy}
                     onChange={(e) => {
                       const v = e.target.value;
                       void (async () => {
