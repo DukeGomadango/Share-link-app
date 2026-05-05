@@ -3,9 +3,11 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   campaignAssets,
+  campaignRecipientSlots,
   campaigns,
   claimAssets,
   claims,
+  slotAssets,
 } from "@/db/schema";
 import { createSlotAndClaim } from "@/lib/claims/create-slot-and-claim";
 import { resolveIntegrationBearer } from "@/lib/external-auth";
@@ -25,6 +27,46 @@ export async function OPTIONS(request: Request) {
 }
 
 /**
+ * 外部アプリから受取人スロットを削除する。
+ * Query: ?external_transaction_id=...
+ */
+export async function DELETE(request: Request, ctx: RouteParams) {
+  const auth = await resolveIntegrationBearer(request, "claims:issue");
+  if (auth instanceof Response) return auth;
+
+  const { campaignId } = await ctx.params;
+  const url = new URL(request.url);
+  const externalTxId = url.searchParams.get("external_transaction_id");
+
+  if (!externalTxId) {
+    return jsonWithCors({ error: "missing_parameter", message: "external_transaction_id が必要です" }, request, { status: 400 });
+  }
+
+  const db = getDb();
+  
+  // キャンペーン所有権の確認
+  const camp = await db
+    .select({ id: campaigns.id })
+    .from(campaigns)
+    .where(and(eq(campaigns.id, campaignId), eq(campaigns.workspaceId, auth.workspaceId)))
+    .limit(1);
+
+  if (!camp[0]) {
+    return jsonWithCors({ error: "not_found", message: "キャンペーンが見つかりません" }, request, { status: 404 });
+  }
+
+  // スロットの特定と削除 (cascade により claim 等も消える想定)
+  // schemaを確認し、必要なら手動で消す
+  const result = await db.delete(claims).where(eq(claims.externalTransactionId, externalTxId)).returning({ id: claims.id, slotId: claims.recipientSlotId });
+  
+  if (result.length > 0 && result[0] && result[0].slotId) {
+    await db.delete(campaignRecipientSlots).where(eq(campaignRecipientSlots.id, result[0].slotId));
+  }
+
+  return jsonWithCors({ ok: true, deleted_count: result.length }, request);
+}
+
+/**
  * ガチャ等の外部アプリから呼び出し、キャンペーンに受取人スロット（名簿枠）を作成する。
  * キャンペーンに紐づく全アセットを自動でClaimに割り当てる。
  *
@@ -38,7 +80,7 @@ export async function POST(request: Request, ctx: RouteParams) {
     return auth;
   }
 
-  // ── Idempotency-Key キャッシュ ──
+  const { campaignId } = await ctx.params;
   const idemHeader =
     request.headers.get("Idempotency-Key") ??
     request.headers.get("idempotency-key");
@@ -51,10 +93,7 @@ export async function POST(request: Request, ctx: RouteParams) {
   if (cached !== null) {
     return jsonWithCors(cached, request);
   }
-
   // ── Body パース ──
-  const { campaignId } = await ctx.params;
-
   let body: {
     listener_display_name?: unknown;
     external_transaction_id?: unknown;
@@ -150,15 +189,18 @@ export async function POST(request: Request, ctx: RouteParams) {
 
   // ── キャンペーンのアセット取得 ──
   const allAssetRows = await db
-    .select({ id: campaignAssets.id })
+    .select({ id: campaignAssets.id, assetId: campaignAssets.assetId })
     .from(campaignAssets)
     .where(eq(campaignAssets.campaignId, campaignId));
 
   // 配布対象アセットの選定
   let assetsToLink = allAssetRows;
   if (requestedAssetIds !== null) {
-    const idSet = new Set(requestedAssetIds);
-    assetsToLink = allAssetRows.filter((a) => idSet.has(a.id));
+    const idSet = new Set(requestedAssetIds.map(id => id.toLowerCase()));
+    assetsToLink = allAssetRows.filter((a) => {
+      const match = idSet.has(a.id.toLowerCase()) || (a.assetId && idSet.has(a.assetId.toLowerCase()));
+      return match;
+    });
   }
 
   // ── 冪等: 同じ externalTransactionId の Claim が既に存在するか ──
@@ -191,9 +233,10 @@ export async function POST(request: Request, ctx: RouteParams) {
       currentIds.size === newIds.size &&
       [...newIds].every((id) => currentIds.has(id));
 
-    if (!isSame) {
+    if (!isSame && existingClaim.recipientSlotId) {
+      const sId = existingClaim.recipientSlotId;
       await db.delete(claimAssets).where(eq(claimAssets.claimId, claimId));
-      await db.delete(slotAssets).where(eq(slotAssets.slotId, existingClaim.recipientSlotId));
+      await db.delete(slotAssets).where(eq(slotAssets.slotId, sId));
 
       if (assetsToLink.length > 0) {
         await db.insert(claimAssets).values(
@@ -204,7 +247,7 @@ export async function POST(request: Request, ctx: RouteParams) {
         );
         await db.insert(slotAssets).values(
           assetsToLink.map((a) => ({
-            slotId: existingClaim.recipientSlotId,
+            slotId: sId,
             campaignAssetId: a.id,
           }))
         );
@@ -212,13 +255,13 @@ export async function POST(request: Request, ctx: RouteParams) {
         await db
           .update(campaignRecipientSlots)
           .set({ status: "ready" })
-          .where(eq(campaignRecipientSlots.id, existingClaim.recipientSlotId));
+          .where(eq(campaignRecipientSlots.id, sId));
       } else {
         // アセットが0件になった場合は未紐付けに戻す
         await db
           .update(campaignRecipientSlots)
           .set({ status: "unlinked" })
-          .where(eq(campaignRecipientSlots.id, existingClaim.recipientSlotId));
+          .where(eq(campaignRecipientSlots.id, sId));
       }
     }
 
@@ -246,9 +289,8 @@ export async function POST(request: Request, ctx: RouteParams) {
       listenerNote: listenerNote || `ガチャ連携: ${listenerName}`,
     });
 
-    // externalTransactionId を上書き
-    await db
-      .update(claims)
+    // 冪等性を確保するため、作成された Claim の externalTransactionId を上書き
+    await db.update(claims)
       .set({ externalTransactionId: externalTxId })
       .where(eq(claims.id, result.claimId));
 

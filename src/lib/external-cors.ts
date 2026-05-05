@@ -36,7 +36,7 @@ export function applyCorsHeaders(request: Request, headers: Headers): void {
     headers.set("Access-Control-Allow-Origin", acao);
     headers.set("Vary", "Origin");
   }
-  headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  headers.set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   headers.set(
     "Access-Control-Allow-Headers",
     "Authorization, Content-Type, Idempotency-Key"

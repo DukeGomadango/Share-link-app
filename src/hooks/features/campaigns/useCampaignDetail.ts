@@ -159,13 +159,38 @@ export function useCampaignDetail() {
       .on(
         "postgres_changes",
         {
-          event: "*", // INSERT, UPDATE, DELETE すべて拾う
+          event: "*",
+          schema: "public",
+          table: "campaign_recipient_slots",
+          filter: `campaign_id=eq.${campaignId}`,
+        },
+        () => {
+          void loadWorkflow({ quiet: true });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "slot_assets",
+        },
+        () => {
+          // slot_assets には campaign_id がないので全体を拾うか、
+          // あるいは slot が更新されたタイミングで workflow が更新されるので
+          // 補助的なトリガーとして機能させる
+          void loadWorkflow({ quiet: true });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
           schema: "public",
           table: "claims",
           filter: `campaign_id=eq.${campaignId}`,
         },
         () => {
-          // 何か変更があったらサイレント更新
           void loadWorkflow({ quiet: true });
         }
       )
