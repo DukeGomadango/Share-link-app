@@ -1,4 +1,4 @@
-import { Check, Copy, Megaphone, Settings, Edit2, ChevronDown } from "lucide-react";
+import { Check, Copy, Megaphone, Edit2, ChevronDown, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ interface CampaignCardProps {
   formatDate: (date: string) => string;
   isNeedsAttention: boolean;
   isDueSoon: boolean;
+  onDelete: () => void;
 }
 
 interface PreviewAsset {
@@ -44,6 +45,7 @@ export function CampaignCard({
   formatDate,
   isNeedsAttention,
   isDueSoon,
+  onDelete,
 }: CampaignCardProps) {
   const { t } = useTranslation();
   const [campaign, setCampaign] = useState(initialCampaign);
@@ -186,13 +188,14 @@ export function CampaignCard({
         <Button
           size="icon"
           variant="secondary"
-          asChild
-          className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-emerald-500 hover:text-white transition-colors"
-          onClick={(e) => e.stopPropagation()}
+          className="h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          title={t.common.delete}
         >
-          <Link href={`/campaigns/${campaign.id}`} title={t.common.manage}>
-            <Settings className="h-4 w-4" />
-          </Link>
+          <Trash2 className="h-4 w-4" />
         </Button>
       </div>
 

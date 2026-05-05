@@ -105,3 +105,24 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   const row = await fetchCampaignWithStats(ctx.workspaceId, id);
   return NextResponse.json(row);
 }
+
+export async function DELETE(_request: Request, { params }: RouteParams) {
+  const ctx = await getSessionWorkspaceContext();
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const db = getDb();
+
+  const deleted = await db
+    .delete(campaigns)
+    .where(and(eq(campaigns.workspaceId, ctx.workspaceId), eq(campaigns.id, id)))
+    .returning({ id: campaigns.id });
+
+  if (!deleted[0]) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ success: true });
+}

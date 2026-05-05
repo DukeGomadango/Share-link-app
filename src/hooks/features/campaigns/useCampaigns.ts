@@ -198,6 +198,35 @@ export function useCampaigns() {
     setBulkUndo(null);
   }, [bulkUndo]);
 
+  const deleteCampaigns = useCallback(
+    async (ids: string[]) => {
+      if (ids.length === 0) return;
+
+      try {
+        const res = await fetch("/api/campaigns/bulk", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids }),
+        });
+        if (!res.ok) {
+          throw new Error(`delete ${res.status}`);
+        }
+        const data = (await res.json()) as { campaigns: Campaign[] };
+        setCampaigns(data.campaigns);
+        setSelectedCampaignIds((prev) => {
+          const next = new Set(prev);
+          ids.forEach((id) => next.delete(id));
+          return next;
+        });
+        return true;
+      } catch (e) {
+        console.error(e);
+        return false;
+      }
+    },
+    []
+  );
+
   const effectiveFocusedCampaignId = useMemo(() => {
     return focusedCampaignId && orderedVisibleCampaigns.some((campaign) => campaign.id === focusedCampaignId)
       ? focusedCampaignId
@@ -263,6 +292,7 @@ export function useCampaigns() {
     formatDate,
     isNeedsAttention,
     isDueSoon,
+    deleteCampaigns,
     allTags,
     selectedTag,
     setSelectedTag,

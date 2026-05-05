@@ -14,6 +14,7 @@ interface CampaignsListViewProps {
   formatDate: (date: string) => string;
   isNeedsAttention: (campaign: Campaign) => boolean;
   isDueSoon: (campaign: Campaign) => boolean;
+  onDelete: (id: string) => void;
 }
 
 export function CampaignsListView({
@@ -27,6 +28,7 @@ export function CampaignsListView({
   formatDate,
   isNeedsAttention,
   isDueSoon,
+  onDelete,
 }: CampaignsListViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -43,6 +45,7 @@ export function CampaignsListView({
           formatDate={formatDate}
           isNeedsAttention={isNeedsAttention(campaign)}
           isDueSoon={isDueSoon(campaign)}
+          onDelete={() => onDelete(campaign.id)}
         />
       ))}
     </div>

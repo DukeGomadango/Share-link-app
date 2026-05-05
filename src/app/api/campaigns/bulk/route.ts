@@ -40,3 +40,32 @@ export async function PATCH(request: Request) {
   const list = await fetchCampaignsWithStats(ctx.workspaceId);
   return NextResponse.json({ ok: true, campaigns: list });
 }
+
+export async function DELETE(request: Request) {
+  const ctx = await getSessionWorkspaceContext();
+  if (!ctx) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: { ids?: string[] };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const ids = body.ids?.filter(Boolean) ?? [];
+  if (ids.length === 0) {
+    return NextResponse.json({ error: "ids が必要です" }, { status: 400 });
+  }
+
+  const db = getDb();
+  await db
+    .delete(campaigns)
+    .where(
+      and(eq(campaigns.workspaceId, ctx.workspaceId), inArray(campaigns.id, ids))
+    );
+
+  const list = await fetchCampaignsWithStats(ctx.workspaceId);
+  return NextResponse.json({ ok: true, campaigns: list });
+}

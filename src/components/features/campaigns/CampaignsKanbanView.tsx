@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { GlassCard } from "@/components/shared/GlassCard";
 import type { Campaign } from "@/components/features/campaigns/types";
 import { useTranslation } from "@/lib/i18n";
@@ -15,6 +16,7 @@ interface CampaignsKanbanViewProps {
   formatDate: (date: string) => string;
   isNeedsAttention: (campaign: Campaign) => boolean;
   isDueSoon: (campaign: Campaign) => boolean;
+  onDelete: (id: string) => void;
 }
 
 const STATUS_ORDER: Campaign["status"][] = ["draft", "active", "completed"];
@@ -30,6 +32,7 @@ export function CampaignsKanbanView({
   formatDate,
   isNeedsAttention,
   isDueSoon,
+  onDelete,
 }: CampaignsKanbanViewProps) {
   const { t } = useTranslation();
 
@@ -73,7 +76,17 @@ export function CampaignsKanbanView({
                     onClick={(event) => event.stopPropagation()}
                     className="mt-0.5 h-4 w-4 accent-emerald-500"
                   />
-                  <p className="text-sm font-medium line-clamp-1">{campaign.name}</p>
+                  <p className="text-sm font-medium line-clamp-1 flex-grow">{campaign.name}</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(campaign.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-all"
+                    title={t.common.delete}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{formatDate(campaign.createdAt)}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">

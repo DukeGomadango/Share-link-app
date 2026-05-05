@@ -75,7 +75,6 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
       createdAt: row.createdAt.toISOString(),
       expiresAt: row.expiresAt?.toISOString(),
       securityLevel: (row.securityLevel as Campaign["securityLevel"]) || "standard",
-      useOtp: row.useOtp,
       distributionMode: (row.distributionMode as Campaign["distributionMode"]) ?? "per_link",
       publicReceptionToken: row.publicReceptionToken ?? undefined,
       stats: {

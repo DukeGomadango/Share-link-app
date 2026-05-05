@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users, Calendar, X } from "lucide-react";
+import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users, Calendar, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { toast } from "sonner";
@@ -48,6 +48,7 @@ export default function CampaignDetailPage() {
     handleDragStart,
     handleDragEnd,
     handleFilesDropped,
+    deleteCampaign,
     reloadWorkflow,
   } = useCampaignDetail();
 
@@ -58,6 +59,8 @@ export default function CampaignDetailPage() {
   const [statusBusy, setStatusBusy] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<"active" | "completed" | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleUpdateStatus = useCallback(
     async (newStatus: "active" | "completed") => {
@@ -338,6 +341,15 @@ export default function CampaignDetailPage() {
             <LinkIcon className="w-4 h-4 mr-2" />
             {bulkBusy ? t.campaigns.bulkIssuing : t.campaigns.generateAll}
           </Button>
+          <Button
+            variant="ghost"
+            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            disabled={workflowLoading || !campaignId || isDeleting}
+            onClick={() => setDeleteConfirmOpen(true)}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            {t.common.delete}
+          </Button>
         </div>
       </div>
 
@@ -472,6 +484,21 @@ export default function CampaignDetailPage() {
         }
         variant={pendingStatus === "active" ? "emerald" : "destructive"}
         isLoading={statusBusy}
+      />
+
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={async () => {
+          setIsDeleting(true);
+          await deleteCampaign();
+          setIsDeleting(false);
+        }}
+        title={t.campaigns.deleteConfirmTitle}
+        description={t.campaigns.deleteConfirmDescription}
+        confirmText={t.common.delete}
+        variant="destructive"
+        isLoading={isDeleting}
       />
     </div>
   );

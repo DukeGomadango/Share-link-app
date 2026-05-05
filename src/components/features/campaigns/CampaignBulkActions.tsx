@@ -1,12 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 import type { Campaign } from "@/components/features/campaigns/types";
 import { useTranslation } from "@/lib/i18n";
 
 interface CampaignBulkActionsProps {
   selectedCount: number;
   onApplyStatus: (status: Campaign["status"]) => void;
+  onDelete: () => void;
   onClearSelection: () => void;
 }
 
@@ -15,6 +17,7 @@ const STATUS_ORDER: Campaign["status"][] = ["draft", "active", "completed"];
 export function CampaignBulkActions({
   selectedCount,
   onApplyStatus,
+  onDelete,
   onClearSelection,
 }: CampaignBulkActionsProps) {
   const { t } = useTranslation();
@@ -40,6 +43,16 @@ export function CampaignBulkActions({
               {t.campaigns.status[status]}
             </Button>
           ))}
+          <div className="h-4 w-[1px] bg-white/20 mx-1" />
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-red-400 hover:bg-red-500/20 hover:text-red-300"
+            onClick={onDelete}
+          >
+            <Trash2 className="mr-2 h-3.5 w-3.5" />
+            {t.common.delete}
+          </Button>
           <Button
             size="sm"
             variant="ghost"

@@ -65,7 +65,6 @@ export interface Campaign {
   createdAt: string;
   expiresAt?: string;
   securityLevel: "standard" | "high" | "paranoid";
-  useOtp: boolean;
   /** `reception` のとき共通受付 URL（チェックイン）を使う */
   distributionMode?: DistributionMode;
   /** 受付ページ `/receive/[token]` 用（サーバが初回アクセス時に生成することあり） */

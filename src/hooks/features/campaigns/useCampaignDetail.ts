@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   DragEndEvent,
   DragStartEvent,
@@ -92,6 +92,7 @@ async function uploadLibraryAssetFromFile(file: File): Promise<string> {
 
 export function useCampaignDetail() {
   const params = useParams();
+  const router = useRouter();
   const campaignId = typeof params.id === "string" ? params.id : undefined;
 
   const [campaign, setCampaign] = useState<Campaign | null>(null);
@@ -412,6 +413,22 @@ export function useCampaignDetail() {
     },
     [campaign?.status, campaignId, draggedFileIds, handleMergeRecipients, loadWorkflow]
   );
+  
+  const deleteCampaign = useCallback(async () => {
+    if (!campaignId) return false;
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+      toast.success("キャンペーンを削除しました");
+      router.push("/campaigns");
+      return true;
+    } catch {
+      toast.error("キャンペーンの削除に失敗しました");
+      return false;
+    }
+  }, [campaignId, router]);
 
   return {
     campaignId,
@@ -440,6 +457,7 @@ export function useCampaignDetail() {
     handleDragStart,
     handleDragEnd,
     handleFilesDropped,
+    deleteCampaign,
     reloadWorkflow: loadWorkflow,
   };
 }

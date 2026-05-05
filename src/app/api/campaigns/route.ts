@@ -27,7 +27,6 @@ export async function POST(request: Request) {
     tags?: string[];
     expiresAt?: string;
     securityLevel?: string;
-    useOtp?: boolean;
     assetIds?: string[];
   };
   try {
@@ -52,7 +51,6 @@ export async function POST(request: Request) {
       status: "draft",
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
       securityLevel: body.securityLevel ?? "standard",
-      useOtp: body.useOtp ?? false,
     })
     .returning();
 

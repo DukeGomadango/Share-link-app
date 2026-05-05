@@ -57,7 +57,6 @@ export const campaigns = pgTable(
     status: campaignStatusEnum("status").default("draft").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     securityLevel: text("security_level").default("standard").notNull(),
-    useOtp: boolean("use_otp").default(false).notNull(),
     /** `per_link`: 従来の個別URL発行 / `reception`: 共通受付URL＋チェックイン */
     distributionMode: text("distribution_mode").default("per_link").notNull(),
     /** `/receive/[token]` 用。公開UUIDより推測されにくいランダムトークン */

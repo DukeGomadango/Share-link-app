@@ -35,7 +35,6 @@ export default function NewCampaignPage() {
     tags: [] as string[],
     expiresAt: "", // Default empty (smart default handled in UI or effect)
     securityLevel: "standard" as "standard" | "high" | "paranoid",
-    useOtp: false,
     assetIds: [] as string[],
   });
 

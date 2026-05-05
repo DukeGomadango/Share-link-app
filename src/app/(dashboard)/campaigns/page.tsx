@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useCampaigns } from "@/hooks/features/campaigns/useCampaigns";
 import { CampaignsHeader } from "@/components/features/campaigns/CampaignsHeader";
 import { CampaignsFilters } from "@/components/features/campaigns/CampaignsFilters";
@@ -11,6 +11,9 @@ import { CampaignBulkActions } from "@/components/features/campaigns/CampaignBul
 import { CampaignUndoToast } from "@/components/features/campaigns/CampaignUndoToast";
 import { EmptyCampaignState } from "@/components/features/campaigns/EmptyCampaignState";
 import type { QuickFilter } from "@/components/features/campaigns/types";
+import { ConfirmModal } from "@/components/shared/ConfirmModal";
+import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n";
 
 const QUICK_FILTERS: QuickFilter[] = [
   "all",
@@ -48,10 +51,15 @@ export default function CampaignsPage() {
     formatDate,
     isNeedsAttention,
     isDueSoon,
+    deleteCampaigns,
     allTags,
     selectedTag,
     setSelectedTag,
   } = useCampaigns();
+
+  const { t } = useTranslation();
+  const [idsToDelete, setIdsToDelete] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -110,6 +118,22 @@ export default function CampaignsPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [effectiveFocusedCampaignId, orderedVisibleCampaigns, peekCampaign, selectAll, setFocusedCampaignId, setPeekCampaign]);
 
+  const handleDelete = async () => {
+    if (idsToDelete.length === 0) return;
+    setIsDeleting(true);
+    try {
+      const success = await deleteCampaigns(idsToDelete);
+      if (success) {
+        toast.success(t.campaigns.deleteSuccess);
+        setIdsToDelete([]);
+      } else {
+        toast.error(t.campaigns.deleteFailed);
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 relative">
       <CampaignsHeader />
@@ -143,6 +167,7 @@ export default function CampaignsPage() {
               formatDate={formatDate}
               isNeedsAttention={isNeedsAttention}
               isDueSoon={isDueSoon}
+              onDelete={(id) => setIdsToDelete([id])}
             />
           ) : (
             <CampaignsKanbanView
@@ -156,6 +181,7 @@ export default function CampaignsPage() {
               formatDate={formatDate}
               isNeedsAttention={isNeedsAttention}
               isDueSoon={isDueSoon}
+              onDelete={(id) => setIdsToDelete([id])}
             />
           )}
         </>
@@ -164,6 +190,7 @@ export default function CampaignsPage() {
       <CampaignBulkActions
         selectedCount={selectedCampaignIds.size}
         onApplyStatus={applyBulkStatus}
+        onDelete={() => setIdsToDelete(Array.from(selectedCampaignIds))}
         onClearSelection={() => setSelectedCampaignIds(new Set())}
       />
 
@@ -175,6 +202,17 @@ export default function CampaignsPage() {
         formatDate={formatDate}
         isNeedsAttention={isNeedsAttention}
         isDueSoon={isDueSoon}
+      />
+
+      <ConfirmModal
+        isOpen={idsToDelete.length > 0}
+        onClose={() => setIdsToDelete([])}
+        onConfirm={handleDelete}
+        title={t.campaigns.deleteConfirmTitle}
+        description={t.campaigns.deleteConfirmDescription}
+        confirmText={t.common.delete}
+        variant="destructive"
+        isLoading={isDeleting}
       />
     </div>
   );
