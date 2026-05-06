@@ -174,7 +174,7 @@ export function RecipientsSection({
                   recipient={recipient}
                   matchingPreparedSlot={matchingSlot}
                   onMerge={onMerge}
-                  getFile={(id) => files.find((f) => f.id === id)}
+                  getFile={(id: string) => files.find((f) => f.id === id)}
                   onRemoveFile={onRemoveFile}
                   successPulse={pulsedRecipientId === recipient.id}
                   readOnly={readOnly}
@@ -189,7 +189,7 @@ export function RecipientsSection({
                 recipient={recipient}
                 matchingPreparedSlot={matchingSlot}
                 onMerge={onMerge}
-                getFile={(id) => files.find((f) => f.id === id)}
+                getFile={(id: string) => files.find((f) => f.id === id)}
                 onRemoveFile={onRemoveFile}
                 successPulse={pulsedRecipientId === recipient.id}
                 readOnly={readOnly}

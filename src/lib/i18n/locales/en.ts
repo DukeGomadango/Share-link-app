@@ -119,6 +119,16 @@ export const en: TranslationKeys = {
     recipientsEmpty:
       "No issued claim links yet. Use “Generate All” to create one link per file in the pool.",
     addRecipientTitle: "Add recipient",
+    directInput: "Create New",
+    selectFromRegistry: "Select from Registry",
+    bulkAdd: "Bulk Add",
+    individualAdd: "Individual",
+    bulkAddPlaceholder: "Enter names separated by newlines...",
+    bulkAddHint: "Note: Each line will be registered as one person. Max 200.",
+    commonNote: "Common Note (Optional)",
+    commonNotePlaceholder: "Note to be added to all recipients",
+    gridView: "Grid View",
+    listView: "List View",
     addRecipientDescription:
       "Enter a display name and pick a pool asset to issue one claim link. You can create multiple links for the same asset for different people.",
     addRecipientNameLabel: "Recipient display name",

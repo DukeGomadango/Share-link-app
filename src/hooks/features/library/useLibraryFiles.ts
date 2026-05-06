@@ -21,6 +21,7 @@ export function useLibraryFiles() {
   const [sizeFilter, setSizeFilter] = useState<"all" | "small" | "medium" | "large">("all");
   const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
   const [selectedTag, setSelectedTag] = useState("all");
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [nowTs] = useState(() => Date.now());
   const { stats: workspaceStats } = useWorkspaceStats();
 
@@ -161,6 +162,7 @@ export function useLibraryFiles() {
   }, []);
 
   const handleFilesDropped = async (droppedFiles: File[]) => {
+    setUploadError(null);
     const tooLargeFiles = droppedFiles.filter(f => f.size > MAX_UPLOAD_BYTES);
     const validFiles = droppedFiles.filter(f => f.size <= MAX_UPLOAD_BYTES);
 
@@ -175,6 +177,8 @@ export function useLibraryFiles() {
         newAssetIds.push(id);
       } catch (error) {
         console.error("Upload error:", error);
+        const msg = error instanceof Error ? error.message : "アップロードに失敗しました";
+        setUploadError(msg);
         toast.error(`${file.name} のアップロードに失敗しました。`);
       }
     }
@@ -332,5 +336,6 @@ export function useLibraryFiles() {
     handleBulkDelete,
     refreshFiles: fetchFiles,
     storageStats,
+    uploadError,
   };
 }

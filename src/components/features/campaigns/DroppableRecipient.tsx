@@ -263,7 +263,7 @@ export function DroppableRecipient({
             
             <div className="text-right ml-2">
               <span className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest block">
-                {assignedFiles.length} {t.common.files || "Files"}
+                {assignedFiles.length} {t.campaigns.files || "Files"}
               </span>
             </div>
           </>
