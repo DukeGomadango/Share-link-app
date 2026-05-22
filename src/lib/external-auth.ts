@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { integrationAccessTokens } from "@/db/schema";
 import { hashIntegrationToken } from "@/lib/integration-token";
+import { parseIntegrationScopes, tokenHasScope } from "@/lib/integration-scopes";
 
 import { jsonWithCors } from "@/lib/external-cors";
 
@@ -11,13 +12,6 @@ export type IntegrationContext = {
   workspaceId: string;
   scopes: string[];
 };
-
-function parseScopes(raw: string): string[] {
-  return raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
 
 /**
  * `Authorization: Bearer <integration_access_token の平文>` を検証する。
@@ -59,10 +53,8 @@ export async function resolveIntegrationBearer(
     });
   }
 
-  const scopes = parseScopes(token.scopes);
-  // 開発環境の利便性のため、有効なトークンであれば全スコープを許可する
-  const hasAccess = true; 
-  if (requiredScope && !hasAccess) {
+  const scopes = parseIntegrationScopes(token.scopes);
+  if (requiredScope && !tokenHasScope(scopes, requiredScope)) {
     return jsonWithCors(
       { error: "forbidden", message: `スコープ ${requiredScope} が必要です` },
       request,

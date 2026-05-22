@@ -352,7 +352,7 @@ export const integrationAccessTokens = pgTable(
       .references(() => workspaces.id, { onDelete: "cascade" }),
     label: text("label").notNull(),
     tokenHash: text("token_hash").notNull(),
-    scopes: text("scopes").notNull().default("campaigns:read,claims:issue"),
+    scopes: text("scopes").notNull().default("campaigns:read,campaigns:write,claims:issue"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

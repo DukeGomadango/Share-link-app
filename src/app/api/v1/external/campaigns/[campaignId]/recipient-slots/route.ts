@@ -13,6 +13,7 @@ import {
 import { createSlotAndClaim } from "@/lib/claims/create-slot-and-claim";
 import { recomputeSlotAssetsFromClaims } from "@/lib/claims/recompute-slot-assets";
 import { resolveIntegrationBearer } from "@/lib/external-auth";
+import { ensureCampaignToolIntegrationWritable } from "@/lib/external-integration-pause";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 import {
   getCachedJsonResponse,
@@ -113,6 +114,13 @@ export async function DELETE(request: Request, ctx: RouteParams) {
   if (!camp[0]) {
     return jsonWithCors({ error: "not_found", message: "キャンペーンが見つかりません" }, request, { status: 404 });
   }
+
+  const pauseBlock = await ensureCampaignToolIntegrationWritable(
+    campaignId,
+    auth.workspaceId,
+    request
+  );
+  if (pauseBlock) return pauseBlock;
 
   // スロットの特定と削除 (cascade により claim 等も消える想定)
   // schemaを確認し、必要なら手動で消す
@@ -253,10 +261,15 @@ export async function POST(request: Request, ctx: RouteParams) {
     validatedRecipientId = registryRow.id;
   }
 
-  // ── ガチャ連携フラグと配布モード・セキュリティ・ステータスの自動調整 ──
-  // 外部APIが叩かれたら自動的に「公開中（active / high / per_link）」に固定し、外部連携フラグを立てる
+  const pauseBlock = await ensureCampaignToolIntegrationWritable(
+    campaignId,
+    auth.workspaceId,
+    request
+  );
+  if (pauseBlock) return pauseBlock;
+
+  // ツール連携が有効なキャンペーンは配布前提のモードに揃える（一時停止中は上で 403）
   if (
-    !camp[0].isExternalLinked ||
     camp[0].distributionMode !== "per_link" ||
     camp[0].securityLevel !== "high" ||
     camp[0].status !== "active"
@@ -264,7 +277,6 @@ export async function POST(request: Request, ctx: RouteParams) {
     await db
       .update(campaigns)
       .set({
-        isExternalLinked: true,
         distributionMode: "per_link",
         securityLevel: "high",
         status: "active",

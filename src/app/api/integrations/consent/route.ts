@@ -4,6 +4,7 @@ import {
   isRedirectUriAllowed,
 } from "@/lib/integration-oauth";
 import { generateIntegrationTokenPlain, hashIntegrationToken } from "@/lib/integration-token";
+import { DEFAULT_INTEGRATION_SCOPES } from "@/lib/integration-scopes";
 import { getDb } from "@/db";
 import { integrationAccessTokens } from "@/db/schema";
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
     workspaceId: ctx.workspaceId,
     label,
     tokenHash,
-    scopes: "campaigns:read,claims:issue",
+    scopes: DEFAULT_INTEGRATION_SCOPES,
   });
 
   const u = new URL(redirectUri);

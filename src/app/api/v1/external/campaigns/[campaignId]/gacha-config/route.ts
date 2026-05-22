@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { assets as libraryAssets, campaigns, campaignAssets } from "@/db/schema";
 import { resolveCampaignAssetDisplayName } from "@/lib/campaign-assets/display-name";
 import { resolveIntegrationBearer } from "@/lib/external-auth";
+import { ensureCampaignToolIntegrationWritable } from "@/lib/external-integration-pause";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 
 type RouteParams = { params: Promise<{ campaignId: string }> };
@@ -97,6 +98,13 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return jsonWithCors({ error: "not_found", message: "キャンペーンが見つかりません" }, request, { status: 404 });
   }
 
+  const pauseBlock = await ensureCampaignToolIntegrationWritable(
+    campaignId,
+    auth.workspaceId,
+    request
+  );
+  if (pauseBlock) return pauseBlock;
+
   let body: {
     gachaConfig?: {
       rarities: { id: string; name: string; probability: number; color: string }[];
@@ -119,7 +127,6 @@ export async function PUT(request: Request, { params }: RouteParams) {
         .update(campaigns)
         .set({
           gachaConfig,
-          isExternalLinked: true,
         })
         .where(eq(campaigns.id, campaignId));
 

@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { generateIntegrationTokenPlain, hashIntegrationToken } from "@/lib/integration-token";
+import { DEFAULT_INTEGRATION_SCOPES } from "@/lib/integration-scopes";
 import { getDb } from "@/db";
 import { integrationAccessTokens } from "@/db/schema";
 
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       workspaceId: ctx.workspaceId,
       label,
       tokenHash,
-      scopes: "campaigns:read,claims:issue",
+      scopes: DEFAULT_INTEGRATION_SCOPES,
     })
     .returning({
       id: integrationAccessTokens.id,

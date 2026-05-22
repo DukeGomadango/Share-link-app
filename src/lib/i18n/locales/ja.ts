@@ -197,15 +197,20 @@ export const ja = {
       submit: "作成する",
     },
     gacha: {
-      enableTitle: "ガチャ連携を有効化",
-      disableTitle: "ガチャ連携を解除",
+      enableTitle: "ツール連携を再開",
+      disableTitle: "ツール連携を一時停止",
+      linkedBadge: "ツール連携中",
       configTitle: "ガチャ構成設定",
       configDescription: "レア度ごとの当選確率を設定してください。合計が100%になるように調整します。これらの設定は、だんごツールのガチャ機能に反映されます。",
       totalProbability: "合計",
       rarityNamePlaceholder: "レア度名",
       probabilityLabel: "確率",
       syncSuccess: "ガチャ構成を更新しました",
-      modeEnabled: "ガチャ連携モードを有効にしました",
+      modeEnabled: "だんごツールからの更新を受け付けるようにしました",
+      modePaused:
+        "だんごツールからの更新を一時停止しました（APIトークンは有効なままです）",
+      pauseHint:
+        "完全に切るには設定 → 外部連携でトークンを失効してください。",
     },
   },
   library: {
@@ -332,6 +337,7 @@ export const ja = {
     authorizeSubtitle: "外部アプリからの連携リクエストです。内容を確認して許可してください。",
     consentLead: "だんごツールが次の操作を求めています",
     consentRead: "キャンペーンとファイル（アセット）の一覧を参照する",
+    consentWrite: "キャンペーンの作成・ファイル登録・ガチャ設定の保存を行う",
     consentIssue: "受取用リンクを発行する",
     scopesDetail: "詳細（機械可読スコープ）",
     approve: "許可して続ける",

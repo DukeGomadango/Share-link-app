@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { assets, campaignAssets, campaigns, workspaces } from "@/db/schema";
 import { assertObjectKeyBelongsToWorkspace } from "@/lib/assets/object-key";
 import { resolveIntegrationBearer } from "@/lib/external-auth";
+import { ensureCampaignToolIntegrationWritable } from "@/lib/external-integration-pause";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 import { getStorageBucket, MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 
@@ -29,6 +30,13 @@ export async function POST(request: Request, ctx: RouteParams) {
   if (!camp[0]) {
     return jsonWithCors({ error: "not_found", message: "キャンペーンが見つかりません" }, request, { status: 404 });
   }
+
+  const pauseBlock = await ensureCampaignToolIntegrationWritable(
+    campaignId,
+    auth.workspaceId,
+    request
+  );
+  if (pauseBlock) return pauseBlock;
 
   let body: {
     asset_id?: string;

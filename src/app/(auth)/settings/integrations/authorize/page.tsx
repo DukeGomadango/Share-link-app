@@ -144,7 +144,20 @@ function AuthorizeInner() {
                   </div>
                 </div>
 
-                {/* 権限2: 発行 */}
+                {/* 権限2: 書き込み */}
+                <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/50 dark:bg-black/20 border border-white/40 dark:border-white/5 backdrop-blur-sm shadow-sm transition-all hover:bg-white/70 dark:hover:bg-black/35">
+                  <div className="p-2 bg-purple-500/10 rounded-xl text-purple-500 shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-foreground">{t.integrations.consentWrite}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      配布用キャンペーンの作成、景品ファイルの登録、ガチャ確率設定の保存を行います。
+                    </p>
+                  </div>
+                </div>
+
+                {/* 権限3: 発行 */}
                 <div className="flex items-start gap-4 p-4 rounded-2xl bg-white/50 dark:bg-black/20 border border-white/40 dark:border-white/5 backdrop-blur-sm shadow-sm transition-all hover:bg-white/70 dark:hover:bg-black/35">
                   <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500 shrink-0">
                     <LinkIcon className="w-5 h-5" />
@@ -170,7 +183,7 @@ function AuthorizeInner() {
                 </button>
                 {showScopes && (
                   <pre className="text-xs font-mono bg-black/5 dark:bg-black/40 p-3 rounded-xl overflow-x-auto text-muted-foreground/80 border border-border/20 max-h-32 scrollbar-none animate-in fade-in duration-300">
-                    campaigns:read, claims:issue
+                    campaigns:read, campaigns:write, claims:issue
                   </pre>
                 )}
               </div>

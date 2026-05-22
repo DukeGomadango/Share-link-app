@@ -237,7 +237,7 @@ export default function CampaignDetailPage() {
               {campaign.isExternalLinked && (
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 border border-purple-500/20 text-[10px] font-bold">
                   <LinkIcon className="w-3 h-3" />
-                  ガチャ連携済み
+                  {t.campaigns.gacha.linkedBadge}
                 </div>
               )}
               
@@ -291,7 +291,7 @@ export default function CampaignDetailPage() {
                       body: JSON.stringify({ isExternalLinked: false }),
                     });
                     if (r.ok) reloadWorkflow();
-                    toast.success("ガチャ連携を解除しました");
+                    toast.success(t.campaigns.gacha.modePaused);
                   } else {
                     const defaultConfig = {
                       rarities: [

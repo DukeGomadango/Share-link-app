@@ -201,15 +201,20 @@ export const en: TranslationKeys = {
       submit: "Create",
     },
     gacha: {
-      enableTitle: "Enable Gacha Integration",
-      disableTitle: "Disable Gacha Integration",
+      enableTitle: "Resume tool integration",
+      disableTitle: "Pause tool integration",
+      linkedBadge: "Tool integration active",
       configTitle: "Gacha Configuration",
       configDescription: "Set the probability of winning for each rarity. Adjust them so the total is exactly 100%. These settings will be synced to the Dango tools gacha module.",
       totalProbability: "Total",
       rarityNamePlaceholder: "Rarity name",
       probabilityLabel: "Probability",
       syncSuccess: "Gacha configuration updated",
-      modeEnabled: "Gacha integration mode enabled",
+      modeEnabled: "Tool integration is accepting updates from Dango tools",
+      modePaused:
+        "Paused updates from Dango tools (API tokens remain valid)",
+      pauseHint:
+        "To fully disconnect, revoke the token under Settings → Integrations.",
     },
   },
   library: {
@@ -336,6 +341,7 @@ export const en: TranslationKeys = {
     authorizeSubtitle: "An external app wants to connect. Review and approve.",
     consentLead: "The Dango tools app requests the following",
     consentRead: "Read campaigns and file (asset) listings",
+    consentWrite: "Create campaigns, register files, and save gacha settings",
     consentIssue: "Issue recipient claim links",
     scopesDetail: "Details (machine-readable scopes)",
     approve: "Approve and continue",
