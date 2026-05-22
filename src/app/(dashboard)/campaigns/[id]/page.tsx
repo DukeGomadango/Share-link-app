@@ -323,7 +323,9 @@ export default function CampaignDetailPage() {
                     size="sm"
                     className="h-8 border-purple-500/30 text-purple-600 hover:bg-purple-500/5 hover:border-purple-500/50 text-[10px] font-bold uppercase transition-all"
                     onClick={() => {
-                      window.open(`http://localhost:3000/gacha?campaign_id=${campaignId}&open_bulk_modal=true`, "_blank");
+                      const dangoToolUrl = process.env.NEXT_PUBLIC_DANGO_TOOL_URL || "https://dango-tool.vercel.app";
+                      const apiBaseUrl = typeof window !== "undefined" ? window.location.origin : "";
+                      window.open(`${dangoToolUrl}/gacha?campaign_id=${campaignId}&open_bulk_modal=true&api_base_url=${encodeURIComponent(apiBaseUrl)}`, "_blank");
                     }}
                   >
                     <ExternalLink className="w-3 h-3 mr-1" />
