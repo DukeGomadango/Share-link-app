@@ -138,6 +138,9 @@ export async function DELETE(request: Request, ctx: RouteParams) {
  * キャンペーンに紐づく全アセットを自動でClaimに割り当てる。
  *
  * Body: { listener_display_name, external_transaction_id, campaign_asset_ids?, recipient_id? }
+ * - campaign_asset_ids 省略: キャンペーン全アセット（レガシー・非推奨）
+ * - campaign_asset_ids []: ファイル0件（だんごツールの当選ベース同期）
+ * - campaign_asset_ids [id,...]: 指定アセットのみ
  * 冪等: 同じ external_transaction_id が既に存在すれば既存の claim_url を返す。
  */
 export async function POST(request: Request, ctx: RouteParams) {
@@ -392,6 +395,7 @@ export async function POST(request: Request, ctx: RouteParams) {
       slot_id: existingClaim.recipientSlotId,
       recipient_id: slotMeta?.recipientId ?? validatedRecipientId,
       external_transaction_id: externalTxId,
+      linked_asset_count: assetsToLink.length,
     };
     await putCachedJsonResponse(
       auth.integrationTokenId,
@@ -452,6 +456,7 @@ export async function POST(request: Request, ctx: RouteParams) {
       slot_id: result.slotId,
       recipient_id: newSlotMeta?.recipientId ?? validatedRecipientId,
       external_transaction_id: externalTxId,
+      linked_asset_count: assetsToLink.length,
     };
 
     await putCachedJsonResponse(
