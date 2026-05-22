@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { createSignedReadUrl } from "@/lib/assets/signed-urls";
+import { resolveCampaignAssetDisplayName } from "@/lib/campaign-assets/display-name";
 import { fetchWorkflowRecipientsForCampaign } from "@/lib/claims/workflow-recipients";
 import { ensurePublicReceptionToken } from "@/lib/campaigns/public-reception-token";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
@@ -66,12 +67,16 @@ export async function GET(_request: Request, ctx: RouteParams) {
 
   const poolFiles: FileItem[] = await Promise.all(
     assetRows.map(async ({ ca, lib }) => {
-      let name = ca.label?.trim() || "file";
+      const name = resolveCampaignAssetDisplayName({
+        label: ca.label,
+        libraryOriginalFilename: lib?.originalFilename,
+        assetUrl: ca.assetUrl,
+        fallback: "file",
+      });
       let previewUrl: string | undefined;
       let type: "audio" | "image" | "file" = "file";
 
       if (lib) {
-        name = lib.originalFilename;
         type = guessType(lib.mimeType, null);
         const signed = await createSignedReadUrl(lib.bucket, lib.objectKey);
         previewUrl = signed ?? undefined;

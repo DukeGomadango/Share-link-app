@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { campaigns, campaignAssets } from "@/db/schema";
+import { assets as libraryAssets, campaigns, campaignAssets } from "@/db/schema";
+import { resolveCampaignAssetDisplayName } from "@/lib/campaign-assets/display-name";
 import { resolveIntegrationBearer } from "@/lib/external-auth";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 
@@ -42,18 +43,29 @@ export async function GET(request: Request, { params }: RouteParams) {
     .select({
       id: campaignAssets.id,
       label: campaignAssets.label,
+      assetUrl: campaignAssets.assetUrl,
       gachaRarityId: campaignAssets.gachaRarityId,
+      libraryOriginalFilename: libraryAssets.originalFilename,
     })
     .from(campaignAssets)
+    .leftJoin(libraryAssets, eq(campaignAssets.assetId, libraryAssets.id))
     .where(eq(campaignAssets.campaignId, campaignId));
 
   return jsonWithCors({
     gachaConfig: campaign.gachaConfig,
-    items: assetRows.map(a => ({
-      id: a.id,
-      label: a.label,
-      rarityId: a.gachaRarityId,
-    }))
+    items: assetRows.map((a) => {
+      const displayName = resolveCampaignAssetDisplayName({
+        label: a.label,
+        libraryOriginalFilename: a.libraryOriginalFilename,
+        assetUrl: a.assetUrl,
+      });
+      return {
+        id: a.id,
+        label: a.label,
+        displayName,
+        rarityId: a.gachaRarityId,
+      };
+    }),
   }, request);
 }
 

@@ -7,9 +7,11 @@ import {
   campaigns,
   claimAssets,
   claims,
+  recipients,
   slotAssets,
 } from "@/db/schema";
 import { createSlotAndClaim } from "@/lib/claims/create-slot-and-claim";
+import { recomputeSlotAssetsFromClaims } from "@/lib/claims/recompute-slot-assets";
 import { resolveIntegrationBearer } from "@/lib/external-auth";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 import {
@@ -24,6 +26,63 @@ const ROUTE_KEY = "POST /api/v1/external/campaigns/:id/recipient-slots";
 
 export async function OPTIONS(request: Request) {
   return handleCorsPreflight(request);
+}
+
+/**
+ * 冪等キーで配布リンクの有無を確認する（ツールのリンク切れ検知用）。
+ * Query: ?external_transaction_id=...
+ */
+export async function GET(request: Request, ctx: RouteParams) {
+  const auth = await resolveIntegrationBearer(request, "claims:issue");
+  if (auth instanceof Response) return auth;
+
+  const { campaignId } = await ctx.params;
+  const externalTxId = new URL(request.url).searchParams
+    .get("external_transaction_id")
+    ?.trim();
+
+  if (!externalTxId) {
+    return jsonWithCors(
+      { error: "missing_parameter", message: "external_transaction_id が必要です" },
+      request,
+      { status: 400 }
+    );
+  }
+
+  const db = getDb();
+  const [row] = await db
+    .select({
+      claimSecret: claims.claimSecret,
+      claimId: claims.id,
+      slotId: claims.recipientSlotId,
+      slotCampaignId: campaignRecipientSlots.campaignId,
+      recipientId: campaignRecipientSlots.recipientId,
+    })
+    .from(claims)
+    .leftJoin(
+      campaignRecipientSlots,
+      eq(claims.recipientSlotId, campaignRecipientSlots.id)
+    )
+    .where(eq(claims.externalTransactionId, externalTxId))
+    .limit(1);
+
+  if (!row?.slotId || row.slotCampaignId !== campaignId) {
+    return jsonWithCors({ ok: true, linked: false }, request);
+  }
+
+  const base = publicBaseUrlFromRequest(request);
+  return jsonWithCors(
+    {
+      ok: true,
+      linked: true,
+      claim_url: `${base}/claim/${encodeURIComponent(row.claimSecret)}`,
+      claim_id: row.claimId,
+      slot_id: row.slotId,
+      recipient_id: row.recipientId,
+      external_transaction_id: externalTxId,
+    },
+    request
+  );
 }
 
 /**
@@ -70,7 +129,7 @@ export async function DELETE(request: Request, ctx: RouteParams) {
  * ガチャ等の外部アプリから呼び出し、キャンペーンに受取人スロット（名簿枠）を作成する。
  * キャンペーンに紐づく全アセットを自動でClaimに割り当てる。
  *
- * Body: { listener_display_name: string, external_transaction_id: string }
+ * Body: { listener_display_name, external_transaction_id, campaign_asset_ids?, recipient_id? }
  * 冪等: 同じ external_transaction_id が既に存在すれば既存の claim_url を返す。
  */
 export async function POST(request: Request, ctx: RouteParams) {
@@ -99,6 +158,7 @@ export async function POST(request: Request, ctx: RouteParams) {
     external_transaction_id?: unknown;
     campaign_asset_ids?: unknown;
     listener_note?: unknown;
+    recipient_id?: unknown;
   };
   try {
     body = await request.json();
@@ -141,6 +201,9 @@ export async function POST(request: Request, ctx: RouteParams) {
     );
   }
 
+  const requestedRecipientId =
+    typeof body.recipient_id === "string" ? body.recipient_id.trim() : "";
+
   // ── キャンペーン所有権の確認 ──
   const db = getDb();
   const camp = await db
@@ -166,6 +229,28 @@ export async function POST(request: Request, ctx: RouteParams) {
       request,
       { status: 404 }
     );
+  }
+
+  let validatedRecipientId: string | null = null;
+  if (requestedRecipientId) {
+    const [registryRow] = await db
+      .select({ id: recipients.id })
+      .from(recipients)
+      .where(
+        and(
+          eq(recipients.id, requestedRecipientId),
+          eq(recipients.workspaceId, auth.workspaceId)
+        )
+      )
+      .limit(1);
+    if (!registryRow) {
+      return jsonWithCors(
+        { error: "not_found", message: "指定された受取人名簿が見つかりません" },
+        request,
+        { status: 404 }
+      );
+    }
+    validatedRecipientId = registryRow.id;
   }
 
   // ── ガチャ連携フラグと配布モード・セキュリティ・ステータスの自動調整 ──
@@ -218,6 +303,28 @@ export async function POST(request: Request, ctx: RouteParams) {
 
   if (existingClaim) {
     const claimId = existingClaim.id;
+    const slotId = existingClaim.recipientSlotId;
+
+    // 表示名は毎回ツール側のプレイヤー名に追随（リネーム同期）
+    if (slotId) {
+      await db
+        .update(campaignRecipientSlots)
+        .set({
+          listenerDisplayName: listenerName,
+          listenerNote: listenerNote || `ガチャ連携: ${listenerName}`,
+          ...(validatedRecipientId
+            ? { recipientId: validatedRecipientId }
+            : {}),
+        })
+        .where(eq(campaignRecipientSlots.id, slotId));
+    }
+    await db
+      .update(claims)
+      .set({
+        recipientDisplayName: listenerName,
+        updatedAt: new Date(),
+      })
+      .where(eq(claims.id, claimId));
 
     // 現在の紐付けを取得して比較
     const currentClaimAssets = await db
@@ -228,48 +335,50 @@ export async function POST(request: Request, ctx: RouteParams) {
     const currentIds = new Set(currentClaimAssets.map((ca) => ca.campaignAssetId));
     const newIds = new Set(assetsToLink.map((a) => a.id));
 
-    // セットの内容が異なる場合は同期
     const isSame =
       currentIds.size === newIds.size &&
       [...newIds].every((id) => currentIds.has(id));
 
-    if (!isSame && existingClaim.recipientSlotId) {
-      const sId = existingClaim.recipientSlotId;
+    if (!isSame && slotId) {
       await db.delete(claimAssets).where(eq(claimAssets.claimId, claimId));
-      await db.delete(slotAssets).where(eq(slotAssets.slotId, sId));
 
       if (assetsToLink.length > 0) {
         await db.insert(claimAssets).values(
           assetsToLink.map((a) => ({
-            claimId: claimId,
+            claimId,
             campaignAssetId: a.id,
           }))
         );
-        await db.insert(slotAssets).values(
-          assetsToLink.map((a) => ({
-            slotId: sId,
-            campaignAssetId: a.id,
-          }))
-        );
-        // ステータスを準備完了に更新
-        await db
-          .update(campaignRecipientSlots)
-          .set({ status: "ready" })
-          .where(eq(campaignRecipientSlots.id, sId));
-      } else {
-        // アセットが0件になった場合は未紐付けに戻す
-        await db
-          .update(campaignRecipientSlots)
-          .set({ status: "unlinked" })
-          .where(eq(campaignRecipientSlots.id, sId));
       }
+
+      await recomputeSlotAssetsFromClaims(db, slotId);
+
+      const [slotAssetCount] = await db
+        .select({ id: slotAssets.slotId })
+        .from(slotAssets)
+        .where(eq(slotAssets.slotId, slotId))
+        .limit(1);
+
+      await db
+        .update(campaignRecipientSlots)
+        .set({ status: slotAssetCount ? "ready" : "unlinked" })
+        .where(eq(campaignRecipientSlots.id, slotId));
     }
+
+    const [slotMeta] = existingClaim.recipientSlotId
+      ? await db
+          .select({ recipientId: campaignRecipientSlots.recipientId })
+          .from(campaignRecipientSlots)
+          .where(eq(campaignRecipientSlots.id, existingClaim.recipientSlotId))
+          .limit(1)
+      : [];
 
     const payload = {
       ok: true,
       claim_url: `${base}/claim/${encodeURIComponent(existingClaim.claimSecret)}`,
       claim_id: claimId,
       slot_id: existingClaim.recipientSlotId,
+      recipient_id: slotMeta?.recipientId ?? validatedRecipientId,
       external_transaction_id: externalTxId,
     };
     await putCachedJsonResponse(
@@ -287,6 +396,7 @@ export async function POST(request: Request, ctx: RouteParams) {
       campaignId,
       listenerDisplayName: listenerName,
       listenerNote: listenerNote || `ガチャ連携: ${listenerName}`,
+      recipientId: validatedRecipientId,
     });
 
     // 冪等性を確保するため、作成された Claim の externalTransactionId を上書き
@@ -317,11 +427,18 @@ export async function POST(request: Request, ctx: RouteParams) {
 
     const claimUrl = `${base}/claim/${encodeURIComponent(result.claimSecret)}`;
 
+    const [newSlotMeta] = await db
+      .select({ recipientId: campaignRecipientSlots.recipientId })
+      .from(campaignRecipientSlots)
+      .where(eq(campaignRecipientSlots.id, result.slotId))
+      .limit(1);
+
     const payload = {
       ok: true,
       claim_url: claimUrl,
       claim_id: result.claimId,
       slot_id: result.slotId,
+      recipient_id: newSlotMeta?.recipientId ?? validatedRecipientId,
       external_transaction_id: externalTxId,
     };
 

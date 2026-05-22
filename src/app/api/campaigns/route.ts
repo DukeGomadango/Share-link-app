@@ -4,7 +4,8 @@ import { randomBytes } from "node:crypto";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { fetchCampaignsWithStats } from "@/lib/campaigns-query";
 import { getDb } from "@/db";
-import { campaigns, campaignAssets } from "@/db/schema";
+import { assets, campaigns, campaignAssets } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function GET() {
   const ctx = await getSessionWorkspaceContext();
@@ -62,10 +63,17 @@ export async function POST(request: Request) {
     .returning();
 
   if (body.assetIds && body.assetIds.length > 0) {
+    const libRows = await db
+      .select({ id: assets.id, originalFilename: assets.originalFilename })
+      .from(assets)
+      .where(eq(assets.workspaceId, ctx.workspaceId));
+    const nameById = new Map(libRows.map((a) => [a.id, a.originalFilename]));
+
     await db.insert(campaignAssets).values(
       body.assetIds.map((assetId) => ({
         campaignId: row.id,
         assetId,
+        label: nameById.get(assetId) ?? null,
       }))
     ).onConflictDoNothing();
   }

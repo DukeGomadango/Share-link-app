@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { assets as libraryAssets, campaignAssets, campaigns } from "@/db/schema";
 import { createSignedReadUrl } from "@/lib/assets/signed-urls";
+import { resolveCampaignAssetDisplayName } from "@/lib/campaign-assets/display-name";
 import { resolveIntegrationBearer } from "@/lib/external-auth";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 
@@ -45,6 +46,7 @@ export async function GET(request: Request, ctx: RouteParams) {
       createdAt: campaignAssets.createdAt,
       libBucket: libraryAssets.bucket,
       libObjectKey: libraryAssets.objectKey,
+      libraryOriginalFilename: libraryAssets.originalFilename,
     })
     .from(campaignAssets)
     .leftJoin(libraryAssets, eq(campaignAssets.assetId, libraryAssets.id))
@@ -59,10 +61,16 @@ export async function GET(request: Request, ctx: RouteParams) {
           resolved = u;
         }
       }
+      const displayName = resolveCampaignAssetDisplayName({
+        label: a.label,
+        libraryOriginalFilename: a.libraryOriginalFilename,
+        assetUrl: a.assetUrl,
+      });
       return {
         id: a.id,
         campaign_id: a.campaignId,
         label: a.label,
+        displayName,
         asset_url: resolved,
         library_asset_id: a.assetId,
         created_at: a.createdAt.toISOString(),

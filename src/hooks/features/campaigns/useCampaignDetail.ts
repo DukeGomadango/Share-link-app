@@ -161,13 +161,28 @@ export function useCampaignDetail() {
   }, [campaignId, loadWorkflow]); // campaignId が変わった時だけ（実質マウント時のみ）
 
   useEffect(() => {
-    // リアルタイム監視 (Supabase Realtime)
+    // リアルタイム監視 (Supabase Realtime) — だんごツール等の外部 API 更新も追随
     if (!campaignId) return;
+
+    const refreshWorkflow = () => debouncedLoadWorkflow({ quiet: true });
 
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
       .channel(`admin-campaign-updates-${campaignId}`)
-      // 受取人のステータス更新 (開封など)
+      // 新規 Claim（ガチャ連携でプレイヤー追加など）
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "claims",
+          filter: `campaign_id=eq.${campaignId}`,
+        },
+        () => {
+          refreshWorkflow();
+        }
+      )
+      // Claim 更新（開封・外部連携による配布ファイル差し替え後の updatedAt など）
       .on(
         "postgres_changes",
         {
@@ -176,18 +191,11 @@ export function useCampaignDetail() {
           table: "claims",
           filter: `campaign_id=eq.${campaignId}`,
         },
-        (payload) => {
-          const updated = payload.new;
-          setRecipients((prev) =>
-            prev.map((r) =>
-              (r.id === updated.recipient_slot_id || r.claimSecret === updated.claim_secret)
-                ? { ...r, status: updated.status === "claimed" ? "claimed" : r.status }
-                : r
-            )
-          );
+        () => {
+          refreshWorkflow();
         }
       )
-      // 受取人情報（名前・メモ）の更新
+      // 受取スロットの変更（名前・ステータス・外部連携）
       .on(
         "postgres_changes",
         {
@@ -196,22 +204,11 @@ export function useCampaignDetail() {
           table: "campaign_recipient_slots",
           filter: `campaign_id=eq.${campaignId}`,
         },
-        (payload) => {
-          const updated = payload.new;
-          setRecipients((prev) =>
-            prev.map((r) =>
-              r.id === updated.id
-                ? {
-                    ...r,
-                    name: updated.listener_display_name || r.name,
-                    listenerNote: updated.listener_note || r.listenerNote,
-                  }
-                : r
-            )
-          );
+        () => {
+          refreshWorkflow();
         }
       )
-      // ファイル割り当ての更新
+      // ファイル割り当ての更新（既知スロットは差分パッチ、未知はフル再取得）
       .on(
         "postgres_changes",
         {
@@ -220,14 +217,17 @@ export function useCampaignDetail() {
           table: "slot_assets",
         },
         (payload) => {
-          // slot_assets は自分に関係あるか JS 側で判定（Egress 節約のため API は叩かない）
           const data = payload.eventType === "DELETE" ? payload.old : payload.new;
-          const slotId = data.slot_id;
-          const assetId = data.campaign_asset_id;
+          const slotId = data.slot_id as string;
+          const assetId = data.campaign_asset_id as string;
 
+          let needsFullRefresh = false;
           setRecipients((prev) => {
             const hasSlot = prev.some((r) => r.id === slotId);
-            if (!hasSlot) return prev; // 自分のキャンペーンの枠でなければ無視
+            if (!hasSlot) {
+              needsFullRefresh = true;
+              return prev;
+            }
 
             return prev.map((r) => {
               if (r.id !== slotId) return r;
@@ -241,9 +241,12 @@ export function useCampaignDetail() {
               return r;
             });
           });
+          if (needsFullRefresh) {
+            refreshWorkflow();
+          }
         }
       )
-      // フォールバック用の再取得（新規作成・削除など）
+      // 受取スロットの新規・削除
       .on(
         "postgres_changes",
         {
@@ -254,7 +257,7 @@ export function useCampaignDetail() {
         },
         (payload) => {
           if (payload.eventType === "INSERT" || payload.eventType === "DELETE") {
-            debouncedLoadWorkflow({ quiet: true });
+            refreshWorkflow();
           }
         }
       )
@@ -277,6 +280,24 @@ export function useCampaignDetail() {
 
     return () => {
       void supabase.removeChannel(channel);
+    };
+  }, [campaignId, debouncedLoadWorkflow]);
+
+  // 別タブ（だんごツール）で同期したあと戻ってきたとき用。ポーリングは使わない。
+  useEffect(() => {
+    if (!campaignId) return;
+
+    const onResume = () => {
+      if (document.visibilityState === "visible") {
+        debouncedLoadWorkflow({ quiet: true });
+      }
+    };
+
+    document.addEventListener("visibilitychange", onResume);
+    window.addEventListener("focus", onResume);
+    return () => {
+      document.removeEventListener("visibilitychange", onResume);
+      window.removeEventListener("focus", onResume);
     };
   }, [campaignId, debouncedLoadWorkflow]);
 
