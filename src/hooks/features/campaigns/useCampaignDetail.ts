@@ -155,8 +155,11 @@ export function useCampaignDetail() {
 
   useEffect(() => {
     // 初回読み込み
-    void loadWorkflow();
-  }, [campaignId]); // campaignId が変わった時だけ（実質マウント時のみ）
+    const timer = setTimeout(() => {
+      void loadWorkflow();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [campaignId, loadWorkflow]); // campaignId が変わった時だけ（実質マウント時のみ）
 
   useEffect(() => {
     // リアルタイム監視 (Supabase Realtime)
@@ -260,7 +263,7 @@ export function useCampaignDetail() {
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
         // 自分（admin）以外のユニークな接続をカウント
-        const counts = Object.values(state).flat().filter((p: any) => p.user_type !== "admin").length;
+        const counts = Object.values(state).flat().filter((p) => (p as { user_type?: string })?.user_type !== "admin").length;
         setLiveViewers(counts);
       })
       .subscribe(async (status) => {
@@ -574,6 +577,36 @@ export function useCampaignDetail() {
     },
     [campaignId, loadWorkflow]
   );
+  
+  const handleUpdateGachaConfig = useCallback(
+    async (config: Campaign["gachaConfig"]) => {
+      if (!campaignId) return;
+      const r = await fetch(`/api/campaigns/${campaignId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gachaConfig: config }),
+      });
+      if (r.ok) await loadWorkflow({ quiet: true });
+    },
+    [campaignId, loadWorkflow]
+  );
+
+  const handleUpdateFileRarity = useCallback(
+    async (fileId: string, rarityId: string | null) => {
+      if (!campaignId) return;
+      const r = await fetch(`/api/campaigns/${campaignId}/assets/${fileId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gachaRarityId: rarityId }),
+      });
+      if (r.ok) {
+        // Local update for immediate feedback
+        setFiles(prev => prev.map(f => f.id === fileId ? { ...f, gachaRarityId: rarityId || undefined } : f));
+        toast.success("レアリティを更新しました");
+      }
+    },
+    [campaignId]
+  );
 
   return {
     campaignId,
@@ -604,6 +637,9 @@ export function useCampaignDetail() {
     handleDragEnd,
     handleFilesDropped,
     deleteCampaign,
+    handleUpdateGachaConfig,
+    handleUpdateFileRarity,
     reloadWorkflow: loadWorkflow,
+    liveViewers,
   };
 }

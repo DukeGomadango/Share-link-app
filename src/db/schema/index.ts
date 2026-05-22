@@ -68,6 +68,10 @@ export const campaigns = pgTable(
     publicReceptionToken: text("public_reception_token"),
     /** 外部連携（ガチャ等）によって作成されたか */
     isExternalLinked: boolean("is_external_linked").default(false).notNull(),
+    /** ガチャ連携用の構成（レアリティごとの確率設定など） */
+    gachaConfig: jsonb("gacha_config").$type<{
+      rarities: { id: string; name: string; probability: number; color: string }[];
+    }>(),
     /** 統計情報（トリガーで自動更新） */
     totalFilesCount: integer("total_files_count").default(0).notNull(),
     assignedRecipientsCount: integer("assigned_recipients_count").default(0).notNull(),
@@ -121,6 +125,8 @@ export const campaignAssets = pgTable(
     label: text("label"),
     assetId: uuid("asset_id").references(() => assets.id, { onDelete: "restrict" }),
     assetUrl: text("asset_url"),
+    /** ガチャ連携時のレアリティID */
+    gachaRarityId: text("gacha_rarity_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

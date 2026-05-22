@@ -21,6 +21,7 @@ export async function GET(request: Request) {
       id: campaigns.id,
       name: campaigns.name,
       status: campaigns.status,
+      isExternalLinked: campaigns.isExternalLinked,
     })
     .from(campaigns)
     .where(eq(campaigns.workspaceId, auth.workspaceId))

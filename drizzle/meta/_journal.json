@@ -22,6 +22,20 @@
       "when": 1777821268149,
       "tag": "0002_foamy_black_bolt",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778032155470,
+      "tag": "0003_tense_rick_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778032174468,
+      "tag": "0004_luxuriant_bullseye",
+      "breakpoints": true
     }
   ]
 }

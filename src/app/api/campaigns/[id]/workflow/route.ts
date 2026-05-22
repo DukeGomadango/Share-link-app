@@ -87,6 +87,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
         previewUrl,
         libraryAssetId: ca.assetId || undefined,
         expiresAt: lib?.expiresAt?.toISOString(),
+        gachaRarityId: ca.gachaRarityId || undefined,
       };
     })
   );

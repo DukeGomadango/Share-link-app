@@ -75,10 +75,11 @@ export function DialogHeader({ children, className }: { children: React.ReactNod
   );
 }
 
-export function DialogTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-3xl font-black tracking-tight text-foreground">{children}</h2>;
+export function DialogTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <h2 className={cn("text-3xl font-black tracking-tight text-foreground", className)}>{children}</h2>;
 }
 
-export function DialogDescription({ children }: { children: React.ReactNode }) {
-  return <p className="text-sm text-muted-foreground mt-2">{children}</p>;
+export function DialogDescription({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <p className={cn("text-sm text-muted-foreground mt-2", className)}>{children}</p>;
 }
+

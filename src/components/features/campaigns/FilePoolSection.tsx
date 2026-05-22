@@ -20,6 +20,8 @@ interface FilePoolSectionProps {
   onFilesDropped: (files: File[]) => void;
   onOpenLibrary: () => void;
   onUnassignFiles?: (fileIds: string[]) => void;
+  rarities?: { id: string; name: string; color: string }[];
+  onUpdateFileRarity?: (fileId: string, rarityId: string | null) => void;
 }
 
 export function FilePoolSection({
@@ -31,6 +33,8 @@ export function FilePoolSection({
   onFilesDropped,
   onOpenLibrary,
   onUnassignFiles,
+  rarities = [],
+  onUpdateFileRarity,
 }: FilePoolSectionProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -250,6 +254,8 @@ export function FilePoolSection({
                   }
                 } : undefined}
                 priority={index < 4}
+                rarities={rarities}
+                onUpdateRarity={onUpdateFileRarity}
               />
             ))}
           </div>

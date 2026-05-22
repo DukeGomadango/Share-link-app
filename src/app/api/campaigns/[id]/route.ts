@@ -37,6 +37,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     distributionMode?: string;
     expiresAt?: string | null;
     securityLevel?: string;
+    isExternalLinked?: boolean;
+    gachaConfig?: unknown;
   };
   try {
     body = await request.json();
@@ -52,6 +54,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     distributionMode?: string;
     expiresAt?: Date | null;
     securityLevel?: "standard" | "high";
+    isExternalLinked?: boolean;
+    gachaConfig?: unknown;
   };
   const patch: Patch = {};
 
@@ -96,6 +100,14 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "securityLevel が不正です" }, { status: 400 });
     }
     patch.securityLevel = s;
+  }
+  
+  if (body.isExternalLinked !== undefined) {
+    patch.isExternalLinked = !!body.isExternalLinked;
+  }
+  
+  if (body.gachaConfig !== undefined) {
+    patch.gachaConfig = body.gachaConfig;
   }
 
   if (Object.keys(patch).length === 0) {

@@ -6,6 +6,8 @@ export type FileItem = {
   /** 元のライブラリアセットID（紐付いている場合） */
   libraryAssetId?: string;
   expiresAt?: string;
+  /** ガチャ連携時のレアリティID */
+  gachaRarityId?: string;
 };
 
 export type RecipientStatus = "waiting" | "verified" | "claimed";
@@ -77,6 +79,10 @@ export interface Campaign {
   publicReceptionToken?: string;
   /** ガチャ等の外部連携が行われているか（公開設定をロックする） */
   isExternalLinked?: boolean;
+  /** ガチャ連携用の構成（レアリティごとの確率設定など） */
+  gachaConfig?: {
+    rarities: { id: string; name: string; probability: number; color: string }[];
+  };
   stats: {
     totalFiles: number;
     assignedRecipients: number;

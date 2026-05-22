@@ -62,6 +62,7 @@ export default function ClaimSessionByCampaignPage() {
         campaignName: string;
         pending?: boolean;
         passkeyLinked?: boolean;
+        claimSecret?: string;
         files: Array<{
           id: string;
           type: string;

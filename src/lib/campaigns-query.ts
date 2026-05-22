@@ -43,6 +43,7 @@ export async function fetchCampaignsWithStats(workspaceId: string): Promise<Camp
       distributionMode: (row.distributionMode as Campaign["distributionMode"]) ?? "per_link",
       publicReceptionToken: row.publicReceptionToken ?? undefined,
       isExternalLinked: row.isExternalLinked,
+      gachaConfig: row.gachaConfig as Campaign["gachaConfig"],
       stats: {
         totalFiles,
         assignedRecipients,

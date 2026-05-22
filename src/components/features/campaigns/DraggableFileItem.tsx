@@ -10,9 +10,19 @@ interface DraggableFileItemProps {
   onToggleSelection: (fileId: string) => void;
   onRemove?: () => void;
   priority?: boolean;
+  rarities?: { id: string; name: string; color: string }[];
+  onUpdateRarity?: (fileId: string, rarityId: string | null) => void;
 }
 
-export function DraggableFileItem({ file, isSelected, onToggleSelection, onRemove, priority = false }: DraggableFileItemProps) {
+export function DraggableFileItem({
+  file,
+  isSelected,
+  onToggleSelection,
+  onRemove,
+  priority = false,
+  rarities = [],
+  onUpdateRarity,
+}: DraggableFileItemProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `file-${file.id}`,
     data: { file },
@@ -96,6 +106,24 @@ export function DraggableFileItem({ file, isSelected, onToggleSelection, onRemov
           <p className="text-[8px] text-muted-foreground/60 mt-0.5">
             Expires: {new Date(file.expiresAt).toLocaleDateString()}
           </p>
+        )}
+
+        {/* Rarity Selector */}
+        {rarities.length > 0 && (
+          <div className="mt-2 w-full" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+            <select
+              className="w-full text-[9px] font-bold bg-background/80 border border-border/60 rounded px-1 py-0.5 outline-none focus:border-emerald-500/50"
+              value={file.gachaRarityId || ""}
+              onChange={(e) => onUpdateRarity?.(file.id, e.target.value || null)}
+            >
+              <option value="">RARE: --</option>
+              {rarities.map((r) => (
+                <option key={r.id} value={r.id} style={{ color: r.color }}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
       </div>
     </div>

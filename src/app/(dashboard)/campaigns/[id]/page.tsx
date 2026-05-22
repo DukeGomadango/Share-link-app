@@ -1,10 +1,18 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users, Calendar, X, Trash2, Check, AlertCircle } from "lucide-react";
+import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users, Calendar, X, Trash2, Check, AlertCircle, Settings, Plus, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import Image from "next/image";
 import { toast } from "sonner";
+
+interface GachaRarity {
+  id: string;
+  name: string;
+  probability: number;
+  color: string;
+}
 
 import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
 import { LibrarySelectModal } from "@/components/features/campaigns/LibrarySelectModal";
@@ -50,6 +58,8 @@ export default function CampaignDetailPage() {
     handleDragEnd,
     handleFilesDropped,
     deleteCampaign,
+    handleUpdateGachaConfig,
+    handleUpdateFileRarity,
     reloadWorkflow,
     liveViewers,
   } = useCampaignDetail();
@@ -58,6 +68,7 @@ export default function CampaignDetailPage() {
   const [addRecipientOpen, setAddRecipientOpen] = useState(false);
   const [addRecipientResetKey, setAddRecipientResetKey] = useState(0);
   const [statusBusy, setStatusBusy] = useState(false);
+  const [isGachaConfigOpen, setIsGachaConfigOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<"active" | "completed" | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -95,7 +106,7 @@ export default function CampaignDetailPage() {
       if (!campaignId) return;
       setStatusBusy(true);
       try {
-        const body: any = { securityLevel: newLevel };
+        const body: { securityLevel: "standard" | "high"; distributionMode?: string } = { securityLevel: newLevel };
         if (newLevel === "standard") {
           body.distributionMode = "reception";
         }
@@ -262,6 +273,73 @@ export default function CampaignDetailPage() {
                   限定
                 </button>
               </div>
+
+              <Button
+                variant={campaign?.isExternalLinked ? "ghost" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-8 text-[10px] uppercase font-bold transition-all",
+                  campaign?.isExternalLinked
+                    ? "text-muted-foreground hover:text-purple-600 hover:bg-purple-500/5"
+                    : "border-purple-500/30 text-purple-600 hover:bg-purple-500/5 hover:border-purple-500/50"
+                )}
+                onClick={async () => {
+                  if (campaign?.isExternalLinked) {
+                    const r = await fetch(`/api/campaigns/${campaignId}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ isExternalLinked: false }),
+                    });
+                    if (r.ok) reloadWorkflow();
+                    toast.success("ガチャ連携を解除しました");
+                  } else {
+                    const defaultConfig = {
+                      rarities: [
+                        { id: "rarity-1", name: "SSR", probability: 5, color: "#FFD700" },
+                        { id: "rarity-2", name: "SR", probability: 15, color: "#C0C0C0" },
+                        { id: "rarity-3", name: "R", probability: 30, color: "#CD7F32" },
+                        { id: "rarity-4", name: "N", probability: 50, color: "#94a3b8" },
+                      ]
+                    };
+                    await handleUpdateGachaConfig(defaultConfig);
+                    const r = await fetch(`/api/campaigns/${campaignId}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ isExternalLinked: true }),
+                    });
+                    if (r.ok) reloadWorkflow();
+                    toast.success(t.campaigns.gacha.modeEnabled);
+                  }
+                }}
+              >
+                <LinkIcon className="w-3 h-3 mr-1" />
+                {campaign?.isExternalLinked ? t.campaigns.gacha.disableTitle : t.campaigns.gacha.enableTitle}
+              </Button>
+
+              {campaign?.isExternalLinked && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 border-purple-500/30 text-purple-600 hover:bg-purple-500/5 hover:border-purple-500/50 text-[10px] font-bold uppercase transition-all"
+                    onClick={() => {
+                      window.open(`http://localhost:3000/gacha?campaign_id=${campaignId}&open_bulk_modal=true`, "_blank");
+                    }}
+                  >
+                    <ExternalLink className="w-3 h-3 mr-1" />
+                    だんごツールで設計
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full text-muted-foreground hover:text-purple-600 hover:bg-purple-500/5"
+                    onClick={() => setIsGachaConfigOpen(true)}
+                    title={t.campaigns.gacha.configTitle}
+                  >
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
 
               {!isPublic && (
                 <>
@@ -468,6 +546,7 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
+
       {workflowLoading ? (
         <div className="flex-1 rounded-xl border border-border/50 bg-muted/20 animate-pulse min-h-[240px]" />
       ) : (
@@ -485,6 +564,8 @@ export default function CampaignDetailPage() {
                 fetchLibraryFiles();
               }}
               onUnassignFiles={handleUnassignFromCampaign}
+              rarities={campaign?.gachaConfig?.rarities}
+              onUpdateFileRarity={handleUpdateFileRarity}
             />
 
             <RecipientsSection
@@ -635,6 +716,127 @@ export default function CampaignDetailPage() {
         variant={pendingSecurityLevel === "standard" ? "emerald" : "default"}
         isLoading={statusBusy}
       />
+
+      <Dialog isOpen={isGachaConfigOpen} onClose={() => setIsGachaConfigOpen(false)}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-600">
+              <Megaphone className="w-6 h-6" />
+            </div>
+            {t.campaigns.gacha.configTitle}
+          </DialogTitle>
+          <DialogDescription>
+            {t.campaigns.gacha.configDescription}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4 max-h-[70vh] overflow-y-auto scrollbar-none px-1">
+          <div className="flex items-center justify-between bg-purple-500/5 rounded-2xl px-6 py-4 border border-purple-500/10 sticky top-0 z-10 backdrop-blur-md">
+            <span className="text-sm font-bold text-purple-900/60 dark:text-purple-100/60 uppercase tracking-wider">
+              {t.campaigns.gacha.totalProbability}
+            </span>
+            <div className={cn(
+              "px-4 py-1.5 rounded-xl font-mono text-lg font-black transition-all",
+              Math.abs((campaign?.gachaConfig?.rarities?.reduce((acc: number, r: GachaRarity) => acc + r.probability, 0) || 0) - 100) < 0.01
+                ? "bg-emerald-500/20 text-emerald-600"
+                : "bg-amber-500/20 text-amber-600"
+            )}>
+              {Math.round((campaign?.gachaConfig?.rarities?.reduce((acc: number, r: GachaRarity) => acc + r.probability, 0) || 0) * 10) / 10}%
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            {campaign?.gachaConfig?.rarities.map((rarity: GachaRarity) => (
+              <div
+                key={rarity.id}
+                className="group relative p-5 rounded-[2rem] bg-white dark:bg-white/5 border border-border/50 hover:border-purple-500/30 transition-all shadow-sm"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-3 flex-1 w-full">
+                    <div className="relative group/color">
+                      <div className="w-8 h-8 rounded-xl shadow-sm cursor-pointer border-2 border-white dark:border-black" style={{ backgroundColor: rarity.color }} />
+                      <div className="absolute top-full left-0 mt-2 p-2 bg-background border border-border rounded-xl shadow-2xl z-50 opacity-0 group-hover/color:opacity-100 pointer-events-none group-hover/color:pointer-events-auto transition-all flex gap-1 flex-wrap w-32">
+                        {["#FFD700", "#C0C0C0", "#CD7F32", "#94a3b8", "#ef4444", "#3b82f6", "#10b981", "#f59e0b"].map(c => (
+                          <div 
+                            key={c} 
+                            className="w-6 h-6 rounded-md cursor-pointer hover:scale-110 transition-transform" 
+                            style={{ backgroundColor: c }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const next = campaign.gachaConfig!.rarities.map((r: GachaRarity) => r.id === rarity.id ? { ...r, color: c } : r);
+                              handleUpdateGachaConfig({ rarities: next });
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <input
+                      type="text"
+                      value={rarity.name}
+                      onChange={(e) => {
+                        const next = campaign.gachaConfig!.rarities.map((r: GachaRarity) => r.id === rarity.id ? { ...r, name: e.target.value } : r);
+                        handleUpdateGachaConfig({ rarities: next });
+                      }}
+                      className="bg-transparent border-none outline-none text-base font-black tracking-tight flex-1"
+                      placeholder="レア度名"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <div className="relative flex items-center flex-1 sm:w-24">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={rarity.probability}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          const next = campaign.gachaConfig!.rarities.map((r: GachaRarity) => r.id === rarity.id ? { ...r, probability: val } : r);
+                          handleUpdateGachaConfig({ rarities: next });
+                        }}
+                        className="w-full bg-transparent border-b-2 border-border focus:border-purple-500 outline-none text-xl font-black tabular-nums transition-colors pr-6 text-right"
+                      />
+                      <span className="absolute right-0 text-sm font-bold text-muted-foreground">%</span>
+                    </div>
+                    
+                    <button
+                      onClick={() => {
+                        const next = campaign.gachaConfig!.rarities.filter((r: GachaRarity) => r.id !== rarity.id);
+                        handleUpdateGachaConfig({ rarities: next });
+                      }}
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => {
+              const id = `rarity-${Date.now()}`;
+              const next = [...(campaign?.gachaConfig?.rarities || []), { id, name: "NEW", probability: 0, color: "#94a3b8" }];
+              handleUpdateGachaConfig({ rarities: next });
+            }}
+            className="w-full py-4 rounded-[2rem] border-2 border-dashed border-purple-500/20 text-purple-600 font-bold hover:bg-purple-500/5 hover:border-purple-500/40 transition-all flex items-center justify-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            レア度を追加
+          </button>
+
+          <div className="pt-4 flex justify-end sticky bottom-0 bg-background/50 backdrop-blur-sm py-4">
+            <Button 
+              onClick={() => setIsGachaConfigOpen(false)}
+              className="rounded-2xl px-12 h-12 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xl shadow-purple-500/20"
+            >
+              完了
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

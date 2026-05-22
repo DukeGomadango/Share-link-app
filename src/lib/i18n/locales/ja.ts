@@ -196,6 +196,17 @@ export const ja = {
       prevStep: "戻る",
       submit: "作成する",
     },
+    gacha: {
+      enableTitle: "ガチャ連携を有効化",
+      disableTitle: "ガチャ連携を解除",
+      configTitle: "ガチャ構成設定",
+      configDescription: "レア度ごとの当選確率を設定してください。合計が100%になるように調整します。これらの設定は、だんごツールのガチャ機能に反映されます。",
+      totalProbability: "合計",
+      rarityNamePlaceholder: "レア度名",
+      probabilityLabel: "確率",
+      syncSuccess: "ガチャ構成を更新しました",
+      modeEnabled: "ガチャ連携モードを有効にしました",
+    },
   },
   library: {
     title: "ライブラリ",

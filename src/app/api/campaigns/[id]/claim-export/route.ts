@@ -55,7 +55,7 @@ export async function GET(request: Request, ctx: RouteParams) {
 
   const assetIds = [
     ...new Set(
-      wf.map((w) => w.effectiveCampaignAssetId).filter((x): x is string => x != null)
+      wf.flatMap((w) => w.assignedFileIds).filter((x): x is string => x != null)
     ),
   ];
 
@@ -93,9 +93,10 @@ export async function GET(request: Request, ctx: RouteParams) {
 
   const exportRows: ClaimExportRow[] = wf.map((w) => {
     const meta = claimMeta.get(w.claimId);
-    const assetLabel = w.effectiveCampaignAssetId
-      ? (labelByAssetId.get(w.effectiveCampaignAssetId) ?? "—")
-      : "—（未割当）";
+    const labels = w.assignedFileIds
+      .map((id) => labelByAssetId.get(id))
+      .filter((x): x is string => x != null);
+    const assetLabel = labels.length > 0 ? labels.join(", ") : "—（未割当）";
     const name =
       w.recipientDisplayName?.trim() ||
       meta?.recipientDisplayName?.trim() ||

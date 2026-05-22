@@ -200,6 +200,17 @@ export const en: TranslationKeys = {
       prevStep: "Back",
       submit: "Create",
     },
+    gacha: {
+      enableTitle: "Enable Gacha Integration",
+      disableTitle: "Disable Gacha Integration",
+      configTitle: "Gacha Configuration",
+      configDescription: "Set the probability of winning for each rarity. Adjust them so the total is exactly 100%. These settings will be synced to the Dango tools gacha module.",
+      totalProbability: "Total",
+      rarityNamePlaceholder: "Rarity name",
+      probabilityLabel: "Probability",
+      syncSuccess: "Gacha configuration updated",
+      modeEnabled: "Gacha integration mode enabled",
+    },
   },
   library: {
     title: "Library",
