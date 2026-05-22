@@ -9,7 +9,6 @@ import {
   campaignRecipientSlots,
   campaigns,
   claimAssets,
-  claims,
   recipients,
   slotAssets,
 } from "@/db/schema";

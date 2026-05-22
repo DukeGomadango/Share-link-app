@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     recipients: {
       name: string;
       tags?: string[];
-      platformId?: { type: string; handle: string };
+      platformId?: { type: "discord" | "twitter" | "custom"; handle: string } | null;
     }[];
   };
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         workspaceId: ctx.workspaceId,
         name: r.name || "新規受取人",
         tags: r.tags ?? [],
-        platformId: r.platformId as any,
+        platformId: r.platformId ?? undefined,
       }))
     );
   }

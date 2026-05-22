@@ -90,8 +90,8 @@ export default function LibraryPage() {
       await handleBulkDelete(Array.from(selectedFileIds));
       setIsBulkConfirmOpen(false);
       setSelectedFileIds(new Set());
-    } catch (err: any) {
-      toast.error(err.message || "一括削除に失敗しました。");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "一括削除に失敗しました。");
     } finally {
       setIsBulkRemoving(false);
     }

@@ -91,9 +91,9 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
     // 外部キー制約（キャンペーンに紐づいている場合など）をハンドリング
-    if (e.code === "23503") {
+    if (e && typeof e === "object" && "code" in e && e.code === "23503") {
       return NextResponse.json(
         { 
           error: "conflict", 

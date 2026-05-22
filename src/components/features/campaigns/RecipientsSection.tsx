@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, MailPlus, LayoutGrid, List, KeyRound, User, Check, Copy, ExternalLink, AlertCircle, Plus, FileAudio, FileImage } from "lucide-react";
+import { Users, MailPlus, LayoutGrid, List, KeyRound, User, Check, Copy, ExternalLink, AlertCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
@@ -214,26 +214,36 @@ export function RecipientsSection({
 
 // リスト形式の受取人コンポーネント（DroppableRecipient のロジックを流用しつつコンパクトに）
 import { useDroppable, useDraggable } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
+
+type DroppableRecipientRowProps = {
+  recipient: Recipient;
+  getFile: (id: string) => FileItem | undefined;
+  onRemoveFile: (recipientId: string, fileId: string) => void;
+  successPulse?: boolean;
+  readOnly?: boolean;
+  onClick?: () => void;
+  matchingPreparedSlot?: Recipient;
+  onMerge?: (sourceId: string, targetId: string) => void;
+};
 
 function DroppableRecipientRow({
   recipient,
   getFile,
-  onRemoveFile,
+  onRemoveFile: _onRemoveFile,
   successPulse,
   readOnly,
   onClick,
   matchingPreparedSlot,
   onMerge,
-}: any) {
+}: DroppableRecipientRowProps) {
   const { isOver, setNodeRef: setDroppableRef } = useDroppable({
     id: `recipient-${recipient.id}`,
     data: { recipient, type: "recipient" },
     disabled: readOnly,
   });
 
-  const { attributes, listeners, setNodeRef: setDraggableRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef: setDraggableRef, isDragging } = useDraggable({
     id: `recipient-${recipient.id}`,
     data: { recipient, type: "recipient" },
     disabled: readOnly,
@@ -254,10 +264,10 @@ function DroppableRecipientRow({
     }
   };
 
-  const assignedFiles = recipient.assignedFileIds
+  const assignedFiles: FileItem[] = recipient.assignedFileIds
     ? recipient.assignedFileIds
-        .map((id: string) => getFile(id))
-        .filter((f: any) => f !== undefined)
+        .map((id) => getFile(id))
+        .filter((f): f is FileItem => f !== undefined)
     : [];
 
   const isUnlinked = assignedFiles.length === 0;

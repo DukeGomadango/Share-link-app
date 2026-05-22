@@ -4,8 +4,7 @@ import { randomBytes } from "node:crypto";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { fetchCampaignsWithStats } from "@/lib/campaigns-query";
 import { getDb } from "@/db";
-import { campaigns, campaignAssets, workspaces } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { campaigns, campaignAssets } from "@/db/schema";
 
 export async function GET() {
   const ctx = await getSessionWorkspaceContext();

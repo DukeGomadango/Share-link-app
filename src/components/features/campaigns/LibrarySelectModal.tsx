@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { X, Check, FileImage, FileAudio, File } from "lucide-react";
+import { X, Check, FileAudio, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LibraryFile } from "./types";
 import { useTranslation } from "@/lib/i18n";

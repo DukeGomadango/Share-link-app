@@ -12,7 +12,6 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { debounce } from "@/lib/utils";
 import { CLAIM_SESSION_MAX_AGE_SEC } from "@/lib/claims/constants";
 
-const POLL_MS = 4000;
 const SESSION_DAYS = Math.round(CLAIM_SESSION_MAX_AGE_SEC / (60 * 60 * 24));
 
 export default function ClaimSessionByCampaignPage() {
@@ -99,18 +98,25 @@ export default function ClaimSessionByCampaignPage() {
     } finally {
       if (options?.force) setIsRefetching(false);
     }
-  }, [campaignId]);
+  }, [campaignId, router]);
 
   const debouncedFetchSession = useMemo(
-    () => debounce((options?: { force?: boolean }) => {
-      void fetchSession(options);
+    () => debounce((...args: unknown[]) => {
+      void fetchSession(args[0] as { force?: boolean } | undefined);
     }, 500),
     [fetchSession]
   );
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- マウント時にセッション取得（非同期）
-    void fetchSession();
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      await fetchSession();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [fetchSession]);
 
 
@@ -158,7 +164,7 @@ export default function ClaimSessionByCampaignPage() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [campaignId, bundle?.files.length, fetchSession]);
+  }, [campaignId, debouncedFetchSession]);
 
   const expiryDate = bundle
     ? new Date(bundle.expiryIso)

@@ -63,9 +63,9 @@ export function PasskeyRegisterCard({ campaignId, currentName, onSuccess }: Prop
             onSuccess?.();
             return;
           }
-        } catch (authErr: any) {
+        } catch (authErr: unknown) {
           // 鍵が見つからない（NotFoundError）以外はエラーとして中断
-          if (authErr.name !== "NotFoundError" && authErr.name !== "NotAllowedError") {
+          if (authErr instanceof Error && authErr.name !== "NotFoundError" && authErr.name !== "NotAllowedError") {
             throw authErr;
           }
           // NotFoundError（鍵がない）の場合は、そのままステップ2の新規登録へ進む
@@ -118,10 +118,10 @@ export function PasskeyRegisterCard({ campaignId, currentName, onSuccess }: Prop
       }
       setDone(true);
       onSuccess?.();
-    } catch (e: any) {
-      if (e?.name === "NotAllowedError") {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === "NotAllowedError") {
         setErr(null);
-      } else if (e?.name === "TimeoutError") {
+      } else if (e instanceof Error && e.name === "TimeoutError") {
         setErr("タイムアウトしました。もう一度お試しください。");
       } else {
         console.error("Passkey process failed:", e);

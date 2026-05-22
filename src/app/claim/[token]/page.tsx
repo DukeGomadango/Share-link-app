@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ClaimUnopenedView } from "@/components/features/claim/ClaimUnopenedView";
@@ -79,7 +79,6 @@ export default function ClaimPage() {
   } | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimLoading, setClaimLoading] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [detectedName, setDetectedName] = useState<string | null>(null);
   const [isCollectionOpen, setIsCollectionOpen] = useState(false);
 
@@ -105,39 +104,49 @@ export default function ClaimPage() {
         console.error("Auto-link attempt failed", e);
       }
     })();
-  }, [token, isPreview, bundle?.passkeyLinked, !!bundle]);
+  }, [token, isPreview, bundle]);
+
+  const refetchBundle = useCallback(async () => {
+    if (!token) return;
+    try {
+      const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`, { cache: "no-store" });
+      if (!r.ok) return;
+      const data = await r.json();
+      if (data.files && data.files.length > 0) {
+        const files: ClaimFile[] = data.files.map((f: {
+          id: string;
+          type: string;
+          src: string;
+          filename: string;
+          title: string;
+        }) => ({
+          id: f.id,
+          type: (f.type === "audio" || f.type === "image" || f.type === "file") ? f.type : "file",
+          src: f.src,
+          filename: f.filename,
+          title: f.title,
+        }));
+        setBundle({
+          expiryIso: data.expiryIso,
+          campaignName: data.campaignName,
+          campaignId: data.campaignId,
+          files,
+          isAuthorized: data.isAuthorized,
+          authRequired: data.authRequired,
+          passkeyLinked: data.passkeyLinked,
+          displayName: data.displayName,
+        });
+      }
+    } catch (e) {
+      console.error("Refetch failed", e);
+    }
+  }, [token]);
 
   const debouncedRefetch = useMemo(
-    () => debounce(async () => {
-      if (!token) return;
-      try {
-        const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`, { cache: "no-store" });
-        if (!r.ok) return;
-        const data = await r.json();
-        if (data.files && data.files.length > 0) {
-          const files: ClaimFile[] = data.files.map((f: any) => ({
-            id: f.id,
-            type: (f.type === "audio" || f.type === "image" || f.type === "file") ? f.type : "file",
-            src: f.src,
-            filename: f.filename,
-            title: f.title,
-          }));
-          setBundle({ 
-            expiryIso: data.expiryIso, 
-            campaignName: data.campaignName, 
-            campaignId: data.campaignId,
-            files,
-            isAuthorized: data.isAuthorized,
-            authRequired: data.authRequired,
-            passkeyLinked: data.passkeyLinked,
-            displayName: data.displayName,
-          });
-        }
-      } catch (e) {
-        console.error("Refetch failed", e);
-      }
+    () => debounce(() => {
+      void refetchBundle();
     }, 500),
-    [token]
+    [refetchBundle]
   );
 
   // リアルタイム監視 (Supabase Realtime)
@@ -172,7 +181,7 @@ export default function ClaimPage() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [token, bundle]);
+  }, [token, debouncedRefetch]);
 
   useEffect(() => {
     if (!token) return;

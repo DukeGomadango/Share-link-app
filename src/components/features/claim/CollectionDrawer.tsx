@@ -33,25 +33,27 @@ export function CollectionDrawer({ currentToken, isOpen, onClose }: Props) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen && currentToken) {
-      void fetchClaims();
-    }
-  }, [isOpen, currentToken]);
-
-  const fetchClaims = async () => {
-    setLoading(true);
-    try {
-      const r = await fetch(`/api/claim/${encodeURIComponent(currentToken)}/related`);
-      if (r.ok) {
-        const data = await r.json();
-        setClaims(data.claims || []);
+    if (!isOpen || !currentToken) return;
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setLoading(true);
+      try {
+        const r = await fetch(`/api/claim/${encodeURIComponent(currentToken)}/related`);
+        if (!r.ok) return;
+        const data = (await r.json()) as { claims?: RelatedClaim[] };
+        if (!cancelled) setClaims(data.claims || []);
+      } catch (e) {
+        console.error("Failed to load collection:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (e) {
-      console.error("Failed to load collection:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, currentToken]);
 
   return (
     <Sheet isOpen={isOpen} onClose={onClose}>

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sheet, SheetHeader, SheetBody, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { Sheet, SheetHeader, SheetBody, SheetFooter } from "@/components/ui/sheet";
 import { CampaignTimeline } from "./CampaignTimeline";
 import { Recipient, FileItem } from "@/components/features/campaigns/types";
 import { Button } from "@/components/ui/button";
-import { Tag, Calendar, User, Trash2, X, Plus, Shield, MessageSquare, Globe, Clock, CheckCircle2, FileAudio, FileImage, ChevronDown, Copy, LayoutGrid } from "lucide-react";
+import { Calendar, User, Trash2, X, Plus, Shield, MessageSquare, Globe, Clock, CheckCircle2, FileAudio, FileImage, ChevronDown, Copy, LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -25,35 +25,49 @@ interface RecipientDetailDrawerProps {
 }
 
 
+type HistoryEntry = {
+  id: string;
+  campaignName: string;
+  fileName: string;
+  status: "opened" | "unopened" | "expired";
+  date: string;
+  token: string;
+};
+
 export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags, onUpdateInfo, onRemoveRecipient, onRemoveFile, existingTags = [], campaignFiles = [] }: RecipientDetailDrawerProps) {
   const [newTag, setNewTag] = useState("");
   const [editName, setEditName] = useState("");
   const [editMemo, setEditMemo] = useState("");
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
 
   // Sync state when recipient changes or drawer opens
   useEffect(() => {
-    if (recipient && isOpen) {
+    if (!recipient || !isOpen) return;
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
       setEditName(recipient.name);
       setEditMemo(recipient.streamerMemo || "");
-      
-      // Fetch real history
       setIsLoadingHistory(true);
       const targetId = recipient.globalRecipientId || recipient.id;
-      fetch(`/api/recipients/${targetId}/history`)
-        .then(res => res.json())
-        .then(data => {
-          setHistory(data);
-          setIsLoadingHistory(false);
-        })
-        .catch(err => {
-          console.error("Failed to fetch history:", err);
-          setIsLoadingHistory(false);
-        });
-    }
+      try {
+        const res = await fetch(`/api/recipients/${targetId}/history`);
+        if (!res.ok) throw new Error(String(res.status));
+        const data = (await res.json()) as HistoryEntry[];
+        if (!cancelled) setHistory(data);
+      } catch (err) {
+        console.error("Failed to fetch history:", err);
+      } finally {
+        if (!cancelled) setIsLoadingHistory(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [recipient, isOpen]);
 
   if (!recipient) return null;

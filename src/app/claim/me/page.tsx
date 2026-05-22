@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Gift, ChevronRight, Clock, Box, LayoutGrid, List, FileText, Music, Image as ImageIcon, FileCode, Sparkles } from "lucide-react";
+import { Gift, ChevronRight, Clock, Box, FileText, Music, Image as ImageIcon, FileCode, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/i18n";
 import { GlassCard } from "@/components/shared/GlassCard";

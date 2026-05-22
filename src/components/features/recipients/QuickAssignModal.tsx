@@ -115,12 +115,19 @@ export function QuickAssignModal({ recipient, isOpen, onClose, onAssign }: Quick
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchCampaigns();
+    if (!isOpen) return;
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
       setSelectedFileIds(new Set());
       setSearchQuery("");
       setShowSelectedOnly(false);
-    }
+      await fetchCampaigns();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, fetchCampaigns]);
 
   // Filtering Logic

@@ -7,10 +7,12 @@ import { useLibraryFiles } from "@/hooks/features/library/useLibraryFiles";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
+import type { TranslationKeys } from "@/lib/i18n/locales/ja";
+
 interface StepFileSelectProps {
   assetIds: string[];
   onUpdate: (data: Partial<{ assetIds: string[] }>) => void;
-  t: any;
+  t: TranslationKeys;
 }
 
 export function StepFileSelect({ assetIds, onUpdate, t }: StepFileSelectProps) {

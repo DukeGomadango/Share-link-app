@@ -9,9 +9,6 @@ import { campaignAssets, campaigns } from "@/db/schema";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-/** `/issue-claims` と同じ上限（キャンペーン内アセット件数） */
-const MAX_ITEMS = 50;
-
 export async function POST(request: Request, ctx: RouteParams) {
   const session = await getSessionWorkspaceContext();
   if (!session) {

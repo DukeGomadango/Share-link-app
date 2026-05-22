@@ -80,12 +80,19 @@ export default function RecipientsPage() {
       const lines = text.split(/\r?\n/).filter(line => line.trim());
       
       // Basic CSV parse (assuming: name, tags, platform_type, platform_handle)
+      const parsePlatformType = (value: string): "discord" | "twitter" | "custom" => {
+        if (value === "discord" || value === "twitter" || value === "custom") return value;
+        return "custom";
+      };
+
       const data = lines.slice(1).map(line => {
         const parts = line.split(",").map(p => p.trim());
         return {
           name: parts[0],
           tags: parts[1] ? parts[1].split(";").map(t => t.trim()) : [],
-          platformId: parts[2] && parts[3] ? { type: parts[2], handle: parts[3] } : undefined,
+          platformId: parts[2] && parts[3]
+            ? { type: parsePlatformType(parts[2]), handle: parts[3] }
+            : undefined,
         };
       }).filter(r => r.name);
 

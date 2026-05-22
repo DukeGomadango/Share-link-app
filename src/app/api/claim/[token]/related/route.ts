@@ -5,7 +5,6 @@ import {
   claims, 
   claimIdentityLinks, 
   campaigns, 
-  claimStatusEnum 
 } from "@/db/schema";
 
 type RouteParams = { params: Promise<{ token: string }> };

@@ -5,6 +5,11 @@ import { recipients } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { fetchRecipients } from "@/lib/recipients-query";
 
+type PlatformId = {
+  type: "discord" | "twitter" | "custom";
+  handle: string;
+};
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -18,7 +23,7 @@ export async function PATCH(
   let body: {
     name?: string;
     tags?: string[];
-    platformId?: any;
+    platformId?: PlatformId | null;
     listenerNote?: string;
     streamerMemo?: string;
   };

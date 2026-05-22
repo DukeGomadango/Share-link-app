@@ -32,7 +32,17 @@ interface RecipientStatsCardsProps {
 }
 
 export function RecipientStatsCards({ stats, activeFilter, setActiveFilter }: RecipientStatsCardsProps) {
-  const items = [
+  const items: Array<{
+    id: RecipientFilter;
+    label: string;
+    count: number;
+    trend: typeof stats.trends.waiting | typeof stats.trends.verified | typeof stats.trends.claimed;
+    rate: number;
+    icon: typeof Clock;
+    color: "amber" | "sky" | "emerald";
+    description: string;
+    cta: string;
+  }> = [
     { 
       id: "waiting", 
       label: "待機中 (Waiting)", 
@@ -94,7 +104,7 @@ export function RecipientStatsCards({ stats, activeFilter, setActiveFilter }: Re
         return (
           <button
             key={item.id}
-            onClick={() => setActiveFilter(isActive ? "all" : (item.id as any))}
+            onClick={() => setActiveFilter(isActive ? "all" : item.id)}
             className={cn(
               "flex flex-col p-6 rounded-[2rem] border transition-all text-left relative overflow-hidden group",
               isActive 

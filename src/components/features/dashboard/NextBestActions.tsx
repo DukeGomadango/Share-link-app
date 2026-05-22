@@ -5,10 +5,12 @@ import { Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+import type { TranslationKeys } from "@/lib/i18n/locales/ja";
+
 interface NextBestActionsProps {
   unassignedAssets: number;
   onQuickAssign: () => void;
-  t: any;
+  t: TranslationKeys;
 }
 
 export function NextBestActions({ unassignedAssets, onQuickAssign, t }: NextBestActionsProps) {

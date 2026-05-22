@@ -61,21 +61,39 @@ export function CampaignCard({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setCampaign(initialCampaign);
-    setEditName(initialCampaign.name);
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setCampaign(initialCampaign);
+      setEditName(initialCampaign.name);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [initialCampaign]);
 
   useEffect(() => {
-    if (isHovered && previews.length === 0 && !loadingPreviews && campaign.stats.totalFiles > 0) {
+    if (!isHovered || previews.length > 0 || loadingPreviews || campaign.stats.totalFiles === 0) return;
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
       setLoadingPreviews(true);
-      fetch(`/api/campaigns/${campaign.id}/preview`)
-        .then((r) => r.json())
-        .then((data) => {
-          setPreviews(data.previews || []);
-        })
-        .catch((e) => console.error("Failed to fetch previews:", e))
-        .finally(() => setLoadingPreviews(false));
-    }
+      try {
+        const r = await fetch(`/api/campaigns/${campaign.id}/preview`);
+        if (!r.ok) return;
+        const data = (await r.json()) as { previews?: PreviewAsset[] };
+        if (!cancelled) setPreviews(data.previews || []);
+      } catch (e) {
+        console.error("Failed to fetch previews:", e);
+      } finally {
+        if (!cancelled) setLoadingPreviews(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [isHovered, campaign.id, previews.length, loadingPreviews, campaign.stats.totalFiles]);
 
   useEffect(() => {

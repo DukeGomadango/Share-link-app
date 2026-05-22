@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { X, Search, UserPlus, Users, Check, BookUser, AlertTriangle } from "lucide-react";
+import { X, Search, UserPlus, Users, Check, BookUser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { FileItem, Recipient } from "./types";
 import { useTranslation } from "@/lib/i18n";
@@ -28,7 +28,7 @@ export function AddRecipientModal({
   isOpen,
   onClose,
   campaignId,
-  poolFiles,
+  poolFiles: _poolFiles,
   existingRecipients,
   onIssued,
 }: AddRecipientModalProps) {
@@ -54,28 +54,39 @@ export function AddRecipientModal({
   // 名簿を取得
   useEffect(() => {
     if (!isOpen) return;
-    setRegistryLoading(true);
-    fetch("/api/recipients")
-      .then((r) => r.json())
-      .then((data) => setRegistry(data as RegistryRecipient[]))
-      .catch(() => setRegistry([]))
-      .finally(() => setRegistryLoading(false));
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setRegistryLoading(true);
+      try {
+        const r = await fetch("/api/recipients");
+        if (!r.ok) throw new Error(String(r.status));
+        const data = (await r.json()) as RegistryRecipient[];
+        if (!cancelled) setRegistry(data);
+      } catch {
+        if (!cancelled) setRegistry([]);
+      } finally {
+        if (!cancelled) setRegistryLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen]);
 
-  // リセット
-  useEffect(() => {
-    if (!isOpen) {
-      setRecipientName("");
-      setBulkNamesList([]);
-      setBulkInput("");
-      setIsBulk(false);
-      setListenerNote("");
-      setCreateGlobal(true);
-      setError(null);
-      setSelectedRecipientId(null);
-      setRegistrySearch("");
-    }
-  }, [isOpen]);
+  const handleClose = () => {
+    setRecipientName("");
+    setBulkNamesList([]);
+    setBulkInput("");
+    setIsBulk(false);
+    setListenerNote("");
+    setCreateGlobal(true);
+    setError(null);
+    setSelectedRecipientId(null);
+    setRegistrySearch("");
+    onClose();
+  };
 
   const filteredRegistry = useMemo(() => {
     if (!registrySearch.trim()) return registry;
@@ -151,7 +162,7 @@ export function AddRecipientModal({
           return;
         }
         await onIssued();
-        onClose();
+        handleClose();
         return;
       } else {
         payload.recipientDisplayName = recipientName.trim();
@@ -169,7 +180,7 @@ export function AddRecipientModal({
         return;
       }
       await onIssued();
-      onClose();
+      handleClose();
     } catch {
       setError(t.campaigns.addRecipientError);
     } finally {
@@ -232,7 +243,7 @@ export function AddRecipientModal({
           size="icon"
           className="absolute top-6 right-6 rounded-full text-muted-foreground hover:bg-muted"
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
         >
           <X className="w-5 h-5" />
         </Button>
@@ -520,7 +531,7 @@ export function AddRecipientModal({
           )}
 
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="ghost" className="flex-1 rounded-2xl h-12" onClick={onClose}>
+            <Button type="button" variant="ghost" className="flex-1 rounded-2xl h-12" onClick={handleClose}>
               キャンセル
             </Button>
             <Button

@@ -23,7 +23,7 @@ export function DraggableFileItem({
   rarities = [],
   onUpdateRarity,
 }: DraggableFileItemProps) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `file-${file.id}`,
     data: { file },
   });

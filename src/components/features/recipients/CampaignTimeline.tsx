@@ -1,7 +1,6 @@
 "use client";
 
 import { CheckCircle2, Clock, XCircle, Copy, ExternalLink, Package } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";

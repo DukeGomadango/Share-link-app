@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { createSignedReadUrl } from "@/lib/assets/signed-urls";
 import { getDb } from "@/db";
 import {

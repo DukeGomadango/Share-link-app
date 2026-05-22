@@ -17,7 +17,6 @@ import type {
   LibraryFile,
   Recipient,
   RecipientStatus,
-  SlotStatus,
 } from "@/components/features/campaigns/types";
 import { MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -147,8 +146,8 @@ export function useCampaignDetail() {
   );
 
   const debouncedLoadWorkflow = useMemo(
-    () => debounce((opts?: { quiet?: boolean }) => {
-      void loadWorkflow(opts);
+    () => debounce((...args: unknown[]) => {
+      void loadWorkflow(args[0] as { quiet?: boolean } | undefined);
     }, 500),
     [loadWorkflow]
   );
@@ -279,7 +278,7 @@ export function useCampaignDetail() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [campaignId, loadWorkflow]);
+  }, [campaignId, debouncedLoadWorkflow]);
 
   const fetchLibraryFiles = useCallback(() => {
     fetch("/api/files")

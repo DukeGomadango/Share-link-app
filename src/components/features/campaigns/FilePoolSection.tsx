@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { FileAudio, FolderOpen, Search, LayoutGrid, List, X, Trash2 } from "lucide-react";
+import { FileAudio, FolderOpen, Search, X, Trash2 } from "lucide-react";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { DraggableFileItem } from "@/components/features/campaigns/DraggableFileItem";
@@ -7,7 +7,6 @@ import { FileItem } from "@/components/features/campaigns/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 import { useTranslation } from "@/lib/i18n";
 
@@ -28,7 +27,7 @@ export function FilePoolSection({
   files,
   selectedFileIds,
   onToggleSelection,
-  onToggleAllSelection,
+  onToggleAllSelection: _onToggleAllSelection,
   onSelectMultiple,
   onFilesDropped,
   onOpenLibrary,
@@ -38,7 +37,6 @@ export function FilePoolSection({
 }: FilePoolSectionProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
-  const containerRef = useState<{ current: HTMLDivElement | null }>({ current: null })[0];
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   const [itemRects, setItemRects] = useState<{ id: string; rect: { left: number; top: number; right: number; bottom: number } }[]>([]);
 

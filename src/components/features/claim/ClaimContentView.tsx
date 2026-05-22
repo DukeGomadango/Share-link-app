@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { CountdownBadge } from "@/components/shared/CountdownBadge";
@@ -112,8 +112,11 @@ export function ClaimContentView({ files, expiryDate, campaignName, hideActionBa
     : files.filter((f) => selectedFileIds.has(f.id));
 
   // Portal マウント先の確認（SSR対策）
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   return (
     <div className="w-full space-y-6 py-6 pb-36">

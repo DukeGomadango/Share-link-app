@@ -1,12 +1,9 @@
-import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import type { Campaign } from "@/components/features/campaigns/types";
 import { getDb } from "@/db";
 import {
-  campaignAssets,
-  campaignRecipientSlots,
   campaigns,
-  claims,
 } from "@/db/schema";
 
 import { uiStatusFromDb } from "@/lib/campaign-status";

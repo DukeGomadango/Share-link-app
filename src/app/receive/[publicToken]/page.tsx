@@ -13,7 +13,7 @@ export default function PublicReceivePage() {
     typeof params?.publicToken === "string" ? params.publicToken : "";
   const router = useRouter();
 
-  const [bootReady, setBootReady] = useState(false);
+  const [bootReady, setBootReady] = useState(!token);
   const [displayName, setDisplayName] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -75,10 +75,7 @@ export default function PublicReceivePage() {
   }, [token, router]);
 
   useEffect(() => {
-    if (!token) {
-      setBootReady(true);
-      return;
-    }
+    if (!token) return;
     let cancelled = false;
     void (async () => {
       // 1. クッキーによる静かな再開を試みる
@@ -140,10 +137,10 @@ export default function PublicReceivePage() {
           "認証されましたが、このキャンペーンでの受け取りがまだありません。初回チェックインを行ってください。"
         );
       }
-    } catch (e: any) {
-      if (e?.name === "NotAllowedError") {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === "NotAllowedError") {
         setPasskeyError(null);
-      } else if (e?.name === "TimeoutError") {
+      } else if (e instanceof Error && e.name === "TimeoutError") {
         setPasskeyError("タイムアウトしました。もう一度お試しください。");
       } else {
         setPasskeyError("認証が中断されました。");

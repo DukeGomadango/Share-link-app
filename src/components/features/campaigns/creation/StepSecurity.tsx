@@ -3,11 +3,13 @@
 import { ShieldCheck, Clock, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import type { TranslationKeys } from "@/lib/i18n/locales/ja";
+
 interface StepSecurityProps {
   expiresAt: string;
   securityLevel: "standard" | "high";
   onUpdate: (data: Partial<{ expiresAt: string; securityLevel: "standard" | "high" }>) => void;
-  t: any;
+  t: TranslationKeys;
 }
 
 export function StepSecurity({ expiresAt, securityLevel, onUpdate, t }: StepSecurityProps) {

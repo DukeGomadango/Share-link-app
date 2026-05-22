@@ -27,11 +27,31 @@ const DropdownMenu = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-const DropdownMenuTrigger = ({ children, className }: any) => {
+type DropdownMenuTriggerProps = React.HTMLAttributes<HTMLDivElement> & {
+  asChild?: boolean;
+};
+
+const DropdownMenuTrigger = ({ children, className, asChild }: DropdownMenuTriggerProps) => {
   const { open, setOpen } = useDropdownMenu();
+  const toggle = () => setOpen(!open);
+
+  if (asChild && React.isValidElement(children)) {
+    const child = children as React.ReactElement<{
+      className?: string;
+      onClick?: (e: React.MouseEvent) => void;
+    }>;
+    return React.cloneElement(child, {
+      className: cn(child.props.className, className),
+      onClick: (e: React.MouseEvent) => {
+        child.props.onClick?.(e);
+        toggle();
+      },
+    });
+  }
+
   return (
     <div 
-      onClick={() => setOpen(!open)} 
+      onClick={toggle} 
       className={cn("cursor-pointer", className)}
     >
       {children}
@@ -39,7 +59,12 @@ const DropdownMenuTrigger = ({ children, className }: any) => {
   );
 };
 
-const DropdownMenuContent = ({ children, align = "end", side = "bottom", className }: any) => {
+type DropdownMenuContentProps = React.HTMLAttributes<HTMLDivElement> & {
+  align?: "start" | "end";
+  side?: "top" | "bottom";
+};
+
+const DropdownMenuContent = ({ children, align = "end", side = "bottom", className }: DropdownMenuContentProps) => {
   const { open, setOpen } = useDropdownMenu();
   if (!open) return null;
   return (
@@ -59,7 +84,11 @@ const DropdownMenuContent = ({ children, align = "end", side = "bottom", classNa
   );
 };
 
-const DropdownMenuItem = ({ children, className, onClick }: any) => {
+type DropdownMenuItemProps = React.HTMLAttributes<HTMLDivElement> & {
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+};
+
+const DropdownMenuItem = ({ children, className, onClick }: DropdownMenuItemProps) => {
   const { setOpen } = useDropdownMenu();
   return (
     <div

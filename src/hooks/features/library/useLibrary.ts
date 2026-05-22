@@ -6,7 +6,6 @@ import { useLibraryFiles } from "./useLibraryFiles";
 import { useLibraryCampaigns } from "./useLibraryCampaigns";
 import { useLibraryAssignment } from "./useLibraryAssignment";
 import { useLibraryDnd } from "./useLibraryDnd";
-import { AssetFile } from "@/components/features/library/types";
 
 export function useLibrary() {
   // 1. Files & Filters

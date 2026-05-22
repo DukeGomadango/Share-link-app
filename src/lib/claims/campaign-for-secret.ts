@@ -2,8 +2,6 @@ import { eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
-  campaignAssets,
-  campaignRecipientSlots,
   claims,
 } from "@/db/schema";
 

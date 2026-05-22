@@ -3,7 +3,11 @@ import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { fetchRecipients } from "@/lib/recipients-query";
 import { getDb } from "@/db";
 import { recipients } from "@/db/schema";
-import { eq } from "drizzle-orm";
+
+type PlatformId = {
+  type: "discord" | "twitter" | "custom";
+  handle: string;
+};
 
 export async function GET() {
   const ctx = await getSessionWorkspaceContext();
@@ -24,7 +28,7 @@ export async function POST(request: Request) {
   let body: {
     name?: string;
     tags?: string[];
-    platformId?: any;
+    platformId?: PlatformId | null;
   };
   try {
     body = await request.json();

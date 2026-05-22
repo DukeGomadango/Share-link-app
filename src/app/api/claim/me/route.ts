@@ -11,13 +11,22 @@ import {
   listenerIdentities, 
   campaignRecipientSlots 
 } from "@/db/schema";
-import { eq, desc, inArray, or } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 import { verifyListenerSessionToken, LISTENER_SESSION_COOKIE } from "@/lib/webauthn/listener-session-cookie";
 import { createSignedReadUrl } from "@/lib/assets/signed-urls";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
+type ListenerCampaignEntry = {
+  id: string;
+  name: string;
+  expiresAt: Date | null;
+  claims: Array<{ id: string; token: string; createdAt: Date; isUnread: boolean }>;
+  previews: Array<{ name: string; mimeType: string; url: string }>;
+  isUnread: boolean;
+};
+
+export async function GET(_req: NextRequest) {
   try {
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get(LISTENER_SESSION_COOKIE)?.value;
@@ -67,7 +76,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. キャンペーンごとにグルーピング
-    const campaignMap = new Map<string, any>();
+    const campaignMap = new Map<string, ListenerCampaignEntry>();
     const claimIds: string[] = [];
 
     for (const c of allClaims) {
@@ -82,13 +91,16 @@ export async function GET(req: NextRequest) {
           isUnread: false, // 初期値
         });
       }
+
+      const campData = campaignMap.get(c.campaignId);
+      if (!campData) continue;
       
       const isUnread = !c.isExplicitlyLinked;
       if (isUnread) {
-        campaignMap.get(c.campaignId).isUnread = true;
+        campData.isUnread = true;
       }
 
-      campaignMap.get(c.campaignId).claims.push({
+      campData.claims.push({
         id: c.claimId,
         token: c.claimToken,
         createdAt: c.claimCreatedAt,
@@ -122,7 +134,7 @@ export async function GET(req: NextRequest) {
       );
 
       for (const p of previewWithUrls) {
-        for (const [campId, campData] of campaignMap.entries()) {
+        for (const [, campData] of campaignMap.entries()) {
           if (campData.previews.length < 3 && p.url) {
             campData.previews.push({
               name: p.assetName,

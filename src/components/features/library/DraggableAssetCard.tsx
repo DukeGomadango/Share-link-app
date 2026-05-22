@@ -94,8 +94,8 @@ export function DraggableAssetCard({
         await onRemove(file.id);
       }
       setIsConfirmOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || "削除に失敗しました。");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "削除に失敗しました。");
     } finally {
       setIsRemoving(false);
     }

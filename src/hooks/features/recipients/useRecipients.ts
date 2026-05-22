@@ -9,11 +9,10 @@ export function useRecipients() {
   const [selectedRecipientIds, setSelectedRecipientIds] = useState<Set<string>>(new Set());
 
   const fetchRecipients = useCallback(async () => {
-    setIsLoading(true);
     try {
       const res = await fetch("/api/recipients");
       if (res.ok) {
-        const data = await res.json();
+        const data = (await res.json()) as Recipient[];
         setRecipients(data);
       }
     } catch (e) {
@@ -24,8 +23,24 @@ export function useRecipients() {
   }, []);
 
   useEffect(() => {
-    fetchRecipients();
-  }, [fetchRecipients]);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/recipients");
+        if (cancelled) return;
+        if (res.ok) {
+          setRecipients((await res.json()) as Recipient[]);
+        }
+      } catch (e) {
+        console.error("Failed to fetch recipients:", e);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filteredRecipients = useMemo(() => {
     return recipients.filter((r) => {
@@ -133,7 +148,10 @@ export function useRecipients() {
     }
   };
 
-  const updateRecipientInfo = async (id: string, info: { name: string; platformId?: any; listenerNote?: string }) => {
+  const updateRecipientInfo = async (
+    id: string,
+    info: { name: string; platformId?: Recipient["platformId"]; listenerNote?: string }
+  ) => {
     try {
       const res = await fetch(`/api/recipients/${id}`, {
         method: "PATCH",
@@ -162,7 +180,7 @@ export function useRecipients() {
     fetchRecipients();
   };
 
-  const bulkAddRecipients = async (data: any[]) => {
+  const bulkAddRecipients = async (data: { name: string; platformId?: Recipient["platformId"]; tags?: string[] }[]) => {
     try {
       const res = await fetch("/api/recipients/bulk", {
         method: "POST",

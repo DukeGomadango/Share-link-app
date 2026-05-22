@@ -1,10 +1,9 @@
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import {
   assets,
   campaignAssets,
-  campaignRecipientSlots,
   campaigns,
   claims,
 } from "@/db/schema";

@@ -67,7 +67,7 @@ export function DashboardSidebar() {
 
       <div className="px-4 mb-4">
         <PlanStatusWidget 
-          planTier={stats?.planTier as any || "free"} 
+          planTier={(stats?.planTier === "pro" ? "pro" : "free")} 
           usedBytes={stats?.usedBytes || 0}
           limitBytes={stats?.limitBytes || 2147483648}
         />

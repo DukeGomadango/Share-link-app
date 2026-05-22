@@ -10,10 +10,8 @@ import {
   SensorDescriptor,
   SensorOptions,
 } from "@dnd-kit/core";
-import { Layers, GripVertical, FolderOpen, Trash2, Loader2 } from "lucide-react";
+import { Layers, GripVertical, FolderOpen, Trash2 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { cn } from "@/lib/utils";
 import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";

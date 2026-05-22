@@ -1,6 +1,6 @@
-import { desc, eq, and, isNotNull, inArray } from "drizzle-orm";
+import { desc, eq, and, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
-import { recipients, listenerIdentities, claims, campaignRecipientSlots, campaigns, campaignAssets } from "@/db/schema";
+import { recipients, listenerIdentities, claims, campaignRecipientSlots, campaigns } from "@/db/schema";
 import type { Recipient, RecipientStatus } from "@/components/features/campaigns/types";
 
 export async function fetchRecipients(workspaceId: string): Promise<Recipient[]> {
@@ -47,7 +47,7 @@ export async function fetchRecipients(workspaceId: string): Promise<Recipient[]>
       id: row.id,
       name: row.name,
       tags: (row.tags as string[]) ?? [],
-      platformId: row.platformId as any,
+      platformId: row.platformId ?? undefined,
       listenerNote: row.listenerNote ?? undefined,
       status,
       createdAt: row.createdAt.toISOString(),

@@ -5,6 +5,8 @@ import { TrendingUp, AlertTriangle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+import type { TranslationKeys } from "@/lib/i18n/locales/ja";
+
 interface InsightCardsProps {
   stats: {
     weeklyViews: number | null;
@@ -15,7 +17,7 @@ interface InsightCardsProps {
       noActiveCampaigns: boolean;
     };
   } | null;
-  t: any;
+  t: TranslationKeys;
 }
 
 export function InsightCards({ stats, t }: InsightCardsProps) {

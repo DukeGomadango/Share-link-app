@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
 import { motion } from "framer-motion";
 import {
   Copy,
@@ -10,7 +9,6 @@ import {
   Check,
   FileAudio,
   FileImage,
-  X,
   AlertCircle,
   Plus,
   KeyRound,
@@ -38,7 +36,7 @@ interface DroppableRecipientProps {
 export function DroppableRecipient({
   recipient,
   getFile,
-  onRemoveFile,
+  onRemoveFile: _onRemoveFile,
   successPulse = false,
   readOnly = false,
   onClick,
@@ -57,7 +55,6 @@ export function DroppableRecipient({
     attributes,
     listeners,
     setNodeRef: setDraggableRef,
-    transform,
     isDragging,
   } = useDraggable({
     id: `recipient-${recipient.id}`,
@@ -71,10 +68,6 @@ export function DroppableRecipient({
     setDraggableRef(node);
   };
 
-  const style = transform ? {
-    transform: CSS.Translate.toString(transform),
-  } : undefined;
-
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = () => {
@@ -86,10 +79,10 @@ export function DroppableRecipient({
     }
   };
 
-  const assignedFiles = (recipient as any).assignedFileIds
-    ? (recipient as any).assignedFileIds
-        .map((id: string) => getFile(id))
-        .filter((f: any): f is FileItem => f !== undefined)
+  const assignedFiles: FileItem[] = recipient.assignedFileIds
+    ? recipient.assignedFileIds
+        .map((id) => getFile(id))
+        .filter((f): f is FileItem => f !== undefined)
     : [];
 
   const isUnlinked = assignedFiles.length === 0;
@@ -236,7 +229,7 @@ export function DroppableRecipient({
         {assignedFiles.length > 0 ? (
           <>
             <div className="flex -space-x-3 overflow-hidden p-1">
-              {assignedFiles.slice(0, 4).map((file: any, i: number) => (
+              {assignedFiles.slice(0, 4).map((file, i) => (
                 <motion.div
                   key={file.id}
                   initial={{ opacity: 0, x: -10 }}

@@ -1,8 +1,7 @@
 "use client";
 
 import { Megaphone, Tag, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import type { TranslationKeys } from "@/lib/i18n/locales/ja";
 import { useState } from "react";
 
 interface StepBasicInfoProps {
@@ -10,7 +9,7 @@ interface StepBasicInfoProps {
   description: string;
   tags: string[];
   onUpdate: (data: Partial<{ name: string; description: string; tags: string[] }>) => void;
-  t: any;
+  t: TranslationKeys;
 }
 
 export function StepBasicInfo({ name, description, tags, onUpdate, t }: StepBasicInfoProps) {

@@ -30,7 +30,7 @@ export function PublicActivityTimeline({
       {/* 垂直のタイムライン線 */}
       <div className="absolute left-6 top-2 bottom-6 w-px bg-gradient-to-b from-blue-500/20 via-blue-500/10 to-transparent" />
 
-      {sorted.map((recipient, index) => {
+      {sorted.map((recipient) => {
         const isNew = pulsedRecipientId === recipient.id;
         const timeStr = formatDistanceToNow(new Date(recipient.createdAt), { 
           addSuffix: true, 

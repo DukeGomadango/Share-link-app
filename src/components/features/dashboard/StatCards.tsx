@@ -3,6 +3,8 @@
 import { BentoItem } from "@/components/shared/BentoGrid";
 import { Gift, Users, MousePointerClick } from "lucide-react";
 
+import type { TranslationKeys } from "@/lib/i18n/locales/ja";
+
 interface StatCardsProps {
   stats: {
     activeCampaigns: number;
@@ -10,7 +12,7 @@ interface StatCardsProps {
     openRate: number;
   } | null;
   loading: boolean;
-  t: any;
+  t: TranslationKeys;
 }
 
 function StatSkeleton({ className }: { className?: string }) {
