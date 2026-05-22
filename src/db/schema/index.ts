@@ -86,7 +86,7 @@ export const campaigns = pgTable(
   ]
 );
 
-/** ワークスペースのライブラリ実体（Supabase Storage のオブジェクトと 1:1） */
+/** ワークスペースのライブラリ実体（R2 または Supabase Storage のオブジェクトと 1:1） */
 export const assets = pgTable(
   "assets",
   {

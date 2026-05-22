@@ -3,7 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { getDb } from "@/db";
 import { assets } from "@/db/schema";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { deleteStorageObject } from "@/lib/storage/delete-object";
 
 export async function PATCH(
   request: Request,
@@ -62,17 +62,8 @@ export async function DELETE(
     return NextResponse.json({ error: "Asset not found" }, { status: 404 });
   }
 
-  // 1. Storage から削除
-  const admin = getSupabaseAdmin();
-  if (admin) {
-    const { error: storageError } = await admin.storage
-      .from(asset.bucket)
-      .remove([asset.objectKey]);
-    
-    if (storageError) {
-      console.error("Failed to delete from storage:", storageError);
-    }
-  }
+  // 1. Storage から削除（R2 / Supabase を bucket で判別）
+  await deleteStorageObject(asset.bucket, asset.objectKey);
 
   // 2. Database から削除
   try {

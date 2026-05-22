@@ -5,8 +5,11 @@ import { getDb } from "@/db";
 import { assets, workspaces } from "@/db/schema";
 import { createSignedUploadToStorage } from "@/lib/assets/signed-urls";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { getStorageBucket, MAX_UPLOAD_BYTES } from "@/lib/storage/config";
+import {
+  getStorageBucket,
+  isStorageConfigured,
+  MAX_UPLOAD_BYTES,
+} from "@/lib/storage/config";
 import { sanitizeFilenameForStorage } from "@/lib/storage/sanitize-filename";
 
 export async function POST(request: Request) {
@@ -15,12 +18,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!getSupabaseAdmin()) {
+  if (!isStorageConfigured()) {
     return NextResponse.json(
       {
         error: "service_unavailable",
         message:
-          "SUPABASE_SERVICE_ROLE_KEY が未設定のため署名付きアップロード URL を発行できません",
+          "ストレージが未設定です。R2_* 環境変数または SUPABASE_SERVICE_ROLE_KEY を設定してください",
       },
       { status: 503 }
     );
@@ -78,7 +81,9 @@ export async function POST(request: Request) {
   const bucket = getStorageBucket();
   const objectKey = `${ctx.workspaceId}/${assetId}/${safe}`;
 
-  const signed = await createSignedUploadToStorage(bucket, objectKey);
+  const signed = await createSignedUploadToStorage(bucket, objectKey, {
+    contentType,
+  });
   if (!signed) {
     return NextResponse.json(
       { error: "signed_upload_failed", message: "署名付きアップロード URL の取得に失敗しました" },

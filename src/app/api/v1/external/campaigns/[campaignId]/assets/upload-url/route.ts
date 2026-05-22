@@ -83,7 +83,9 @@ export async function POST(request: Request, ctx: RouteParams) {
   const bucket = getStorageBucket();
   const objectKey = `${auth.workspaceId}/${assetId}/${safe}`;
 
-  const signed = await createSignedUploadToStorage(bucket, objectKey);
+  const signed = await createSignedUploadToStorage(bucket, objectKey, {
+    contentType,
+  });
   if (!signed) {
     return jsonWithCors({ error: "internal_error", message: "署名付きURLの生成に失敗しました" }, request, { status: 500 });
   }
