@@ -20,6 +20,7 @@ export async function GET() {
       label: integrationAccessTokens.label,
       scopes: integrationAccessTokens.scopes,
       createdAt: integrationAccessTokens.createdAt,
+      lastUsedAt: integrationAccessTokens.lastUsedAt,
     })
     .from(integrationAccessTokens)
     .where(eq(integrationAccessTokens.workspaceId, ctx.workspaceId))
@@ -29,6 +30,7 @@ export async function GET() {
     tokens: rows.map((r) => ({
       ...r,
       createdAt: r.createdAt.toISOString(),
+      lastUsedAt: r.lastUsedAt?.toISOString() ?? null,
     })),
   });
 }

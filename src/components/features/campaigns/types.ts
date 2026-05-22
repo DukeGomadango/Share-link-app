@@ -33,6 +33,8 @@ export type WorkflowRecipient = {
   passkeyVerified?: boolean;
   /** グローバルな受取人 ID（紐付いている場合） */
   globalRecipientId?: string;
+  /** 外部連携の冪等 ID（ガチャ: `gacha-{poolId}-player-{playerId}` 等） */
+  externalTransactionId?: string;
 };
 
 /** @deprecated WorkflowRecipient を優先（後方互換の別名） */

@@ -116,6 +116,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
     claimSecret: row.claimSecret,
     passkeyVerified: row.passkeyVerified,
     globalRecipientId: row.globalRecipientId ?? undefined,
+    externalTransactionId: row.externalTransactionId ?? undefined,
   }));
 
   return NextResponse.json({

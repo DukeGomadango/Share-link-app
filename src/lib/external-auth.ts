@@ -4,6 +4,11 @@ import { getDb } from "@/db";
 import { integrationAccessTokens } from "@/db/schema";
 import { hashIntegrationToken } from "@/lib/integration-token";
 import { parseIntegrationScopes, tokenHasScope } from "@/lib/integration-scopes";
+import {
+  integrationRateLimit,
+  INTEGRATION_RATE_MAX,
+  INTEGRATION_RATE_WINDOW_MS,
+} from "@/lib/integration-rate-limit";
 
 import { jsonWithCors } from "@/lib/external-cors";
 
@@ -61,6 +66,22 @@ export async function resolveIntegrationBearer(
       { status: 403 }
     );
   }
+
+  if (
+    !integrationRateLimit(token.id, INTEGRATION_RATE_MAX, INTEGRATION_RATE_WINDOW_MS)
+  ) {
+    return jsonWithCors(
+      { error: "rate_limited", message: "リクエストが多すぎます。しばらく待って再試行してください。" },
+      request,
+      { status: 429 }
+    );
+  }
+
+  void db
+    .update(integrationAccessTokens)
+    .set({ lastUsedAt: new Date() })
+    .where(eq(integrationAccessTokens.id, token.id))
+    .catch(() => {});
 
   return {
     integrationTokenId: token.id,

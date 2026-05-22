@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Users, MailPlus, LayoutGrid, List, KeyRound, User, Check, Copy, ExternalLink, AlertCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/shared/GlassCard";
@@ -31,6 +32,8 @@ interface RecipientsSectionProps {
   /** 表示モード */
   viewMode?: "grid" | "list";
   onViewModeChange?: (mode: "grid" | "list") => void;
+  /** だんごツール等からの deep link（`focus_external_tx`） */
+  focusExternalTx?: string | null;
 }
 
 export function RecipientsSection({
@@ -48,6 +51,7 @@ export function RecipientsSection({
   isPublic = false,
   viewMode = "grid",
   onViewModeChange,
+  focusExternalTx = null,
 }: RecipientsSectionProps) {
   const { t } = useTranslation();
   const [detailRecipientId, setDetailRecipientId] = useState<string | null>(null);
@@ -55,6 +59,18 @@ export function RecipientsSection({
   // 事前準備された（待機中ではない）スロットのリスト
   const preparedSlots = recipients.filter(r => r.status !== 'waiting');
   const detailRecipient = recipients.find(r => r.id === detailRecipientId) || null;
+
+  useEffect(() => {
+    if (!focusExternalTx?.trim() || recipients.length === 0) return;
+    const tx = focusExternalTx.trim();
+    const timer = window.setTimeout(() => {
+      const el = document.querySelector(
+        `[data-external-tx="${CSS.escape(tx)}"]`
+      );
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [focusExternalTx, recipients]);
 
   return (
     <>
@@ -167,6 +183,10 @@ export function RecipientsSection({
                 )
               : undefined;
 
+            const focusHighlight =
+              !!focusExternalTx?.trim() &&
+              recipient.externalTransactionId === focusExternalTx.trim();
+
             if (viewMode === "list") {
               return (
                 <DroppableRecipientRow
@@ -179,6 +199,7 @@ export function RecipientsSection({
                   successPulse={pulsedRecipientId === recipient.id}
                   readOnly={readOnly}
                   onClick={() => setDetailRecipientId(recipient.id)}
+                  focusHighlight={focusHighlight}
                 />
               );
             }
@@ -194,6 +215,7 @@ export function RecipientsSection({
                 successPulse={pulsedRecipientId === recipient.id}
                 readOnly={readOnly}
                 onClick={() => setDetailRecipientId(recipient.id)}
+                focusHighlight={focusHighlight}
               />
             );
           })
@@ -225,6 +247,7 @@ type DroppableRecipientRowProps = {
   onClick?: () => void;
   matchingPreparedSlot?: Recipient;
   onMerge?: (sourceId: string, targetId: string) => void;
+  focusHighlight?: boolean;
 };
 
 function DroppableRecipientRow({
@@ -236,6 +259,7 @@ function DroppableRecipientRow({
   onClick,
   matchingPreparedSlot,
   onMerge,
+  focusHighlight = false,
 }: DroppableRecipientRowProps) {
   const { isOver, setNodeRef: setDroppableRef } = useDroppable({
     id: `recipient-${recipient.id}`,
@@ -278,8 +302,10 @@ function DroppableRecipientRow({
       {...attributes}
       {...listeners}
       onClick={onClick}
+      data-external-tx={recipient.externalTransactionId ?? undefined}
       className={cn(
         "group relative flex items-center gap-4 p-3 rounded-2xl transition-all cursor-grab active:cursor-grabbing",
+        focusHighlight && "ring-2 ring-purple-500 ring-offset-2 ring-offset-background",
         isDragging ? "opacity-0 invisible" : "opacity-100 border",
         isOver && !isDragging
           ? "border-blue-500 bg-blue-500/5 shadow-sm"

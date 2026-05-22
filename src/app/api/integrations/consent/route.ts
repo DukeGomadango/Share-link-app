@@ -5,6 +5,10 @@ import {
 } from "@/lib/integration-oauth";
 import { generateIntegrationTokenPlain, hashIntegrationToken } from "@/lib/integration-token";
 import { DEFAULT_INTEGRATION_SCOPES } from "@/lib/integration-scopes";
+import {
+  oauthTokenLabel,
+  revokeOAuthTokensForClient,
+} from "@/lib/integration-token-lifecycle";
 import { getDb } from "@/db";
 import { integrationAccessTokens } from "@/db/schema";
 
@@ -38,11 +42,12 @@ export async function POST(request: Request) {
 
   const plain = generateIntegrationTokenPlain();
   const tokenHash = hashIntegrationToken(plain);
-  const label =
-    body.label?.trim() ||
-    `OAuth連携 (${clientId})`;
+  const label = body.label?.trim() || oauthTokenLabel(clientId);
 
   const db = getDb();
+  // 再連携時は同一 OAuth クライアントの旧トークンを失効（ローテーション）
+  await revokeOAuthTokensForClient(ctx.workspaceId, clientId);
+
   await db.insert(integrationAccessTokens).values({
     workspaceId: ctx.workspaceId,
     label,

@@ -22,6 +22,8 @@ export type WorkflowRecipientRow = {
   passkeyVerified: boolean;
   globalRecipientId: string | null;
   createdAt: string;
+  /** ガチャ連携の冪等キー（`gacha-` プレフィックス優先で代表1件） */
+  externalTransactionId: string | null;
 };
 
 export async function fetchWorkflowRecipientsForCampaign(
@@ -105,6 +107,13 @@ export async function fetchWorkflowRecipientsForCampaign(
       existing?.recipientDisplayName ||
       "（無名）";
 
+    const claimExtId = r.claim.externalTransactionId?.trim() || null;
+    const pickExtId = (prev: string | null | undefined, next: string | null): string | null => {
+      if (next?.startsWith("gacha-")) return next;
+      if (prev?.startsWith("gacha-")) return prev;
+      return next ?? prev ?? null;
+    };
+
     slotGroups.set(slotId, {
       id: slotId, // フロントエンドがキーやIDとして使用する
       claimId: existing?.claimId || claimId, // 代表的な ClaimID を1つ保持
@@ -117,6 +126,7 @@ export async function fetchWorkflowRecipientsForCampaign(
       passkeyVerified: existing?.passkeyVerified || linked.has(claimId),
       globalRecipientId: r.slot?.recipientId || existing?.globalRecipientId || null,
       createdAt: r.claim.createdAt.toISOString(),
+      externalTransactionId: pickExtId(existing?.externalTransactionId, claimExtId),
     });
   }
 

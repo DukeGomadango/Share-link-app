@@ -356,6 +356,7 @@ export const integrationAccessTokens = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
   },
   (t) => [
     index("integration_access_tokens_workspace_id_idx").on(t.workspaceId),

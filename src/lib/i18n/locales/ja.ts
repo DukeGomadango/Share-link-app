@@ -332,6 +332,9 @@ export const ja = {
     issuedOnce:
       "このトークンは一度だけ表示されます。コピーして安全に保管してください。機密として扱ってください。",
     revoke: "解除",
+    createdAtLine: "発行: {date}",
+    lastUsedLine: "最終利用: {date}",
+    lastUsedNever: "最終利用: まだありません",
     scopesLine: "スコープ: {scopes}",
     authorizeTitle: "連携の確認",
     authorizeSubtitle: "外部アプリからの連携リクエストです。内容を確認して許可してください。",
@@ -344,6 +347,21 @@ export const ja = {
     deny: "キャンセル",
     missingParams: "client_id または redirect_uri が不足しています",
     redirectNote: "許可後、指定の redirect_uri にワンタイムトークンがクエリで付与されます。",
+    oauthRotationNote:
+      "だんごツールで再度「許可」すると、同じ OAuth 用の古いトークンは自動で失効し、新しい1件だけが有効になります。",
+    duplicateOAuthHint:
+      "だんごツール用 OAuth トークンが {count} 件あります。最新の利用分以外は整理できます。",
+    pruneOAuth: "重複を整理",
+    pruneConfirmTitle: "OAuth トークンの整理",
+    pruneConfirmDescription:
+      "だんごツール用（OAuth: dango-tools-gacha）のトークンを、最終利用が新しい1件だけ残して削除します。手動発行のトークンは対象外です。",
+    pruneConfirmAction: "整理する",
+    pruneSuccess: "{count} 件の重複トークンを削除しました",
+    pruneFailed: "整理に失敗しました",
+    revokeConfirmTitle: "トークンの失効",
+    revokeConfirmDescription:
+      "このAPIトークンを失効させますか？このトークンを使用している連携機能は動作しなくなります。",
+    revokeConfirmAction: "失効させる",
     clientIdLabel: "クライアント ID",
     redirectLabel: "リダイレクト先",
   },

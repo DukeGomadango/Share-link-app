@@ -14,6 +14,7 @@ type TokenRow = {
   label: string;
   scopes: string;
   createdAt: string;
+  lastUsedAt: string | null;
 };
 
 export default function IntegrationsSettingsPage() {
@@ -24,6 +25,15 @@ export default function IntegrationsSettingsPage() {
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRevokeId, setPendingRevokeId] = useState<string | null>(null);
+  const [pruneConfirmOpen, setPruneConfirmOpen] = useState(false);
+  const [pruneBusy, setPruneBusy] = useState(false);
+
+  const oauthGachaCount = tokens.filter(
+    (t) =>
+      t.label === "OAuth: dango-tools-gacha" ||
+      t.label === "OAuth連携 (dango-tools-gacha)" ||
+      t.label === "OAuth (dango-tools-gacha)"
+  ).length;
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/integrations/tokens");
@@ -68,6 +78,32 @@ export default function IntegrationsSettingsPage() {
     setConfirmOpen(true);
   }
 
+  async function handlePruneOAuth() {
+    setPruneBusy(true);
+    try {
+      const res = await fetch("/api/integrations/tokens/prune-oauth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          client_id: "dango-tools-gacha",
+          keep: "latest_used",
+        }),
+      });
+      const data = (await res.json()) as { removed?: number; error?: string };
+      if (!res.ok) {
+        toast.error(data.error ?? t.integrations.pruneFailed);
+        return;
+      }
+      await refresh();
+      toast.success(
+        t.integrations.pruneSuccess.replace("{count}", String(data.removed ?? 0))
+      );
+    } finally {
+      setPruneBusy(false);
+      setPruneConfirmOpen(false);
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-4">
@@ -85,6 +121,24 @@ export default function IntegrationsSettingsPage() {
       <GlassCard className="space-y-4">
         <h2 className="font-semibold text-lg">{t.integrations.listHeading}</h2>
         <p className="text-sm text-muted-foreground">{t.integrations.redirectNote}</p>
+        <p className="text-sm text-muted-foreground">{t.integrations.oauthRotationNote}</p>
+
+        {oauthGachaCount >= 2 ? (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-amber-900 dark:text-amber-100">
+              {t.integrations.duplicateOAuthHint.replace("{count}", String(oauthGachaCount))}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={pruneBusy}
+              onClick={() => setPruneConfirmOpen(true)}
+            >
+              {pruneBusy ? t.common.loading : t.integrations.pruneOAuth}
+            </Button>
+          </div>
+        ) : null}
 
         <div className="flex flex-wrap gap-2 items-end">
           <div className="flex-1 min-w-[200px] space-y-1">
@@ -126,7 +180,18 @@ export default function IntegrationsSettingsPage() {
                   <p className="text-xs text-muted-foreground mt-1">
                     {t.integrations.scopesLine.replace("{scopes}", tok.scopes)}
                   </p>
-                  <p className="text-xs text-muted-foreground">{tok.createdAt}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.integrations.createdAtLine.replace("{date}", tok.createdAt)}
+                  </p>
+                  {tok.lastUsedAt ? (
+                    <p className="text-xs text-muted-foreground">
+                      {t.integrations.lastUsedLine.replace("{date}", tok.lastUsedAt)}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground/70">
+                      {t.integrations.lastUsedNever}
+                    </p>
+                  )}
                 </div>
                 <Button variant="outline" size="sm" onClick={() => startRevoke(tok.id)}>
                   {t.integrations.revoke}
@@ -143,9 +208,19 @@ export default function IntegrationsSettingsPage() {
         onConfirm={() => {
           if (pendingRevokeId) void handleRevoke(pendingRevokeId);
         }}
-        title="トークンの失効"
-        description="このAPIトークンを失効させますか？このトークンを使用している連携機能は動作しなくなります。"
-        confirmText="失効させる"
+        title={t.integrations.revokeConfirmTitle}
+        description={t.integrations.revokeConfirmDescription}
+        confirmText={t.integrations.revokeConfirmAction}
+        variant="destructive"
+      />
+
+      <ConfirmModal
+        isOpen={pruneConfirmOpen}
+        onClose={() => setPruneConfirmOpen(false)}
+        onConfirm={() => void handlePruneOAuth()}
+        title={t.integrations.pruneConfirmTitle}
+        description={t.integrations.pruneConfirmDescription}
+        confirmText={t.integrations.pruneConfirmAction}
         variant="destructive"
       />
     </div>

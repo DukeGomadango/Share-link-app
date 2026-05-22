@@ -336,6 +336,9 @@ export const en: TranslationKeys = {
     issuedOnce:
       "This token is shown only once. Copy it and store it securely. Treat it as a secret.",
     revoke: "Revoke",
+    createdAtLine: "Issued: {date}",
+    lastUsedLine: "Last used: {date}",
+    lastUsedNever: "Last used: never",
     scopesLine: "Scopes: {scopes}",
     authorizeTitle: "Approve integration",
     authorizeSubtitle: "An external app wants to connect. Review and approve.",
@@ -349,6 +352,21 @@ export const en: TranslationKeys = {
     missingParams: "client_id or redirect_uri is missing",
     redirectNote:
       "After approval, a one-time token is appended to the redirect_uri query string.",
+    oauthRotationNote:
+      "Re-approving from Dango tools revokes previous OAuth tokens for the same client and keeps only the new one.",
+    duplicateOAuthHint:
+      "There are {count} Dango tools OAuth tokens. You can keep the most recently used one.",
+    pruneOAuth: "Prune duplicates",
+    pruneConfirmTitle: "Prune OAuth tokens",
+    pruneConfirmDescription:
+      "Keeps one OAuth: dango-tools-gacha token (preferring latest use) and deletes the rest. Manually issued tokens are not affected.",
+    pruneConfirmAction: "Prune",
+    pruneSuccess: "Removed {count} duplicate token(s)",
+    pruneFailed: "Prune failed",
+    revokeConfirmTitle: "Revoke token",
+    revokeConfirmDescription:
+      "Revoke this API token? Integrations using it will stop working.",
+    revokeConfirmAction: "Revoke",
     clientIdLabel: "Client ID",
     redirectLabel: "Redirect URI",
   },

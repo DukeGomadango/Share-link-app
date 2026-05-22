@@ -118,7 +118,9 @@ components:
     Unauthorized:
       description: Bearer 欠落／無効／失効
     Forbidden:
-      description: スコープ不足または他ワークスペースのリソース
+      description: スコープ不足、他ワークスペースのリソース、または `integration_paused`（ツール連携一時停止）
+    RateLimited:
+      description: Integration トークン単位のレート制限超過（`error: rate_limited`）
 
   schemas:
     CampaignSummary:

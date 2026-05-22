@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users, Calendar, X, Trash2, Check, AlertCircle, Settings, Plus, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ import { ConfirmModal } from "@/components/shared/ConfirmModal";
 
 export default function CampaignDetailPage() {
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
+  const focusExternalTx = searchParams.get("focus_external_tx");
   const {
     campaignId,
     campaign,
@@ -588,6 +591,7 @@ export default function CampaignDetailPage() {
               isPublic={isPublic}
               viewMode={recipientsViewMode}
               onViewModeChange={setRecipientsViewMode}
+              focusExternalTx={focusExternalTx}
             />
           </div>
 

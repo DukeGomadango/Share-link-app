@@ -31,6 +31,8 @@ interface DroppableRecipientProps {
   onClick?: () => void;
   matchingPreparedSlot?: Recipient;
   onMerge?: (sourceId: string, targetId: string) => void;
+  /** だんごツール deep link（focus_external_tx）用の強調表示 */
+  focusHighlight?: boolean;
 }
 
 export function DroppableRecipient({
@@ -42,6 +44,7 @@ export function DroppableRecipient({
   onClick,
   matchingPreparedSlot,
   onMerge,
+  focusHighlight = false,
 }: DroppableRecipientProps) {
   const { t } = useTranslation();
   
@@ -108,8 +111,10 @@ export function DroppableRecipient({
       whileHover={{ scale: isDragging ? 1 : 1.01 }}
       onClick={onClick}
       transition={{ duration: 0.2, ease: "easeOut" }}
+      data-external-tx={recipient.externalTransactionId ?? undefined}
       className={cn(
         `p-4 rounded-2xl border transition-[border-color,background-color,box-shadow] duration-200 relative group/card cursor-grab active:cursor-grabbing`,
+        focusHighlight && "ring-2 ring-purple-500 ring-offset-2 ring-offset-background",
         isDragging ? "opacity-0 invisible" : "opacity-100", // ドラッグ中は元の場所を消す（DragOverlayに任せる）
         isOver && !isDragging
           ? "border-emerald-500 bg-emerald-500/10 scale-[1.02] shadow-emerald-500/20 shadow-lg"
