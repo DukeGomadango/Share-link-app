@@ -1,5 +1,7 @@
 # 本番運用チェックリスト（Phase 2）
 
+Phase 3（E2E・Storage 移行・Stripe）の順序とコマンド: [`phase3-roadmap.md`](./phase3-roadmap.md)
+
 ## 必須環境変数（Vercel Production）
 
 | 変数 | 用途 |
