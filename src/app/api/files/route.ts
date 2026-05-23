@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { eq, sql } from "drizzle-orm";
-import { getDb } from "@/db";
-import { assets, workspaces } from "@/db/schema";
+
 import { fetchAssetsWithCampaignLabels } from "@/lib/assets/workspace-library";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
+import { getWorkspaceStorageSnapshot } from "@/lib/workspace/workspace-storage";
 
 export async function GET() {
   const ctx = await getSessionWorkspaceContext();
@@ -11,26 +10,11 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const db = getDb();
-  
-  // 1. Fetch workspace stats
-  const [workspace] = await db
-    .select({
-      planTier: workspaces.planTier,
-      storageLimit: workspaces.storageLimit,
-    })
-    .from(workspaces)
-    .where(eq(workspaces.id, ctx.workspaceId))
-    .limit(1);
+  const snapshot = await getWorkspaceStorageSnapshot(ctx.workspaceId);
+  if (!snapshot) {
+    return NextResponse.json({ error: "workspace_not_found" }, { status: 404 });
+  }
 
-  const [usage] = await db
-    .select({
-      totalBytes: sql<number>`COALESCE(SUM(${assets.sizeBytes}), 0)::bigint`,
-    })
-    .from(assets)
-    .where(eq(assets.workspaceId, ctx.workspaceId));
-
-  // 2. Fetch files
   const rows = await fetchAssetsWithCampaignLabels(ctx.workspaceId);
 
   const files = rows.map((a) => ({
@@ -48,10 +32,10 @@ export async function GET() {
   return NextResponse.json({
     files,
     stats: {
-      usedBytes: Number(usage?.totalBytes || 0),
-      limitBytes: workspace?.storageLimit || 2147483648,
-      planTier: workspace?.planTier || "free",
-      workspaceId: ctx.workspaceId,
+      usedBytes: snapshot.usedBytes,
+      limitBytes: snapshot.limitBytes,
+      planTier: snapshot.planTier,
+      workspaceId: snapshot.workspaceId,
     },
   });
 }

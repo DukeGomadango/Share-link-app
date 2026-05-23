@@ -295,6 +295,28 @@ export const en: TranslationKeys = {
     commandDropShortcutToggleHelp: "?: toggle this help",
     commandDropRecentBadge: "Recent",
     previewNotAvailable: "Preview not available for this file type.",
+    quotaExceeded:
+      "Storage quota reached. Delete unused files or consider the Pro plan.",
+    retentionBanner: {
+      title: "Asset retention is ending soon",
+      badge: "Important",
+      body: "{count} of {total} assets will be removed within 14 days.",
+      review: "Review items",
+      upgrade: "Go Pro for no auto-deletion",
+    },
+    retentionLabel: "Retention",
+    retentionDaysLeft: "{days} days left",
+    retentionExpired: "Expired",
+  },
+  plan: {
+    free: "Free plan",
+    pro: "Pro plan",
+    used: "used",
+    limit: "limit",
+    retentionFree: "Retention: 90 days, then auto-deleted",
+    retentionPro: "Retention: none (Pro, no auto-deletion)",
+    upgrade: "Upgrade",
+    upgradeHint: "Pro includes 50GB and no auto-deletion. Contact us to upgrade.",
   },
   settings: {
     title: "Settings",

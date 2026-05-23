@@ -291,6 +291,28 @@ export const ja = {
     commandDropShortcutToggleHelp: "? : このヘルプを表示/非表示",
     commandDropRecentBadge: "最近",
     previewNotAvailable: "このファイル形式はプレビューできません。",
+    quotaExceeded:
+      "ストレージ容量の上限に達しました。不要なファイルを削除するか Pro プランをご検討ください。",
+    retentionBanner: {
+      title: "ファイルの保持期限が近づいています",
+      badge: "重要",
+      body: "ライブラリ内の {total} 件中 {count} 件があと14日以内に自動削除されます。",
+      review: "対象を確認",
+      upgrade: "Proプランで無期限に",
+    },
+    retentionLabel: "保持期限",
+    retentionDaysLeft: "あと{days}日",
+    retentionExpired: "期限切れ",
+  },
+  plan: {
+    free: "Free プラン",
+    pro: "Pro プラン",
+    used: "使用中",
+    limit: "上限",
+    retentionFree: "アセット保持期限: 90日間（期限後に自動削除）",
+    retentionPro: "アセット保持期限: なし（Pro・自動削除なし）",
+    upgrade: "アップグレード",
+    upgradeHint: "Pro は容量 50GB・自動削除なし。お問い合わせください。",
   },
   settings: {
     title: "設定",

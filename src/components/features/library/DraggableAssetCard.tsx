@@ -10,6 +10,8 @@ import { GlassCard } from "@/components/shared/GlassCard";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAssetSignedUrl } from "@/hooks/useAssetSignedUrl";
+import { retentionTotalDays } from "@/lib/assets/retention-display";
+import { useTranslation } from "@/lib/i18n";
 import { AssetFile } from "./types";
 
 interface DraggableAssetCardProps {
@@ -51,6 +53,7 @@ export function DraggableAssetCard({
   onRename,
   onRemove,
 }: DraggableAssetCardProps) {
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(file.name);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -228,7 +231,7 @@ export function DraggableAssetCard({
             </div>
             
             {file.expiresAt && (() => {
-              const totalDays = 90; // 基本の保持期間
+              const totalDays = retentionTotalDays(file.createdAt, file.expiresAt);
               const diffMs = new Date(file.expiresAt).getTime() - new Date().getTime();
               const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
               const progress = Math.max(0, Math.min(100, (diffDays / totalDays) * 100));
@@ -245,9 +248,16 @@ export function DraggableAssetCard({
               return (
                 <div className="space-y-1">
                   <div className="flex justify-between items-center">
-                    <span className="text-[9px] text-muted-foreground/70 uppercase tracking-tighter">Retention</span>
+                    <span className="text-[9px] text-muted-foreground/70 uppercase tracking-tighter">
+                      {t.library.retentionLabel}
+                    </span>
                     <span className={cn("text-[10px]", textClass)}>
-                      {diffDays <= 0 ? "Expired" : diffDays === 1 ? "Last day" : `あと ${diffDays}日`}
+                      {diffDays <= 0
+                        ? t.library.retentionExpired
+                        : t.library.retentionDaysLeft.replace(
+                            "{days}",
+                            String(diffDays)
+                          )}
                     </span>
                   </div>
                   <div className="h-1 w-full bg-muted/50 rounded-full overflow-hidden">

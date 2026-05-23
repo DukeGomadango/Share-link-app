@@ -6,6 +6,11 @@ import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { getDb } from "@/db";
 import { assets, workspaces } from "@/db/schema";
 import { getStorageBucket, MAX_UPLOAD_BYTES } from "@/lib/storage/config";
+import {
+  computeAssetExpiresAt,
+  normalizePlanTier,
+} from "@/lib/workspace/plan-limits";
+import { assertWorkspaceCanStoreBytes } from "@/lib/workspace/workspace-storage";
 
 export async function POST(request: Request) {
   const ctx = await getSessionWorkspaceContext();
@@ -55,17 +60,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ id: assetId, ok: true, dedup: true });
   }
 
-  // ワークスペースのプラン情報を取得して保持期限を計算 (free: 90日, pro: 365日)
-  const workspace = await db
+  const quota = await assertWorkspaceCanStoreBytes(ctx.workspaceId, sizeBytes);
+  if (!quota.ok) {
+    return NextResponse.json(
+      {
+        error: "quota_exceeded",
+        message:
+          "ストレージ容量制限を超えています。不要なファイルを削除するか Pro プランをご検討ください。",
+        usedBytes: quota.snapshot.usedBytes,
+        limitBytes: quota.snapshot.limitBytes,
+        planTier: quota.snapshot.planTier,
+      },
+      { status: 403 }
+    );
+  }
+
+  const [workspace] = await db
     .select({ planTier: workspaces.planTier })
     .from(workspaces)
     .where(eq(workspaces.id, ctx.workspaceId))
-    .limit(1)
-    .then((rows) => rows[0]);
+    .limit(1);
 
-  const retentionDays = workspace?.planTier === "pro" ? 365 : 90;
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + retentionDays);
+  const planTier = normalizePlanTier(workspace?.planTier);
+  const expiresAt = computeAssetExpiresAt(planTier);
 
   await db.insert(assets).values({
     id: assetId,

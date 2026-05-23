@@ -1,8 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { eq, sql } from "drizzle-orm";
-import { getDb } from "@/db";
-import { assets, workspaces } from "@/db/schema";
+
 import { createSignedUploadToStorage } from "@/lib/assets/signed-urls";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import {
@@ -11,6 +9,7 @@ import {
   MAX_UPLOAD_BYTES,
 } from "@/lib/storage/config";
 import { sanitizeFilenameForStorage } from "@/lib/storage/sanitize-filename";
+import { assertWorkspaceCanStoreBytes } from "@/lib/workspace/workspace-storage";
 
 export async function POST(request: Request) {
   const ctx = await getSessionWorkspaceContext();
@@ -50,27 +49,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "file_too_large" }, { status: 413 });
   }
 
-  // 容量制限（Quota）のチェック
-  const db = getDb();
-  const [workspace] = await db
-    .select({ storageLimit: workspaces.storageLimit })
-    .from(workspaces)
-    .where(eq(workspaces.id, ctx.workspaceId))
-    .limit(1);
-
-  const [usage] = await db
-    .select({ totalBytes: sql<number>`COALESCE(SUM(${assets.sizeBytes}), 0)::bigint` })
-    .from(assets)
-    .where(eq(assets.workspaceId, ctx.workspaceId));
-
-  const currentUsed = Number(usage?.totalBytes || 0);
-  const limit = workspace?.storageLimit || 2147483648;
-
-  if (currentUsed + size > limit) {
+  const quota = await assertWorkspaceCanStoreBytes(ctx.workspaceId, size);
+  if (!quota.ok) {
     return NextResponse.json(
-      { 
-        error: "quota_exceeded", 
-        message: "ストレージ容量制限を超えています。不要なファイルを削除するかProプランを検討してください。" 
+      {
+        error: "quota_exceeded",
+        message:
+          "ストレージ容量制限を超えています。不要なファイルを削除するか Pro プランをご検討ください。",
+        usedBytes: quota.snapshot.usedBytes,
+        limitBytes: quota.snapshot.limitBytes,
+        planTier: quota.snapshot.planTier,
       },
       { status: 403 }
     );
@@ -86,7 +74,10 @@ export async function POST(request: Request) {
   });
   if (!signed) {
     return NextResponse.json(
-      { error: "signed_upload_failed", message: "署名付きアップロード URL の取得に失敗しました" },
+      {
+        error: "signed_upload_failed",
+        message: "署名付きアップロード URL の取得に失敗しました",
+      },
       { status: 500 }
     );
   }

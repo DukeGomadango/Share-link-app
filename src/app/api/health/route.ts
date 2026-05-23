@@ -9,6 +9,7 @@ import { isR2Configured, isStorageConfigured } from "@/lib/storage/config";
  * GET /api/health
  */
 export async function GET() {
+  const externalCors = process.env.EXTERNAL_CORS_ORIGINS?.trim();
   const checks = {
     DATABASE_URL: Boolean(process.env.DATABASE_URL?.trim()),
     NEXT_PUBLIC_SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()),
@@ -17,6 +18,8 @@ export async function GET() {
     ),
     SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()),
     NEXT_PUBLIC_APP_URL: Boolean(process.env.NEXT_PUBLIC_APP_URL?.trim()),
+    CRON_SECRET: Boolean(process.env.CRON_SECRET?.trim()),
+    EXTERNAL_CORS_ORIGINS: Boolean(externalCors),
     storage: isStorageConfigured(),
     r2: isR2Configured(),
   };
@@ -37,17 +40,30 @@ export async function GET() {
     database = { ok: false, error: "DATABASE_URL is not set" };
   }
 
-  const envOk = Object.entries(checks)
-    .filter(([k]) => k !== "storage" && k !== "r2")
-    .every(([, v]) => v === true);
+  const coreEnvOk = [
+    checks.DATABASE_URL,
+    checks.NEXT_PUBLIC_SUPABASE_URL,
+    checks.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    checks.SUPABASE_SERVICE_ROLE_KEY,
+    checks.NEXT_PUBLIC_APP_URL,
+  ].every(Boolean);
 
-  const ok = envOk && database.ok && checks.storage;
+  const ok = coreEnvOk && database.ok && checks.storage;
 
   return NextResponse.json(
     {
       ok,
       checks,
       database,
+      integration: {
+        externalCorsConfigured: checks.EXTERNAL_CORS_ORIGINS,
+        cronConfigured: checks.CRON_SECRET,
+        hint: !checks.EXTERNAL_CORS_ORIGINS
+          ? "だんごツール本番 URL を EXTERNAL_CORS_ORIGINS に追加"
+          : !checks.CRON_SECRET
+            ? "CRON_SECRET を Production に設定（期限切れアセット自動削除）"
+            : undefined,
+      },
       hint: !checks.DATABASE_URL
         ? "Vercel に DATABASE_URL（Supabase Transaction Pooler・ポート 6543）を設定して Redeploy"
         : !database.ok

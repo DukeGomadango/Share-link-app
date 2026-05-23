@@ -6,6 +6,11 @@ import { resolveIntegrationBearer } from "@/lib/external-auth";
 import { ensureCampaignToolIntegrationWritable } from "@/lib/external-integration-pause";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 import { getStorageBucket, MAX_UPLOAD_BYTES } from "@/lib/storage/config";
+import {
+  computeAssetExpiresAt,
+  normalizePlanTier,
+} from "@/lib/workspace/plan-limits";
+import { assertWorkspaceCanStoreBytes } from "@/lib/workspace/workspace-storage";
 
 type RouteParams = { params: Promise<{ campaignId: string }> };
 
@@ -75,6 +80,21 @@ export async function POST(request: Request, ctx: RouteParams) {
     // 1. Library Assets に登録 (既にある場合はスキップ)
     const existing = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);
     if (!existing[0]) {
+      const quota = await assertWorkspaceCanStoreBytes(auth.workspaceId, sizeBytes);
+      if (!quota.ok) {
+        return jsonWithCors(
+          {
+            error: "quota_exceeded",
+            message: "ストレージ容量制限を超えています",
+            used_bytes: quota.snapshot.usedBytes,
+            limit_bytes: quota.snapshot.limitBytes,
+            plan_tier: quota.snapshot.planTier,
+          },
+          request,
+          { status: 403 }
+        );
+      }
+
       const workspace = await db
         .select({ planTier: workspaces.planTier })
         .from(workspaces)
@@ -82,9 +102,8 @@ export async function POST(request: Request, ctx: RouteParams) {
         .limit(1)
         .then((rows) => rows[0]);
 
-      const retentionDays = workspace?.planTier === "pro" ? 365 : 90;
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + retentionDays);
+      const planTier = normalizePlanTier(workspace?.planTier);
+      const expiresAt = computeAssetExpiresAt(planTier);
 
       await db.insert(assets).values({
         id: assetId,

@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { assets, workspaces, campaigns } from "@/db/schema";
+import { campaigns } from "@/db/schema";
 import { createSignedUploadToStorage } from "@/lib/assets/signed-urls";
 import { resolveIntegrationBearer } from "@/lib/external-auth";
 import { ensureCampaignToolIntegrationWritable } from "@/lib/external-integration-pause";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 import { getStorageBucket, MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 import { sanitizeFilenameForStorage } from "@/lib/storage/sanitize-filename";
-import { and } from "drizzle-orm";
+import { assertWorkspaceCanStoreBytes } from "@/lib/workspace/workspace-storage";
 
 type RouteParams = { params: Promise<{ campaignId: string }> };
 
@@ -59,23 +59,19 @@ export async function POST(request: Request, ctx: RouteParams) {
     return jsonWithCors({ error: "file_too_large" }, request, { status: 413 });
   }
 
-  // 容量制限チェック
-  const [workspace] = await db
-    .select({ storageLimit: workspaces.storageLimit })
-    .from(workspaces)
-    .where(eq(workspaces.id, auth.workspaceId))
-    .limit(1);
-
-  const [usage] = await db
-    .select({ totalBytes: sql<number>`COALESCE(SUM(${assets.sizeBytes}), 0)::bigint` })
-    .from(assets)
-    .where(eq(assets.workspaceId, auth.workspaceId));
-
-  const currentUsed = Number(usage?.totalBytes || 0);
-  const limit = workspace?.storageLimit || 2147483648;
-
-  if (currentUsed + size > limit) {
-    return jsonWithCors({ error: "quota_exceeded", message: "ストレージ容量制限を超えています" }, request, { status: 403 });
+  const quota = await assertWorkspaceCanStoreBytes(auth.workspaceId, size);
+  if (!quota.ok) {
+    return jsonWithCors(
+      {
+        error: "quota_exceeded",
+        message: "ストレージ容量制限を超えています",
+        used_bytes: quota.snapshot.usedBytes,
+        limit_bytes: quota.snapshot.limitBytes,
+        plan_tier: quota.snapshot.planTier,
+      },
+      request,
+      { status: 403 }
+    );
   }
 
   const assetId = randomUUID();

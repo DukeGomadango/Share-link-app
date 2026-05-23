@@ -7,8 +7,10 @@ import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { debounce } from "@/lib/utils";
 import { useWorkspaceStats } from "@/hooks/features/workspace/useWorkspaceStats";
+import { useTranslation } from "@/lib/i18n";
 
 export function useLibraryFiles() {
+  const { t } = useTranslation();
   const [files, setFiles] = useState<AssetFile[]>([]);
   const [storageStats, setStorageStats] = useState<{ usedBytes: number; limitBytes: number; planTier: string }>({
     usedBytes: 0,
@@ -112,7 +114,13 @@ export function useLibraryFiles() {
       }),
     });
     if (!init.ok) {
-      const err = await init.json().catch(() => ({}));
+      const err = (await init.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+      };
+      if (err.error === "quota_exceeded") {
+        throw new Error(t.library.quotaExceeded);
+      }
       throw new Error(
         typeof err?.message === "string" ? err.message : `upload-url failed: ${init.status}`
       );
@@ -153,13 +161,16 @@ export function useLibraryFiles() {
       }),
     });
     if (!reg.ok) {
-      const err = await reg.json().catch(() => ({}));
+      const err = (await reg.json().catch(() => ({}))) as { error?: string };
+      if (err.error === "quota_exceeded") {
+        throw new Error(t.library.quotaExceeded);
+      }
       throw new Error(
         typeof err?.error === "string" ? err.error : `register failed: ${reg.status}`
       );
     }
     return meta.assetId;
-  }, []);
+  }, [t.library.quotaExceeded]);
 
   const handleFilesDropped = async (droppedFiles: File[]) => {
     setUploadError(null);
