@@ -1,4 +1,4 @@
-/** Step D: 連携クライアント ID（カンマ区切り）。未設定時は開発用の既定を許可 */
+/** Step D: 連携クライアント ID（カンマ区切り）。未設定時は開発・本番の既定クライアントを許可 */
 export function isAllowedIntegrationClientId(clientId: string | null): boolean {
   if (!clientId?.trim()) {
     return false;
@@ -9,7 +9,7 @@ export function isAllowedIntegrationClientId(clientId: string | null): boolean {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean)
-    : ["dango-tools-dev"];
+    : ["dango-tools-gacha", "dango-tools-dev"];
   return allowed.includes(clientId.trim());
 }
 
@@ -41,4 +41,22 @@ export function isRedirectUriAllowed(redirectUri: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** OAuth 2.0 風: ユーザーが拒否したとき連携元へ返すクエリ */
+export const OAUTH_ERROR_ACCESS_DENIED = "access_denied";
+
+export function buildOAuthDenyRedirectUrl(
+  redirectUri: string,
+  state?: string
+): string | null {
+  if (!isRedirectUriAllowed(redirectUri)) {
+    return null;
+  }
+  const u = new URL(redirectUri);
+  u.searchParams.set("error", OAUTH_ERROR_ACCESS_DENIED);
+  if (state?.trim()) {
+    u.searchParams.set("state", state.trim());
+  }
+  return u.toString();
 }

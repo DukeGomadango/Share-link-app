@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { ConfirmModal } from "@/components/shared/ConfirmModal";
+import { isOAuthTokenForClient } from "@/lib/integration-token-lifecycle";
 import { toast } from "sonner";
 
 type TokenRow = {
@@ -28,12 +29,16 @@ export default function IntegrationsSettingsPage() {
   const [pruneConfirmOpen, setPruneConfirmOpen] = useState(false);
   const [pruneBusy, setPruneBusy] = useState(false);
 
-  const oauthGachaCount = tokens.filter(
-    (t) =>
-      t.label === "OAuth: dango-tools-gacha" ||
-      t.label === "OAuth連携 (dango-tools-gacha)" ||
-      t.label === "OAuth (dango-tools-gacha)"
+  const oauthGachaCount = tokens.filter((t) =>
+    isOAuthTokenForClient(t.label, "dango-tools-gacha")
   ).length;
+
+  const pendingRevokeToken = pendingRevokeId
+    ? tokens.find((tok) => tok.id === pendingRevokeId)
+    : undefined;
+  const pendingRevokeIsDangoOAuth =
+    !!pendingRevokeToken &&
+    isOAuthTokenForClient(pendingRevokeToken.label, "dango-tools-gacha");
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/integrations/tokens");
@@ -68,9 +73,16 @@ export default function IntegrationsSettingsPage() {
   }
 
   async function handleRevoke(id: string) {
+    const row = tokens.find((tok) => tok.id === id);
+    const isDangoOAuth =
+      !!row && isOAuthTokenForClient(row.label, "dango-tools-gacha");
     await fetch(`/api/integrations/tokens/${id}`, { method: "DELETE" });
     await refresh();
-    toast.success("APIトークンを失効させました");
+    toast.success(
+      isDangoOAuth
+        ? t.integrations.revokeSuccessDangoOAuth
+        : "APIトークンを失効させました"
+    );
   }
 
   function startRevoke(id: string) {
@@ -209,7 +221,11 @@ export default function IntegrationsSettingsPage() {
           if (pendingRevokeId) void handleRevoke(pendingRevokeId);
         }}
         title={t.integrations.revokeConfirmTitle}
-        description={t.integrations.revokeConfirmDescription}
+        description={
+          pendingRevokeIsDangoOAuth
+            ? t.integrations.revokeConfirmDescriptionDangoOAuth
+            : t.integrations.revokeConfirmDescription
+        }
         confirmText={t.integrations.revokeConfirmAction}
         variant="destructive"
       />

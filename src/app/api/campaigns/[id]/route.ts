@@ -6,6 +6,10 @@ import { fetchCampaignWithStats } from "@/lib/campaigns-query";
 import { dbStatusFromUi } from "@/lib/campaign-status";
 import { getDb } from "@/db";
 import { campaigns } from "@/db/schema";
+import {
+  patchForEnablingExternalLink,
+  rejectsExternalLinkLockedFieldChange,
+} from "@/lib/campaigns/external-link-mode";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -47,6 +51,27 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 
   const db = getDb();
+
+  const [current] = await db
+    .select({
+      securityLevel: campaigns.securityLevel,
+      distributionMode: campaigns.distributionMode,
+      status: campaigns.status,
+      isExternalLinked: campaigns.isExternalLinked,
+      gachaConfig: campaigns.gachaConfig,
+    })
+    .from(campaigns)
+    .where(and(eq(campaigns.workspaceId, ctx.workspaceId), eq(campaigns.id, id)))
+    .limit(1);
+
+  if (!current) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const lockReject = rejectsExternalLinkLockedFieldChange(current, body);
+  if (lockReject) {
+    return NextResponse.json({ error: "integration_locked", message: lockReject }, { status: 403 });
+  }
 
   type Patch = {
     name?: string;
@@ -103,7 +128,11 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
   
   if (body.isExternalLinked !== undefined) {
-    patch.isExternalLinked = !!body.isExternalLinked;
+    if (body.isExternalLinked) {
+      Object.assign(patch, patchForEnablingExternalLink());
+    } else {
+      patch.isExternalLinked = false;
+    }
   }
   
   if (body.gachaConfig !== undefined) {

@@ -197,9 +197,22 @@ export const ja = {
       submit: "作成する",
     },
     gacha: {
-      enableTitle: "ツール連携を再開",
+      enableTitleStart: "ツール連携を開始",
+      enableTitleResume: "ツール連携を再開",
       disableTitle: "ツール連携を一時停止",
       linkedBadge: "ツール連携中",
+      lockedHint: "連携中は限定配布・個別リンクに固定されています",
+      enableConfirmTitle: "だんごツール連携を開始",
+      enableConfirmDescription:
+        "このキャンペーンを限定配布（パスキー必須）・個別リンク配布に切り替え、だんごツールからの更新を受け付けます。連携中は公開配布への切り替えはできません。だんごツール側の API 連携（OAuth）は別途、配布タブから行ってください。",
+      enableConfirmResumeDescription:
+        "だんごツールからの更新を再び受け付けます。配布設定は引き続き限定配布・個別リンクのままです。API トークンを失効している場合は、だんごツールの配布タブからリンクシェアへの連携をやり直してください。",
+      pauseConfirmTitle: "ツール連携を一時停止",
+      pauseConfirmDescription:
+        "だんごツールからの新規更新（スロット発行など）を止めます。APIトークンは有効なままです。完全に切るには設定 → 外部連携でトークンを失効してください。",
+      enableConfirmAction: "連携を開始",
+      resumeConfirmAction: "連携を再開",
+      pauseConfirmAction: "一時停止する",
       configTitle: "ガチャ構成設定",
       configDescription: "レア度ごとの当選確率を設定してください。合計が100%になるように調整します。これらの設定は、だんごツールのガチャ機能に反映されます。",
       totalProbability: "合計",
@@ -389,6 +402,10 @@ export const ja = {
     revokeConfirmTitle: "トークンの失効",
     revokeConfirmDescription:
       "このAPIトークンを失効させますか？このトークンを使用している連携機能は動作しなくなります。",
+    revokeConfirmDescriptionDangoOAuth:
+      "このAPIトークンを失効させますか？だんごツール側では配布タブから「連携を開始する」でリンクシェアへの許可をやり直す必要があります（キャンペーンの「ツール連携を再開」だけではトークンは復活しません）。",
+    revokeSuccessDangoOAuth:
+      "トークンを失効しました。だんごツールの配布タブから連携をやり直してください。",
     revokeConfirmAction: "失効させる",
     clientIdLabel: "クライアント ID",
     redirectLabel: "リダイレクト先",

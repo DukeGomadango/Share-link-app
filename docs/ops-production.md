@@ -50,6 +50,31 @@ WHERE workspace_id = '<workspace-uuid>';
 2. **だんごツール**: file-share API のベース URL と連携トークン（設定 → 外部連携）
 3. Supabase Redirect / Discord・Google callback は Supabase 側 URL（Vercel URL ではない）
 
+### 連携 ON 時の配布設定（固定）
+
+`is_external_linked = true` の間:
+
+- **限定配布**（`security_level = high`・パスキー必須）
+- **個別リンク**（`distribution_mode = per_link`）
+- 公開/限定トグル・配布方式 select は UI で無効化
+- API から `security_level` / `distribution_mode` を変更しようとすると `403 integration_locked`
+
+連携開始・一時停止は管理画面で **確認ダイアログ** あり。初回は「ツール連携を**開始**」、一時停止後は「**再開**」。
+
+実装: [`src/lib/campaigns/external-link-mode.ts`](../src/lib/campaigns/external-link-mode.ts)
+
+### OAuth 同意画面（ワークスペース連携）
+
+| いつ出す | だんごツール側 |
+|----------|----------------|
+| 配布タブで「連携を開始」押下後 | ユーザー操作の直後 |
+| トークン 401 / 失効 | 再接続（自動 redirect 可） |
+| `campaign_id` deep link のみ | **自動 redirect しない** → 配布タブへ誘導 |
+
+拒否時: `redirect_uri?error=access_denied` でだんごに戻る（[`buildOAuthDenyRedirectUrl`](../src/lib/integration-oauth.ts)）。
+
+だんご OAuth トークン失効後: 配布タブまたは同期前チェックで **確認ダイアログ → 許可画面**（401 直後の無言リダイレクトはしない）。
+
 詳細: [`docs/contract-threat-model.md`](./contract-threat-model.md)、人数カウントアプリ側 [`docs/gacha-share-link-integration.md`](../../人数カウントアプリ/docs/gacha-share-link-integration.md)
 
 ## R2 と旧 Supabase Storage

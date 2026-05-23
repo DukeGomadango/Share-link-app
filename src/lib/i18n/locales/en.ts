@@ -201,9 +201,22 @@ export const en: TranslationKeys = {
       submit: "Create",
     },
     gacha: {
-      enableTitle: "Resume tool integration",
+      enableTitleStart: "Start tool integration",
+      enableTitleResume: "Resume tool integration",
       disableTitle: "Pause tool integration",
       linkedBadge: "Tool integration active",
+      lockedHint: "Limited distribution and per-link mode are locked while integrated",
+      enableConfirmTitle: "Start Dango tool integration",
+      enableConfirmDescription:
+        "This campaign switches to limited distribution (passkey required) and per-link delivery, and accepts updates from the Dango tool. You cannot switch to public distribution while integrated. Workspace API access (OAuth) in the Dango tool is configured separately from the Distribute tab.",
+      enableConfirmResumeDescription:
+        "Resume accepting updates from the Dango tool. Distribution stays limited with per-link delivery. If you revoked the API token, reconnect from the Dango tool Distribute tab—not from this button alone.",
+      pauseConfirmTitle: "Pause tool integration",
+      pauseConfirmDescription:
+        "Stops new updates from the Dango tool (e.g. slot issuance). API tokens stay valid. To fully disconnect, revoke the token under Settings → Integrations.",
+      enableConfirmAction: "Start integration",
+      resumeConfirmAction: "Resume integration",
+      pauseConfirmAction: "Pause",
       configTitle: "Gacha Configuration",
       configDescription: "Set the probability of winning for each rarity. Adjust them so the total is exactly 100%. These settings will be synced to the Dango tools gacha module.",
       totalProbability: "Total",
@@ -394,6 +407,10 @@ export const en: TranslationKeys = {
     revokeConfirmTitle: "Revoke token",
     revokeConfirmDescription:
       "Revoke this API token? Integrations using it will stop working.",
+    revokeConfirmDescriptionDangoOAuth:
+      "Revoke this API token? In the Dango tool, users must reconnect from the Distribute tab (resuming tool integration on a campaign does not restore the token).",
+    revokeSuccessDangoOAuth:
+      "Token revoked. Reconnect from the Dango tool Distribute tab.",
     revokeConfirmAction: "Revoke",
     clientIdLabel: "Client ID",
     redirectLabel: "Redirect URI",

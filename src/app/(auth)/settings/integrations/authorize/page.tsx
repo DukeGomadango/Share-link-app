@@ -7,6 +7,7 @@ import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Gift, Sparkles, Eye, Link as LinkIcon, ChevronDown, ChevronUp, Info, ShieldCheck, AlertTriangle } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { buildOAuthDenyRedirectUrl } from "@/lib/integration-oauth";
 
 function AuthorizeInner() {
   const { t } = useTranslation();
@@ -20,6 +21,15 @@ function AuthorizeInner() {
   const [showDevInfo, setShowDevInfo] = useState(false);
 
   const valid = Boolean(clientId && redirectUri);
+
+  function deny() {
+    const dest = buildOAuthDenyRedirectUrl(redirectUri, state || undefined);
+    if (dest) {
+      window.location.href = dest;
+      return;
+    }
+    window.location.href = "/settings/integrations";
+  }
 
   async function approve() {
     setLoading(true);
@@ -212,12 +222,14 @@ function AuthorizeInner() {
                     </>
                   )}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  asChild 
+                <Button
+                  type="button"
+                  variant="outline"
                   className="flex-1 rounded-full h-12 border-border/80 hover:bg-muted/30 hover:scale-[1.02] active:scale-[0.98] transition-all font-semibold"
+                  onClick={deny}
+                  disabled={loading}
                 >
-                  <Link href="/settings/integrations">{t.integrations.deny}</Link>
+                  {t.integrations.deny}
                 </Button>
               </div>
 

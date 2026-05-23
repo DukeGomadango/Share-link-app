@@ -15,6 +15,7 @@ import { recomputeSlotAssetsFromClaims } from "@/lib/claims/recompute-slot-asset
 import { resolveIntegrationBearer } from "@/lib/external-auth";
 import { ensureCampaignToolIntegrationWritable } from "@/lib/external-integration-pause";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
+import { externalLinkLockedCampaignFields } from "@/lib/campaigns/external-link-mode";
 import {
   getCachedJsonResponse,
   putCachedJsonResponse,
@@ -272,18 +273,15 @@ export async function POST(request: Request, ctx: RouteParams) {
   if (pauseBlock) return pauseBlock;
 
   // ツール連携が有効なキャンペーンは配布前提のモードに揃える（一時停止中は上で 403）
+  const locked = externalLinkLockedCampaignFields();
   if (
-    camp[0].distributionMode !== "per_link" ||
-    camp[0].securityLevel !== "high" ||
-    camp[0].status !== "active"
+    camp[0].distributionMode !== locked.distributionMode ||
+    camp[0].securityLevel !== locked.securityLevel ||
+    camp[0].status !== locked.status
   ) {
     await db
       .update(campaigns)
-      .set({
-        distributionMode: "per_link",
-        securityLevel: "high",
-        status: "active",
-      })
+      .set(locked)
       .where(eq(campaigns.id, campaignId));
   }
 

@@ -27,6 +27,7 @@ import { useTranslation } from "@/lib/i18n";
 import { escapeCsvField } from "@/lib/csv";
 import { cn } from "@/lib/utils";
 import { ConfirmModal } from "@/components/shared/ConfirmModal";
+import { hasGachaConfigHistory } from "@/lib/campaigns/external-link-mode";
 
 export default function CampaignDetailPage() {
   const { t } = useTranslation();
@@ -78,6 +79,11 @@ export default function CampaignDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [securityConfirmOpen, setSecurityConfirmOpen] = useState(false);
   const [pendingSecurityLevel, setPendingSecurityLevel] = useState<"standard" | "high" | null>(null);
+  const [integrationConfirmOpen, setIntegrationConfirmOpen] = useState(false);
+  const [pendingIntegrationAction, setPendingIntegrationAction] = useState<
+    "enable" | "pause" | null
+  >(null);
+  const [integrationBusy, setIntegrationBusy] = useState(false);
   const [banner, setBanner] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [recipientsViewMode, setRecipientsViewMode] = useState<"grid" | "list">("grid");
 
@@ -192,6 +198,65 @@ export default function CampaignDetailPage() {
   }, [campaignId, t]);
 
   const isPublic = campaign?.securityLevel === "standard";
+  const gachaWasConfigured = hasGachaConfigHistory(campaign?.gachaConfig ?? null);
+
+  const runIntegrationToggle = useCallback(
+    async (action: "enable" | "pause") => {
+      if (!campaignId) return;
+      setIntegrationBusy(true);
+      try {
+        if (action === "pause") {
+          const r = await fetch(`/api/campaigns/${campaignId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isExternalLinked: false }),
+          });
+          if (!r.ok) throw new Error();
+          await reloadWorkflow();
+          toast.success(t.campaigns.gacha.modePaused);
+          return;
+        }
+
+        if (!gachaWasConfigured) {
+          const defaultConfig = {
+            rarities: [
+              { id: "rarity-1", name: "SSR", probability: 5, color: "#FFD700" },
+              { id: "rarity-2", name: "SR", probability: 15, color: "#C0C0C0" },
+              { id: "rarity-3", name: "R", probability: 30, color: "#CD7F32" },
+              { id: "rarity-4", name: "N", probability: 50, color: "#94a3b8" },
+            ],
+          };
+          await handleUpdateGachaConfig(defaultConfig);
+        }
+
+        const r = await fetch(`/api/campaigns/${campaignId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isExternalLinked: true }),
+        });
+        if (!r.ok) {
+          const err = (await r.json().catch(() => ({}))) as { message?: string };
+          throw new Error(err.message || "update failed");
+        }
+        await reloadWorkflow();
+        toast.success(t.campaigns.gacha.modeEnabled);
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "連携設定の更新に失敗しました"
+        );
+      } finally {
+        setIntegrationBusy(false);
+      }
+    },
+    [
+      campaignId,
+      gachaWasConfigured,
+      handleUpdateGachaConfig,
+      reloadWorkflow,
+      t.campaigns.gacha.modeEnabled,
+      t.campaigns.gacha.modePaused,
+    ]
+  );
 
 
   return (
@@ -243,6 +308,12 @@ export default function CampaignDetailPage() {
                   {t.campaigns.gacha.linkedBadge}
                 </div>
               )}
+
+              {campaign.isExternalLinked && (
+                <span className="text-[10px] text-muted-foreground max-w-[12rem] leading-tight">
+                  {t.campaigns.gacha.lockedHint}
+                </span>
+              )}
               
               <div className="flex items-center bg-muted/30 p-0.5 rounded-xl border border-border/50">
                 <button
@@ -286,37 +357,22 @@ export default function CampaignDetailPage() {
                     ? "text-muted-foreground hover:text-purple-600 hover:bg-purple-500/5"
                     : "border-purple-500/30 text-purple-600 hover:bg-purple-500/5 hover:border-purple-500/50"
                 )}
-                onClick={async () => {
+                onClick={() => {
                   if (campaign?.isExternalLinked) {
-                    const r = await fetch(`/api/campaigns/${campaignId}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ isExternalLinked: false }),
-                    });
-                    if (r.ok) reloadWorkflow();
-                    toast.success(t.campaigns.gacha.modePaused);
+                    setPendingIntegrationAction("pause");
                   } else {
-                    const defaultConfig = {
-                      rarities: [
-                        { id: "rarity-1", name: "SSR", probability: 5, color: "#FFD700" },
-                        { id: "rarity-2", name: "SR", probability: 15, color: "#C0C0C0" },
-                        { id: "rarity-3", name: "R", probability: 30, color: "#CD7F32" },
-                        { id: "rarity-4", name: "N", probability: 50, color: "#94a3b8" },
-                      ]
-                    };
-                    await handleUpdateGachaConfig(defaultConfig);
-                    const r = await fetch(`/api/campaigns/${campaignId}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ isExternalLinked: true }),
-                    });
-                    if (r.ok) reloadWorkflow();
-                    toast.success(t.campaigns.gacha.modeEnabled);
+                    setPendingIntegrationAction("enable");
                   }
+                  setIntegrationConfirmOpen(true);
                 }}
+                disabled={integrationBusy}
               >
                 <LinkIcon className="w-3 h-3 mr-1" />
-                {campaign?.isExternalLinked ? t.campaigns.gacha.disableTitle : t.campaigns.gacha.enableTitle}
+                {campaign?.isExternalLinked
+                  ? t.campaigns.gacha.disableTitle
+                  : gachaWasConfigured
+                    ? t.campaigns.gacha.enableTitleResume
+                    : t.campaigns.gacha.enableTitleStart}
               </Button>
 
               {campaign?.isExternalLinked && (
@@ -352,7 +408,7 @@ export default function CampaignDetailPage() {
                   <select
                     className="rounded-lg border border-border/60 bg-background/80 px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                     value={campaign.distributionMode ?? "per_link"}
-                    disabled={statusBusy}
+                    disabled={statusBusy || campaign?.isExternalLinked}
                     onChange={(e) => {
                       const v = e.target.value;
                       void (async () => {
@@ -701,6 +757,43 @@ export default function CampaignDetailPage() {
         confirmText={t.common.delete}
         variant="destructive"
         isLoading={isDeleting}
+      />
+
+      <ConfirmModal
+        isOpen={integrationConfirmOpen}
+        onClose={() => {
+          setIntegrationConfirmOpen(false);
+          setPendingIntegrationAction(null);
+        }}
+        onConfirm={async () => {
+          if (!pendingIntegrationAction) return;
+          await runIntegrationToggle(pendingIntegrationAction);
+          setIntegrationConfirmOpen(false);
+          setPendingIntegrationAction(null);
+        }}
+        title={
+          pendingIntegrationAction === "pause"
+            ? t.campaigns.gacha.pauseConfirmTitle
+            : gachaWasConfigured
+              ? t.campaigns.gacha.enableTitleResume
+              : t.campaigns.gacha.enableConfirmTitle
+        }
+        description={
+          pendingIntegrationAction === "pause"
+            ? t.campaigns.gacha.pauseConfirmDescription
+            : gachaWasConfigured
+              ? t.campaigns.gacha.enableConfirmResumeDescription
+              : t.campaigns.gacha.enableConfirmDescription
+        }
+        confirmText={
+          pendingIntegrationAction === "pause"
+            ? t.campaigns.gacha.pauseConfirmAction
+            : gachaWasConfigured
+              ? t.campaigns.gacha.resumeConfirmAction
+              : t.campaigns.gacha.enableConfirmAction
+        }
+        variant={pendingIntegrationAction === "pause" ? "destructive" : "emerald"}
+        isLoading={integrationBusy}
       />
 
       <ConfirmModal
