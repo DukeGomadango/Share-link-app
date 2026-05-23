@@ -2,23 +2,9 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { integrationAccessTokens } from "@/db/schema";
+import { isOAuthTokenForClient } from "@/lib/integration-oauth-token-label";
 
-/** authorize 画面から送るラベル（統一） */
-export function oauthTokenLabel(clientId: string): string {
-  return `OAuth: ${clientId.trim()}`;
-}
-
-/** 過去ラベル形式も含め同一 OAuth クライアントか */
-export function isOAuthTokenForClient(label: string, clientId: string): boolean {
-  const c = clientId.trim();
-  if (!c) return false;
-  const normalized = label.trim();
-  return (
-    normalized === oauthTokenLabel(c) ||
-    normalized === `OAuth連携 (${c})` ||
-    normalized === `OAuth (${c})`
-  );
-}
+export { isOAuthTokenForClient, oauthTokenLabel } from "@/lib/integration-oauth-token-label";
 
 /**
  * 同一ワークスペース・同一 OAuth クライアントの既存トークンを削除（再連携時のローテーション）。

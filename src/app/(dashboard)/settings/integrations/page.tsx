@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { ConfirmModal } from "@/components/shared/ConfirmModal";
-import { isOAuthTokenForClient } from "@/lib/integration-token-lifecycle";
+import { isOAuthTokenForClient } from "@/lib/integration-oauth-token-label";
 import { toast } from "sonner";
 
 type TokenRow = {
