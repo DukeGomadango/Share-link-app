@@ -3,6 +3,7 @@ import postgres from "postgres";
 
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "@/db/schema";
+import { normalizeDatabaseUrl } from "@/lib/db-connection-url";
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -16,12 +17,13 @@ function getPgClient(): postgres.Sql {
   if (globalForPg.__postgresClient) {
     return globalForPg.__postgresClient;
   }
-  const url = process.env.DATABASE_URL;
-  if (!url) {
+  const raw = process.env.DATABASE_URL?.trim();
+  if (!raw) {
     throw new Error(
       "DATABASE_URL が未設定です。Supabase の接続プール用 URL を .env に設定してください。"
     );
   }
+  const url = normalizeDatabaseUrl(raw);
   const client = postgres(url, {
     prepare: false,
     max: Number(process.env.DATABASE_POOL_MAX ?? "10"),

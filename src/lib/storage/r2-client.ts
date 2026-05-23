@@ -21,6 +21,9 @@ export function getR2Client(): S3Client | null {
     region: "auto",
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: { accessKeyId, secretAccessKey },
+    // ブラウザ PUT 用 presigned URL に x-amz-checksum-* が乗ると CORS preflight が 400 になりやすい
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
   globalForR2.__r2S3Client = client;
   return client;
