@@ -66,9 +66,7 @@ try {
     const label =
       r2Name && row.bucket === r2Name
         ? `${row.bucket} (R2)`
-        : row.bucket === "assets"
-          ? `${row.bucket} (Supabase legacy?)`
-          : row.bucket;
+        : `${row.bucket} (unexpected — migrate to R2)`;
     console.log(
       label.padEnd(28),
       String(row.asset_count).padStart(8),
@@ -86,7 +84,7 @@ try {
     const legacy = byBucket.filter((r) => r.bucket !== r2Name);
     if (legacy.length > 0) {
       console.log(
-        `\n注意: R2_BUCKET_NAME=${r2Name} 以外の bucket に ${legacy.reduce((s, r) => s + r.asset_count, 0)} 件あり。移行または削除の対象です。`
+        `\n警告: R2_BUCKET_NAME=${r2Name} 以外の bucket に ${legacy.reduce((s, r) => s + r.asset_count, 0)} 件あり。R2 へ移行が必要です。`
       );
     } else {
       console.log(`\nOK: 全件が R2 bucket (${r2Name}) に統一されています。`);

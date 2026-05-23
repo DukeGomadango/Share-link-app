@@ -7,7 +7,7 @@
 | 順 | テーマ | 理由 |
 |----|--------|------|
 | **3a** | E2E・スモーク | 課金・移行の前に「壊れない経路」を固定する |
-| **3b** | 旧 Supabase Storage 整理 | データ損失リスクを Stripe より先に潰す |
+| **3b** | R2 一本化（Supabase Storage fallback 削除） | 完了 |
 | **3c** | Stripe | `plan-limits.ts` を正とし webhook のみで `plan_tier` を変える |
 
 ## 3a: E2E（本リポ）
@@ -44,16 +44,15 @@ E2E_INTEGRATION_TOKEN=<token> npm run test:e2e -- e2e/integration-api.spec.ts
 - `feat/gacha-share-link-integration` を main にマージ後、既存 Playwright に連携スモークを追加
 - OAuth フル自動クリックは避け、**テスト用トークン注入**または staging 固定 workspace を推奨
 
-## 3b: Storage 棚卸し
+## 3b: Storage（完了）
 
 ```bash
 npm run storage:inventory
 ```
 
-- `R2_BUCKET_NAME` 以外の `bucket` が 0 件になるまで Supabase fallback を残す
-- 移行スクリプトは **idempotent**（再実行安全）
-- **本番は R2 必須**（`isStorageConfigured`）。legacy bucket 名の読取・削除コードは DB に旧 bucket が無ければ次 PR で削除可
-- Supabase Dashboard 上の旧バケットが空であることを目視確認してからコード削除
+- DB 上の `assets.bucket` は R2 に統一済み
+- **Supabase Storage フォールバックコードは削除済み**（`supabase-storage.ts` 廃止）
+- Dashboard の空 `assets` バケットは任意で削除
 
 ## 3c: Stripe（未実装・設計指針）
 

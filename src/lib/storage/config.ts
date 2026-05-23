@@ -1,13 +1,9 @@
 export {
-  DEFAULT_STORAGE_BUCKET,
   getStorageBucket,
-  getSupabaseStorageBucket,
   getR2BucketName,
   isR2Configured,
   isR2StorageBucket,
   isStorageConfigured,
-  isSupabaseStorageBucket,
-  isSupabaseStorageConfigured,
 } from "@/lib/storage/provider";
 
 /** 1 ファイルあたりの上限（バイト） */

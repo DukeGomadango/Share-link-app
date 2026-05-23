@@ -1,7 +1,3 @@
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
-
-export const DEFAULT_STORAGE_BUCKET = "assets";
-
 /** R2 用の必須環境変数が揃っているか */
 export function isR2Configured(): boolean {
   return Boolean(
@@ -20,37 +16,15 @@ export function getR2BucketName(): string {
   return name;
 }
 
-/** 既存アセット（Supabase Storage 時代）のバケット名 */
-export function getSupabaseStorageBucket(): string {
-  return process.env.SUPABASE_STORAGE_BUCKET?.trim() || DEFAULT_STORAGE_BUCKET;
-}
-
-/** 新規アップロード先。R2 設定時は R2、未設定時は Supabase */
+/** 新規アップロード先（R2 のみ） */
 export function getStorageBucket(): string {
-  if (isR2Configured()) {
-    return getR2BucketName();
-  }
-  return getSupabaseStorageBucket();
+  return getR2BucketName();
 }
 
-export function isSupabaseStorageConfigured(): boolean {
-  return getSupabaseAdmin() !== null;
-}
-
-/**
- * ストレージ利用可能か。本番は R2 必須（棚卸しで R2 統一後の方針）。
- * ローカルは R2 未設定時のみ Supabase Storage フォールバック可。
- */
 export function isStorageConfigured(): boolean {
-  if (isR2Configured()) return true;
-  if (process.env.NODE_ENV === "production") return false;
-  return isSupabaseStorageConfigured();
+  return isR2Configured();
 }
 
 export function isR2StorageBucket(bucket: string): boolean {
   return isR2Configured() && bucket === getR2BucketName();
-}
-
-export function isSupabaseStorageBucket(bucket: string): boolean {
-  return bucket === getSupabaseStorageBucket();
 }

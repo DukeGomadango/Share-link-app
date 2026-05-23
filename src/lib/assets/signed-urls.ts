@@ -1,16 +1,8 @@
-import {
-  isR2Configured,
-  isR2StorageBucket,
-  isSupabaseStorageBucket,
-} from "@/lib/storage/provider";
+import { isR2StorageBucket } from "@/lib/storage/provider";
 import {
   createR2SignedReadUrl,
   createR2SignedUploadUrl,
 } from "@/lib/storage/r2-storage";
-import {
-  createSupabaseSignedReadUrl,
-  createSupabaseSignedUploadUrl,
-} from "@/lib/storage/supabase-storage";
 
 export type SignedUploadResult = {
   signedUrl: string;
@@ -27,55 +19,33 @@ export async function createSignedReadUrl(
   objectKey: string,
   options?: SignedReadOptions
 ): Promise<string | null> {
-  const expiresIn = options?.expiresInSeconds;
-  if (isR2StorageBucket(bucket)) {
-    return createR2SignedReadUrl(
-      objectKey,
-      expiresIn
-    );
+  if (!isR2StorageBucket(bucket)) {
+    console.error("Unsupported storage bucket (R2 only):", bucket);
+    return null;
   }
-  if (isSupabaseStorageBucket(bucket)) {
-    return createSupabaseSignedReadUrl(bucket, objectKey, expiresIn);
-  }
-  return null;
+  return createR2SignedReadUrl(objectKey, options?.expiresInSeconds);
 }
 
 export type SignedUploadOptions = {
   contentType?: string;
 };
 
-/**
- * ブラウザから `signedUrl` へ `PUT` するアップロード用。
- * R2 設定時は R2、未設定時は Supabase Storage。
- */
+/** ブラウザから `signedUrl` へ `PUT` するアップロード用（R2 のみ） */
 export async function createSignedUploadToStorage(
   bucket: string,
   objectKey: string,
   options?: SignedUploadOptions
 ): Promise<SignedUploadResult | null> {
+  if (!isR2StorageBucket(bucket)) {
+    console.error("Unsupported storage bucket (R2 only):", bucket);
+    return null;
+  }
   const contentType = options?.contentType?.trim() || "application/octet-stream";
-
-  if (isR2Configured() && isR2StorageBucket(bucket)) {
-    const r2 = await createR2SignedUploadUrl(objectKey, contentType);
-    if (!r2) {
-      return null;
-    }
-    return { signedUrl: r2.signedUrl, path: r2.path, token: "" };
+  const r2 = await createR2SignedUploadUrl(objectKey, contentType);
+  if (!r2) {
+    return null;
   }
-
-  if (isSupabaseStorageBucket(bucket)) {
-    const supabase = await createSupabaseSignedUploadUrl(bucket, objectKey);
-    if (!supabase) {
-      return null;
-    }
-    return {
-      signedUrl: supabase.signedUrl,
-      path: supabase.path,
-      token: supabase.token,
-    };
-  }
-
-  return null;
+  return { signedUrl: r2.signedUrl, path: r2.path, token: "" };
 }
 
 export { getStorageBucket } from "@/lib/storage/config";

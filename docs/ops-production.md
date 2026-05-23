@@ -79,12 +79,12 @@ WHERE workspace_id = '<workspace-uuid>';
 
 詳細: [`docs/contract-threat-model.md`](./contract-threat-model.md)、人数カウントアプリ側 [`docs/gacha-share-link-integration.md`](../../人数カウントアプリ/docs/gacha-share-link-integration.md)
 
-## R2 と旧 Supabase Storage
+## R2 ストレージ（Supabase Storage フォールバックは廃止）
 
-- **新規アップロード**: R2 設定時は R2 のみ（[`src/lib/storage/provider.ts`](../src/lib/storage/provider.ts)）
-- **既存オブジェクト**: `assets.bucket` に従い R2 / Supabase を自動判別して削除・署名（DB 上は R2 bucket 名のみの想定）
-- **本番**: `isStorageConfigured()` は R2 必須。Supabase Storage フォールバックは開発用のみ
-- 棚卸し: `npm run storage:inventory` — 旧 bucket が 0 件なら Supabase バケットを空にしてからコード削除を検討
+- **ファイル実体**: Cloudflare R2 のみ（[`src/lib/storage/provider.ts`](../src/lib/storage/provider.ts)）
+- **必須 env**: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`
+- **DB**: `assets.bucket` は `R2_BUCKET_NAME` と一致させる（棚卸し: `npm run storage:inventory`）
+- Supabase の **Storage バケット `assets` は未使用**（空のまま削除してよい）。Auth / DB は引き続き Supabase
 
 ## Cron
 

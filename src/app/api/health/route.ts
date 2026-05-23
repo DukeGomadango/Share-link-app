@@ -69,7 +69,7 @@ export async function GET() {
         : !database.ok
           ? "DATABASE_URL を確認（Pooler URL・sslmode=require・本番 DB に migrate 済みか）"
           : !checks.storage
-            ? "R2_* または SUPABASE_SERVICE_ROLE_KEY を設定"
+            ? "R2_* 環境変数（4 つ）を設定"
             : undefined,
     },
     { status: ok ? 200 : 503 }

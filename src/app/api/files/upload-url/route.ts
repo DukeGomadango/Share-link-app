@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       {
         error: "service_unavailable",
         message:
-          "ストレージが未設定です。R2_* 環境変数または SUPABASE_SERVICE_ROLE_KEY を設定してください",
+          "ストレージが未設定です。R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET_NAME を設定してください",
       },
       { status: 503 }
     );
