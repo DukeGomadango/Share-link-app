@@ -101,8 +101,8 @@
   --accent: oklch(0.645 0.165 158.452 / 0.2);
   --accent-foreground: oklch(0.645 0.165 158.452);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 22%);
+  --input: oklch(1 0 0 / 26%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -115,7 +115,7 @@
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-border: oklch(1 0 0 / 22%);
   --sidebar-ring: oklch(0.556 0 0);
 }
 
@@ -155,8 +155,10 @@
     background: oklch(0.18 0.002 285 / 0.55);
     backdrop-filter: blur(24px) saturate(1.3);
     -webkit-backdrop-filter: blur(24px) saturate(1.3);
-    border: 1px solid oklch(1 0 0 / 0.1);
-    box-shadow: 0 8px 32px oklch(0 0 0 / 0.35);
+    border: 1px solid oklch(1 0 0 / 0.22);
+    box-shadow:
+      0 8px 32px oklch(0 0 0 / 0.35),
+      inset 0 1px 0 oklch(1 0 0 / 0.1);
   }
 
   /* GlassCard上のテキスト視認性 - WCAG 2.2 コントラスト基準対応 */
@@ -165,6 +167,150 @@
   }
   .dark .glass-text-safe {
     text-shadow: 0 1px 3px oklch(0 0 0 / 0.4);
+  }
+
+  /* だんごツール風: 強めのガラスパネル（料金ページなど） */
+  .glass-panel-strong {
+    background: oklch(1 0 0 / 0.55);
+    backdrop-filter: blur(24px) saturate(1.35);
+    -webkit-backdrop-filter: blur(24px) saturate(1.35);
+    border: 1px solid oklch(1 0 0 / 0.45);
+    box-shadow:
+      0 8px 40px oklch(0 0 0 / 0.08),
+      inset 0 1px 0 oklch(1 0 0 / 0.65);
+  }
+
+  .dark .glass-panel-strong {
+    background: oklch(0.2 0.01 160 / 0.5);
+    backdrop-filter: blur(28px) saturate(1.4);
+    -webkit-backdrop-filter: blur(28px) saturate(1.4);
+    border: 1px solid oklch(1 0 0 / 0.24);
+    box-shadow:
+      0 12px 48px oklch(0 0 0 / 0.45),
+      inset 0 1px 0 oklch(1 0 0 / 0.14);
+  }
+
+  /* 料金ページ: 背景オーブ（角丸の枠にしない・はみ出しクリップしない） */
+  .billing-scene {
+    position: relative;
+    overflow: visible;
+  }
+
+  .billing-scene::before {
+    content: "";
+    position: absolute;
+    inset: -1.5rem -1rem;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: 0;
+    background:
+      radial-gradient(
+        ellipse 70% 55% at 12% 18%,
+        oklch(0.645 0.165 158.452 / 0.16) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 60% 50% at 88% 22%,
+        oklch(0.62 0.12 200 / 0.1) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse 65% 60% at 72% 88%,
+        oklch(0.72 0.14 75 / 0.12) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 50% 45% at 40% 55%,
+        oklch(0.645 0.165 158.452 / 0.1) 0%,
+        transparent 50%
+      );
+  }
+
+  .dark .billing-scene::before {
+    background:
+      radial-gradient(
+        ellipse 70% 55% at 12% 18%,
+        oklch(0.645 0.165 158.452 / 0.22) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 60% 50% at 88% 22%,
+        oklch(0.55 0.1 220 / 0.15) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse 65% 60% at 72% 88%,
+        oklch(0.65 0.12 75 / 0.1) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse 50% 45% at 40% 55%,
+        oklch(0.645 0.165 158.452 / 0.08) 0%,
+        transparent 50%
+      );
+  }
+
+  .billing-plan-card-free {
+    background: oklch(0.97 0 0 / 0.35);
+    border-color: oklch(0.85 0 0 / 0.5);
+  }
+
+  .dark .billing-plan-card-free {
+    background: oklch(0.16 0.002 285 / 0.4);
+    border-color: oklch(1 0 0 / 0.2);
+  }
+
+  .billing-plan-card-pro {
+    background: linear-gradient(
+      165deg,
+      oklch(0.645 0.165 158.452 / 0.18) 0%,
+      oklch(1 0 0 / 0.5) 45%,
+      oklch(0.6 0.12 200 / 0.08) 100%
+    );
+    border-color: oklch(0.645 0.165 158.452 / 0.45);
+    box-shadow:
+      0 16px 48px oklch(0.645 0.165 158.452 / 0.2),
+      inset 0 1px 0 oklch(1 0 0 / 0.55);
+  }
+
+  .dark .billing-plan-card-pro {
+    background: linear-gradient(
+      165deg,
+      oklch(0.645 0.165 158.452 / 0.22) 0%,
+      oklch(0.18 0.01 160 / 0.55) 50%,
+      oklch(0.55 0.1 200 / 0.1) 100%
+    );
+    border-color: oklch(0.645 0.165 158.452 / 0.35);
+    box-shadow:
+      0 20px 56px oklch(0 0 0 / 0.5),
+      0 0 0 1px oklch(0.645 0.165 158.452 / 0.2),
+      inset 0 1px 0 oklch(1 0 0 / 0.1);
+  }
+
+  .billing-plan-card-supporter {
+    background: linear-gradient(
+      145deg,
+      oklch(0.75 0.14 75 / 0.14) 0%,
+      oklch(1 0 0 / 0.48) 40%,
+      oklch(0.65 0.1 25 / 0.06) 100%
+    );
+    border-color: oklch(0.75 0.14 75 / 0.35);
+    box-shadow:
+      0 12px 40px oklch(0.75 0.14 75 / 0.12),
+      inset 0 1px 0 oklch(1 0 0 / 0.5);
+  }
+
+  .dark .billing-plan-card-supporter {
+    background: linear-gradient(
+      145deg,
+      oklch(0.75 0.14 75 / 0.16) 0%,
+      oklch(0.18 0.01 50 / 0.5) 45%,
+      oklch(0.55 0.08 25 / 0.08) 100%
+    );
+    border-color: oklch(0.75 0.14 75 / 0.28);
+    box-shadow:
+      0 16px 44px oklch(0 0 0 / 0.4),
+      inset 0 1px 0 oklch(1 0 0 / 0.08);
   }
 
   /* Unified scrollbar style (hover/scroll-active reveal) */

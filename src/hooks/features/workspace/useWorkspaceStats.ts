@@ -6,6 +6,7 @@ type WorkspaceStats = {
   usedBytes: number;
   limitBytes: number;
   planTier: string;
+  billingTier?: "pro" | "supporter" | null;
   workspaceId: string;
 };
 

@@ -22,14 +22,37 @@ export const campaignStatusEnum = pgEnum("campaign_status", [
 
 export const claimStatusEnum = pgEnum("claim_status", ["issued", "claimed"]);
 export const planTierEnum = pgEnum("plan_tier", ["free", "pro"]);
+export const billingTierEnum = pgEnum("billing_tier", ["pro", "supporter"]);
 
-export const workspaces = pgTable("workspaces", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  planTier: planTierEnum("plan_tier").default("free").notNull(),
-  /** Storage limit in bytes. Default 2GB. */
-  storageLimit: bigint("storage_limit", { mode: "number" }).default(2147483648).notNull(), // 2GB
-  createdAt: timestamp("created_at", { withTimezone: true })
+export const workspaces = pgTable(
+  "workspaces",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    planTier: planTierEnum("plan_tier").default("free").notNull(),
+    /** Storage limit in bytes. Default 2GB. */
+    storageLimit: bigint("storage_limit", { mode: "number" })
+      .default(2147483648)
+      .notNull(), // 2GB
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeSubscriptionId: text("stripe_subscription_id"),
+    subscriptionCurrentPeriodEnd: timestamp("subscription_current_period_end", {
+      withTimezone: true,
+    }),
+    /** Stripe Price 区分（機能は plan_tier=pro と同一。サポーターは応援用） */
+    billingTier: billingTierEnum("billing_tier"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    uniqueIndex("workspaces_stripe_customer_id_unique").on(t.stripeCustomerId),
+  ]
+);
+
+export const stripeWebhookEvents = pgTable("stripe_webhook_events", {
+  eventId: text("event_id").primaryKey(),
+  processedAt: timestamp("processed_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
 });

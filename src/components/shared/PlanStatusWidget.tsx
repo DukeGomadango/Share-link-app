@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Crown, Info, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { useTranslation } from "@/lib/i18n";
 
 interface PlanStatusWidgetProps {
   planTier?: "free" | "pro";
+  billingTier?: "pro" | "supporter" | null;
   usedBytes?: number;
   limitBytes?: number;
   className?: string;
@@ -14,12 +16,18 @@ interface PlanStatusWidgetProps {
 
 export function PlanStatusWidget({
   planTier = "free",
+  billingTier = null,
   usedBytes = 0,
   limitBytes = 2_147_483_648,
   className,
 }: PlanStatusWidgetProps) {
   const { t } = useTranslation();
   const isFree = planTier === "free";
+  const planLabel = isFree
+    ? t.plan.free
+    : billingTier === "supporter"
+      ? t.billing.statusSupporter
+      : t.plan.pro;
   const percentage = Math.min(
     100,
     limitBytes > 0 ? Math.round((usedBytes / limitBytes) * 100) : 0
@@ -52,9 +60,7 @@ export function PlanStatusWidget({
           >
             {isFree ? <Info className="w-4 h-4" /> : <Crown className="w-4 h-4" />}
           </div>
-          <span className="text-xs font-bold uppercase tracking-wider">
-            {isFree ? t.plan.free : t.plan.pro}
-          </span>
+          <span className="text-xs font-bold uppercase tracking-wider">{planLabel}</span>
         </div>
         <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
           {percentage}%
@@ -89,9 +95,22 @@ export function PlanStatusWidget({
             size="sm"
             className="w-full h-7 text-[10px] font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-lg group"
             title={t.plan.upgradeHint}
+            asChild
           >
-            <Zap className="w-3 h-3 mr-1 fill-current" />
-            {t.plan.upgrade}
+            <Link href="/settings/billing">
+              <Zap className="w-3 h-3 mr-1 fill-current" />
+              {t.plan.upgrade}
+            </Link>
+          </Button>
+        )}
+        {!isFree && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full h-7 text-[10px] font-bold rounded-lg"
+            asChild
+          >
+            <Link href="/settings/billing">{t.billing.manageSubscription}</Link>
           </Button>
         )}
       </div>

@@ -12,6 +12,7 @@ import {
 export type WorkspaceStorageSnapshot = {
   workspaceId: string;
   planTier: PlanTier;
+  billingTier: "pro" | "supporter" | null;
   usedBytes: number;
   limitBytes: number;
 };
@@ -31,6 +32,7 @@ export async function getWorkspaceStorageSnapshot(
   const [workspace] = await db
     .select({
       planTier: workspaces.planTier,
+      billingTier: workspaces.billingTier,
       storageLimit: workspaces.storageLimit,
     })
     .from(workspaces)
@@ -53,6 +55,7 @@ export async function getWorkspaceStorageSnapshot(
   return {
     workspaceId,
     planTier,
+    billingTier: workspace.billingTier ?? null,
     usedBytes: Number(usage?.totalBytes ?? 0),
     limitBytes: effectiveStorageLimitBytes(planTier, workspace.storageLimit),
   };
@@ -69,6 +72,7 @@ export async function assertWorkspaceCanStoreBytes(
       snapshot: {
         workspaceId,
         planTier: "free",
+        billingTier: null,
         usedBytes: 0,
         limitBytes: 0,
       },

@@ -67,14 +67,15 @@ export function DashboardSidebar() {
       </nav>
 
       <div className="px-4 mb-4">
-        <PlanStatusWidget 
-          planTier={(stats?.planTier === "pro" ? "pro" : "free")} 
+        <PlanStatusWidget
+          planTier={stats?.planTier === "pro" ? "pro" : "free"}
+          billingTier={stats?.billingTier ?? null}
           usedBytes={stats?.usedBytes || 0}
           limitBytes={stats?.limitBytes || 2147483648}
         />
       </div>
 
-      <div className="p-4 border-t border-border/10 space-y-2">
+      <div className="p-4 border-t border-border space-y-2">
         <SignOutButton label={t.settings.account.signOut} className="w-full" variant="ghost" />
         <LanguageToggle className="w-full justify-center" />
         <div className="flex justify-between items-center">

@@ -35,6 +35,7 @@ export async function GET() {
       usedBytes: snapshot.usedBytes,
       limitBytes: snapshot.limitBytes,
       planTier: snapshot.planTier,
+      billingTier: snapshot.billingTier,
       workspaceId: snapshot.workspaceId,
     },
   });
