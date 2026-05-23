@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { assets, workspaces } from "@/db/schema";
-import { createSignedReadUrl } from "@/lib/assets/signed-urls";
 import { fetchAssetsWithCampaignLabels } from "@/lib/assets/workspace-library";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 
@@ -34,23 +33,17 @@ export async function GET() {
   // 2. Fetch files
   const rows = await fetchAssetsWithCampaignLabels(ctx.workspaceId);
 
-  const files = await Promise.all(
-    rows.map(async (a) => {
-      const url = await createSignedReadUrl(a.bucket, a.objectKey);
-      const signed = url ?? "";
-      return {
-        id: a.id,
-        name: a.originalFilename,
-        type: a.mimeType,
-        size: a.sizeBytes,
-        createdAt: a.createdAt.toISOString(),
-        expiresAt: a.expiresAt?.toISOString(),
-        url: signed,
-        previewUrl: a.mimeType.startsWith("image/") ? signed : "",
-        linkedCampaigns: a.linkedCampaigns,
-      };
-    })
-  );
+  const files = rows.map((a) => ({
+    id: a.id,
+    name: a.originalFilename,
+    type: a.mimeType,
+    size: a.sizeBytes,
+    createdAt: a.createdAt.toISOString(),
+    expiresAt: a.expiresAt?.toISOString(),
+    url: "",
+    previewUrl: "",
+    linkedCampaigns: a.linkedCampaigns,
+  }));
 
   return NextResponse.json({
     files,

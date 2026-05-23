@@ -5,6 +5,7 @@ import { GlassCard } from "@/components/shared/GlassCard";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
 import { Button } from "@/components/ui/button";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { useTranslation } from "@/lib/i18n";
 
 export default function SettingsPage() {
@@ -70,6 +71,20 @@ export default function SettingsPage() {
           <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shrink-0" asChild>
             <Link href="/settings/integrations">{t.settings.integrationsLink.open}</Link>
           </Button>
+        </GlassCard>
+      </div>
+
+      <div className="border-t border-border/50 my-8" />
+
+      {/* アカウント */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1 space-y-2">
+          <h3 className="font-semibold text-lg">{t.settings.account.heading}</h3>
+          <p className="text-sm text-muted-foreground">{t.settings.account.description}</p>
+        </div>
+        <GlassCard className="md:col-span-2 flex flex-wrap items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">{t.settings.account.signOutHint}</p>
+          <SignOutButton label={t.settings.account.signOut} />
         </GlassCard>
       </div>
 

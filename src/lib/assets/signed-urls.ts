@@ -18,15 +18,24 @@ export type SignedUploadResult = {
   token: string;
 };
 
+export type SignedReadOptions = {
+  expiresInSeconds?: number;
+};
+
 export async function createSignedReadUrl(
   bucket: string,
-  objectKey: string
+  objectKey: string,
+  options?: SignedReadOptions
 ): Promise<string | null> {
+  const expiresIn = options?.expiresInSeconds;
   if (isR2StorageBucket(bucket)) {
-    return createR2SignedReadUrl(objectKey);
+    return createR2SignedReadUrl(
+      objectKey,
+      expiresIn
+    );
   }
   if (isSupabaseStorageBucket(bucket)) {
-    return createSupabaseSignedReadUrl(bucket, objectKey);
+    return createSupabaseSignedReadUrl(bucket, objectKey, expiresIn);
   }
   return null;
 }

@@ -5,6 +5,7 @@ import { LayoutDashboard, Megaphone, Settings, Gift, FolderOpen, Plug, Users } f
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
 import { useTranslation } from "@/lib/i18n";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { PlanStatusWidget } from "@/components/shared/PlanStatusWidget";
 import { useWorkspaceStats } from "@/hooks/features/workspace/useWorkspaceStats";
 
@@ -74,6 +75,7 @@ export function DashboardSidebar() {
       </div>
 
       <div className="p-4 border-t border-border/10 space-y-2">
+        <SignOutButton label={t.settings.account.signOut} className="w-full" variant="ghost" />
         <LanguageToggle className="w-full justify-center" />
         <div className="flex justify-between items-center">
           <span className="text-xs text-muted-foreground">{t.nav.version}</span>

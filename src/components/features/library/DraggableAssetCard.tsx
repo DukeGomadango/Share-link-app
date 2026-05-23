@@ -9,6 +9,7 @@ import { Dialog, DialogHeader, DialogTitle, DialogDescription } from "@/componen
 import { GlassCard } from "@/components/shared/GlassCard";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAssetSignedUrl } from "@/hooks/useAssetSignedUrl";
 import { AssetFile } from "./types";
 
 interface DraggableAssetCardProps {
@@ -111,6 +112,8 @@ export function DraggableAssetCard({
     : undefined;
 
   const isImage = file.type.startsWith("image/");
+  const { url: thumbUrl } = useAssetSignedUrl(file.id, isImage, "preview");
+  const imageSrc = thumbUrl || file.url;
 
   return (
     <>
@@ -155,14 +158,16 @@ export function DraggableAssetCard({
             </button>
           </div>
           <div className="w-16 h-16 bg-muted/50 rounded-xl flex items-center justify-center overflow-hidden relative shrink-0 shadow-inner group-hover:shadow-none transition-shadow">
-            {isImage ? (
+            {isImage && imageSrc ? (
               <Image 
-                src={file.url} 
+                src={imageSrc} 
                 alt={file.name} 
                 fill 
                 className="object-cover transition-transform duration-500 group-hover:scale-110" 
                 unoptimized 
               />
+            ) : isImage ? (
+              <div className="w-full h-full bg-muted/40 animate-pulse" />
             ) : (
               <div className="transform group-hover:scale-110 transition-transform duration-500">
                 {getFileIcon(file.type)}

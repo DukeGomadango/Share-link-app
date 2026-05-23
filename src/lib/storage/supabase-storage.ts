@@ -3,7 +3,8 @@ import { SIGNED_READ_EXPIRY_SECONDS } from "@/lib/storage/config";
 
 export async function createSupabaseSignedReadUrl(
   bucket: string,
-  objectKey: string
+  objectKey: string,
+  expiresIn: number = SIGNED_READ_EXPIRY_SECONDS
 ): Promise<string | null> {
   const admin = getSupabaseAdmin();
   if (!admin) {
@@ -11,7 +12,7 @@ export async function createSupabaseSignedReadUrl(
   }
   const { data, error } = await admin.storage
     .from(bucket)
-    .createSignedUrl(objectKey, SIGNED_READ_EXPIRY_SECONDS);
+    .createSignedUrl(objectKey, expiresIn);
   if (error || !data?.signedUrl) {
     return null;
   }

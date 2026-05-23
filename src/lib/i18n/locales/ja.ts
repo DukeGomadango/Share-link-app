@@ -320,6 +320,12 @@ export const ja = {
       description: "だんごツールなどとの Bearer 連携トークンを管理します。",
       open: "連携を開く",
     },
+    account: {
+      heading: "アカウント",
+      description: "サインアウトして別の方法でログインし直せます。",
+      signOut: "ログアウト",
+      signOutHint: "Google・Discord・メールなど、別のアカウントで試すときに使います。",
+    },
   },
   integrations: {
     title: "外部連携（だんごツール）",

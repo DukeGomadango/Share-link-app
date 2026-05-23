@@ -6,6 +6,7 @@ import { Check, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { useState, useRef, useEffect, ReactNode } from "react";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { cn } from "@/lib/utils";
+import { useAssetSignedUrl } from "@/hooks/useAssetSignedUrl";
 import { AssetFile } from "./types";
 
 interface CompactAssetCardProps {
@@ -72,6 +73,8 @@ export function CompactAssetCard({
     : undefined;
 
   const isImage = file.type.startsWith("image/");
+  const { url: thumbUrl } = useAssetSignedUrl(file.id, isImage, "preview");
+  const imageSrc = thumbUrl || file.url;
 
   return (
     <GlassCard
@@ -139,14 +142,16 @@ export function CompactAssetCard({
 
       {/* Thumbnail Area */}
       <div className="aspect-square bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden relative mb-1.5 shadow-inner group-hover:shadow-none transition-shadow">
-        {isImage ? (
+        {isImage && imageSrc ? (
           <Image 
-            src={file.url} 
+            src={imageSrc} 
             alt={file.name} 
             fill 
             className="object-cover transition-transform duration-500 group-hover:scale-110" 
             unoptimized 
           />
+        ) : isImage ? (
+          <div className="w-full h-full bg-muted/40 animate-pulse" />
         ) : (
           <div className="transform group-hover:scale-110 transition-transform duration-500 scale-75">
             {getFileIcon(file.type)}

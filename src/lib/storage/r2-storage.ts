@@ -11,7 +11,10 @@ import {
   SIGNED_UPLOAD_EXPIRY_SECONDS,
 } from "@/lib/storage/config";
 
-export async function createR2SignedReadUrl(objectKey: string): Promise<string | null> {
+export async function createR2SignedReadUrl(
+  objectKey: string,
+  expiresIn: number = SIGNED_READ_EXPIRY_SECONDS
+): Promise<string | null> {
   const client = getR2Client();
   if (!client) {
     return null;
@@ -23,7 +26,7 @@ export async function createR2SignedReadUrl(objectKey: string): Promise<string |
         Bucket: getR2BucketName(),
         Key: objectKey,
       }),
-      { expiresIn: SIGNED_READ_EXPIRY_SECONDS }
+      { expiresIn }
     );
   } catch (e) {
     console.error("R2 signed read URL failed:", e);

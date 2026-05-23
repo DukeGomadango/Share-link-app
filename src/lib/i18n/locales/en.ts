@@ -324,6 +324,12 @@ export const en: TranslationKeys = {
       description: "Manage Bearer tokens for tools like the Dango app.",
       open: "Open integrations",
     },
+    account: {
+      heading: "Account",
+      description: "Sign out to try another login method.",
+      signOut: "Sign out",
+      signOutHint: "Use this when switching between email, Google, or Discord.",
+    },
   },
   integrations: {
     title: "External integrations (Dango tools)",
