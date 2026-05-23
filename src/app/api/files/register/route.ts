@@ -6,6 +6,7 @@ import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { getDb } from "@/db";
 import { assets, workspaces } from "@/db/schema";
 import { getStorageBucket, MAX_UPLOAD_BYTES } from "@/lib/storage/config";
+import { validateUploadPolicy } from "@/lib/storage/upload-policy";
 import {
   computeAssetExpiresAt,
   normalizePlanTier,
@@ -47,6 +48,15 @@ export async function POST(request: Request) {
 
   if (sizeBytes > MAX_UPLOAD_BYTES) {
     return NextResponse.json({ error: "file_too_large" }, { status: 413 });
+  }
+
+  const resolvedMime = mimeType || "application/octet-stream";
+  const uploadPolicy = validateUploadPolicy(originalFilename, resolvedMime);
+  if (!uploadPolicy.ok) {
+    return NextResponse.json(
+      { error: uploadPolicy.error, message: uploadPolicy.message },
+      { status: 400 }
+    );
   }
 
   const db = getDb();

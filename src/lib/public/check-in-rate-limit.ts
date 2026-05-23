@@ -1,21 +1,9 @@
-/**
- * インメモリの簡易レート制限（サーバレスではプロセス単位）。
- * 本番で厳密にやるなら Redis / Upstash 等へ。
- */
-const buckets = new Map<string, number[]>();
+import { rateLimitAllowed } from "@/lib/rate-limit/sliding-window";
 
-export function checkInRateLimit(
+export async function checkInRateLimit(
   key: string,
   max: number,
   windowMs: number
-): boolean {
-  const now = Date.now();
-  const arr = (buckets.get(key) ?? []).filter((t) => now - t < windowMs);
-  if (arr.length >= max) {
-    buckets.set(key, arr);
-    return false;
-  }
-  arr.push(now);
-  buckets.set(key, arr);
-  return true;
+): Promise<boolean> {
+  return rateLimitAllowed(key, max, windowMs);
 }

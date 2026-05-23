@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Gift } from "lucide-react";
 import { getAuthCallbackUrl } from "@/lib/auth/callback-url";
 import { sendRegisterOtp } from "@/lib/auth/email-otp";
+import { safeAuthSendError, safeAuthVerifyError } from "@/lib/auth/safe-auth-messages";
 import { useTranslation } from "@/lib/i18n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -54,8 +55,8 @@ export default function RegisterPage() {
       }
       setStep("otp");
       setInfo(t.auth.otp.sent);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "コードの送信に失敗しました");
+    } catch {
+      setError(safeAuthSendError());
     } finally {
       setLoading(false);
     }
@@ -86,8 +87,8 @@ export default function RegisterPage() {
       }
       router.push(nextPath);
       router.refresh();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "登録に失敗しました");
+    } catch {
+      setError(safeAuthVerifyError("register"));
     } finally {
       setLoading(false);
     }

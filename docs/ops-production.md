@@ -15,6 +15,23 @@ Phase 3（E2E・Storage 移行・Stripe）の順序とコマンド: [`phase3-roa
 
 確認: `GET https://<your-app>/api/health`（秘密値は返さない）
 
+## セキュリティ（フェーズ 1・コード済み）
+
+詳細計画: [`security-go-live-plan.md`](./security-go-live-plan.md)
+
+| 項目 | 実装 |
+|------|------|
+| HTTP ヘッダ / CSP | [`next.config.ts`](../next.config.ts) → [`src/lib/security/headers.ts`](../src/lib/security/headers.ts) |
+| アップロード MIME・拡張子 | [`src/lib/storage/upload-policy.ts`](../src/lib/storage/upload-policy.ts)（`upload-url` / `register` / 外部 API） |
+| 認証エラー表示 | 汎用メッセージ（[`safe-auth-messages.ts`](../src/lib/auth/safe-auth-messages.ts)） |
+| API レート制限 | `UPSTASH_REDIS_REST_*` 設定時は Upstash、未設定時はインメモリ |
+
+### 本番課金前の Dashboard 作業（フェーズ 0・手動）
+
+- Stripe: チーム 2FA、本番 Webhook、`Radar` / 3DS
+- Supabase: OTP テンプレ（`{{ .Token }}`）、Redirect URL、Auth レート制限、CAPTCHA 検討
+- Vercel: `UPSTASH_REDIS_REST_*`（推奨）、`STRIPE_*` は Production のみ
+
 ## プランとストレージ
 
 定義の正: [`src/lib/workspace/plan-limits.ts`](../src/lib/workspace/plan-limits.ts)

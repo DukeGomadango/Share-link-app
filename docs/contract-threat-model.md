@@ -34,7 +34,7 @@ OAuth／連携同意 UI では **アプリ名＋上記の平易文**のみを既
 | 400  | JSON 破損・本文として解釈不能な全体エラー。 |
 | 401  | Bearer 無効・欠落。 |
 | 403  | スコープ不足・他テナントの `campaign_asset_id`。 |
-| 429  | レート制限（Integration トークンあたり 120 req/min、インメモリ）。 |
+| 429  | レート制限（Integration トークンあたり 120 req/min。`UPSTASH_REDIS_REST_*` 設定時は Upstash、未設定時はインメモリ）。 |
 | 403  | `integration_paused` — キャンペーンでツール連携一時停止中の書き込み拒否。 |
 
 枯渇 409 は Phase 1 非採用（在庫モデルなし）。
@@ -44,8 +44,8 @@ OAuth／連携同意 UI では **アプリ名＋上記の平易文**のみを既
 - **ブラウザに置く Bearer／連携トークン**: XSS 時に露出する。だんご側はローカルのみ保管とし、file-share は revoke とローテーション手段を提供する。
 - **OAuth 再許可**: 同一 `client_id` の既存トークンは consent 時に削除してから1件発行（ローテーション）。手動発行トークンは対象外。重複整理は `POST /api/integrations/tokens/prune-oauth`。
 - **CORS**: だんごオリジンからの `Authorization` 付きリクエストを明示許可（Step E）。
-- **CSP**: だんご側 `connect-src` に file-share API オリジンを追加（統合フェーズ）。
-- **乱発**: Integration 単位レートを主軸、IP は緩い上限（Step E）。
+- **CSP（file-share 本体）**: [`src/lib/security/headers.ts`](../src/lib/security/headers.ts) 経由で `next.config.ts` に付与。だんご側は別途 `connect-src` に file-share API オリジンを追加。
+- **乱発**: Integration 単位レートを主軸、公開 check-in は IP+トークン単位（[`sliding-window.ts`](../src/lib/rate-limit/sliding-window.ts)）。
 
 ## 実装メモ（Step E・file-share のみ）
 
@@ -55,4 +55,5 @@ OAuth／連携同意 UI では **アプリ名＋上記の平易文**のみを既
 | CORS | `EXTERNAL_CORS_ORIGINS`（カンマ区切り）。未設定時は開発用 localhost 系のみ |
 | Idempotency | `integration_idempotency_keys` に JSON レスポンスを保存。キーは `(integration_token_id, route_key, idempotency_key_hash)` |
 | エンドポイント | `GET /api/v1/external/campaigns`、`GET /api/v1/external/campaigns/:campaignId/assets`、`POST /api/v1/external/issue-claims` |
-| 429 / レート | 本リポの Phase 1 では未実装（KV 等で後付け可能） |
+| 429 / レート | [`integration-rate-limit.ts`](../src/lib/integration-rate-limit.ts) + Upstash（任意 env） |
+| アップロード種別 | [`upload-policy.ts`](../src/lib/storage/upload-policy.ts) |

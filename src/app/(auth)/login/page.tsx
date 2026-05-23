@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Gift } from "lucide-react";
 import { getAuthCallbackUrl } from "@/lib/auth/callback-url";
 import { sendLoginOtp } from "@/lib/auth/email-otp";
+import { safeAuthSendError, safeAuthVerifyError } from "@/lib/auth/safe-auth-messages";
 import { useTranslation } from "@/lib/i18n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -48,8 +49,8 @@ function LoginInner() {
       }
       setStep("otp");
       setInfo(t.auth.otp.sent);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "コードの送信に失敗しました");
+    } catch {
+      setError(safeAuthSendError());
     } finally {
       setLoading(false);
     }
@@ -80,8 +81,8 @@ function LoginInner() {
       }
       router.push(next);
       router.refresh();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "サインインに失敗しました");
+    } catch {
+      setError(safeAuthVerifyError("login"));
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import { resolveIntegrationBearer } from "@/lib/external-auth";
 import { ensureCampaignToolIntegrationWritable } from "@/lib/external-integration-pause";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 import { getStorageBucket, MAX_UPLOAD_BYTES } from "@/lib/storage/config";
+import { validateUploadPolicy } from "@/lib/storage/upload-policy";
 import {
   computeAssetExpiresAt,
   normalizePlanTier,
@@ -72,6 +73,16 @@ export async function POST(request: Request, ctx: RouteParams) {
 
   if (sizeBytes > MAX_UPLOAD_BYTES) {
     return jsonWithCors({ error: "file_too_large" }, request, { status: 413 });
+  }
+
+  const resolvedMime = mimeType || "application/octet-stream";
+  const uploadPolicy = validateUploadPolicy(originalFilename, resolvedMime);
+  if (!uploadPolicy.ok) {
+    return jsonWithCors(
+      { error: uploadPolicy.error, message: uploadPolicy.message },
+      request,
+      { status: 400 }
+    );
   }
 
   const bucket = getStorageBucket();

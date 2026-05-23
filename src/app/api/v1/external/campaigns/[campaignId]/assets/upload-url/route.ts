@@ -8,6 +8,7 @@ import { ensureCampaignToolIntegrationWritable } from "@/lib/external-integratio
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 import { getStorageBucket, MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 import { sanitizeFilenameForStorage } from "@/lib/storage/sanitize-filename";
+import { validateUploadPolicy } from "@/lib/storage/upload-policy";
 import { assertWorkspaceCanStoreBytes } from "@/lib/workspace/workspace-storage";
 
 type RouteParams = { params: Promise<{ campaignId: string }> };
@@ -57,6 +58,15 @@ export async function POST(request: Request, ctx: RouteParams) {
   }
   if (size > MAX_UPLOAD_BYTES) {
     return jsonWithCors({ error: "file_too_large" }, request, { status: 413 });
+  }
+
+  const uploadPolicy = validateUploadPolicy(filename, contentType);
+  if (!uploadPolicy.ok) {
+    return jsonWithCors(
+      { error: uploadPolicy.error, message: uploadPolicy.message },
+      request,
+      { status: 400 }
+    );
   }
 
   const quota = await assertWorkspaceCanStoreBytes(auth.workspaceId, size);

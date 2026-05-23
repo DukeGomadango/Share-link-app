@@ -68,7 +68,11 @@ export async function resolveIntegrationBearer(
   }
 
   if (
-    !integrationRateLimit(token.id, INTEGRATION_RATE_MAX, INTEGRATION_RATE_WINDOW_MS)
+    !(await integrationRateLimit(
+      token.id,
+      INTEGRATION_RATE_MAX,
+      INTEGRATION_RATE_WINDOW_MS
+    ))
   ) {
     return jsonWithCors(
       { error: "rate_limited", message: "リクエストが多すぎます。しばらく待って再試行してください。" },

@@ -9,6 +9,7 @@ import {
   MAX_UPLOAD_BYTES,
 } from "@/lib/storage/config";
 import { sanitizeFilenameForStorage } from "@/lib/storage/sanitize-filename";
+import { validateUploadPolicy } from "@/lib/storage/upload-policy";
 import { assertWorkspaceCanStoreBytes } from "@/lib/workspace/workspace-storage";
 
 export async function POST(request: Request) {
@@ -47,6 +48,14 @@ export async function POST(request: Request) {
   }
   if (size > MAX_UPLOAD_BYTES) {
     return NextResponse.json({ error: "file_too_large" }, { status: 413 });
+  }
+
+  const uploadPolicy = validateUploadPolicy(filename, contentType);
+  if (!uploadPolicy.ok) {
+    return NextResponse.json(
+      { error: uploadPolicy.error, message: uploadPolicy.message },
+      { status: 400 }
+    );
   }
 
   const quota = await assertWorkspaceCanStoreBytes(ctx.workspaceId, size);

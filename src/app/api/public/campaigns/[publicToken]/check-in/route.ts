@@ -88,7 +88,7 @@ export async function POST(request: Request, ctx: RouteParams) {
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
     "unknown";
-  if (!checkInRateLimit(`checkin:${publicToken}:${ip}`, MAX_PER_WINDOW, WINDOW_MS)) {
+  if (!(await checkInRateLimit(`checkin:${publicToken}:${ip}`, MAX_PER_WINDOW, WINDOW_MS))) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
