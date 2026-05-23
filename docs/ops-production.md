@@ -76,9 +76,11 @@ WHERE workspace_id = '<workspace-uuid>';
 `is_external_linked = true` の間:
 
 - **限定配布**（`security_level = high`・パスキー必須）
-- **個別リンク**（`distribution_mode = per_link`）
+- **共通受付**（`distribution_mode = reception`・`/receive/{publicReceptionToken}`）
 - 公開/限定トグル・配布方式 select は UI で無効化
 - API から `security_level` / `distribution_mode` を変更しようとすると `403 integration_locked`
+
+> **実装済み（2026-05-23）**: [`gacha-reception-integration-plan.md`](./gacha-reception-integration-plan.md) に従い `reception` 固定・`detach` DELETE・`recipient_id` 解決を実装。
 
 連携開始・一時停止は管理画面で **確認ダイアログ** あり。初回は「ツール連携を**開始**」、一時停止後は「**再開**」。
 
@@ -96,7 +98,7 @@ WHERE workspace_id = '<workspace-uuid>';
 
 だんご OAuth トークン失効後: 配布タブまたは同期前チェックで **確認ダイアログ → 許可画面**（401 直後の無言リダイレクトはしない）。
 
-詳細: [`docs/contract-threat-model.md`](./contract-threat-model.md)、人数カウントアプリ側 [`docs/gacha-share-link-integration.md`](../../人数カウントアプリ/docs/gacha-share-link-integration.md)
+詳細: [`docs/contract-threat-model.md`](./contract-threat-model.md)、[`docs/gacha-reception-integration-plan.md`](./gacha-reception-integration-plan.md)、人数カウントアプリ側 [`docs/gacha-share-link-integration.md`](../../人数カウントアプリ/docs/gacha-share-link-integration.md)
 
 ## R2 ストレージ（Supabase Storage フォールバックは廃止）
 

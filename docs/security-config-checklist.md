@@ -240,7 +240,7 @@ CSP 調整: [`src/lib/security/headers.ts`](../src/lib/security/headers.ts)
 |-----|------|
 | [ ] | file-share: `EXTERNAL_CORS_ORIGINS` にだんご本番 Origin |
 | [ ] | だんご: file-share API ベース URL・連携トークン |
-| [ ] | 連携 ON 時は限定配布・個別リンク固定（[`ops-production.md`](./ops-production.md)） |
+| [ ] | 連携 ON 時は限定配布・共通受付固定（[`ops-production.md`](./ops-production.md)、[`gacha-reception-integration-plan.md`](./gacha-reception-integration-plan.md)） |
 
 ---
 

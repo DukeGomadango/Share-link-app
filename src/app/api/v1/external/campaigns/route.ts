@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       description: description || null,
       status: "active",
       securityLevel: "high",
-      distributionMode: "per_link",
+      distributionMode: "reception",
       isExternalLinked: true,
       publicReceptionToken,
     });

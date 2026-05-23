@@ -209,12 +209,12 @@ export const en: TranslationKeys = {
       enableTitleResume: "Resume tool integration",
       disableTitle: "Pause tool integration",
       linkedBadge: "Tool integration active",
-      lockedHint: "Limited distribution and per-link mode are locked while integrated",
+      lockedHint: "Limited distribution and shared reception are locked while integrated",
       enableConfirmTitle: "Start Dango tool integration",
       enableConfirmDescription:
-        "This campaign switches to limited distribution (passkey required) and per-link delivery, and accepts updates from the Dango tool. You cannot switch to public distribution while integrated. Connect the Dango tool separately from its Distribute tab (“Start integration”).",
+        "This campaign switches to limited distribution (passkey required) and shared reception (check-in), and accepts updates from the Dango tool. You cannot switch to public distribution while integrated. Connect the Dango tool separately from its Distribute tab (“Start integration”).",
       enableConfirmResumeDescription:
-        "Resume accepting updates from the Dango tool. Distribution stays limited with per-link delivery. If you disconnected the tool, reconnect from the Dango tool Distribute tab—not from this button alone.",
+        "Resume accepting updates from the Dango tool. Distribution stays limited with shared reception. If you disconnected the tool, reconnect from the Dango tool Distribute tab—not from this button alone.",
       pauseConfirmTitle: "Pause tool integration",
       pauseConfirmDescription:
         "Stops new updates from the Dango tool (e.g. adding recipient slots). The tool connection stays active. To fully disconnect, remove the connection under Settings → Integrations.",

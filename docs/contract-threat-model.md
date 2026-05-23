@@ -13,7 +13,7 @@
 |----------------|-----------------------------------------------------|
 | `campaigns:read` | キャンペーンとファイル（アセット）の一覧を参照する |
 | `campaigns:write` | キャンペーン作成・ファイル登録・ガチャ設定の保存 |
-| `claims:issue`   | 受取用リンクを発行する                             |
+| `claims:issue`   | 受取枠の同期・当選ファイルの割当（連携時は受付入口＋1人1 Claim） |
 
 キャンペーンの **ツール連携一時停止**（`is_external_linked = false`）中は、外部 API の書き込みは `403 integration_paused`。読み取り（GET）は継続可能。
 
@@ -36,8 +36,9 @@ OAuth／連携同意 UI では **アプリ名＋上記の平易文**のみを既
 | 403  | スコープ不足・他テナントの `campaign_asset_id`。 |
 | 429  | レート制限（Integration トークンあたり 120 req/min。`UPSTASH_REDIS_REST_*` 設定時は Upstash、未設定時はインメモリ）。 |
 | 403  | `integration_paused` — キャンペーンでツール連携一時停止中の書き込み拒否。 |
+| 409  | `recipient_slot_conflict` / `slot_in_use` — 名簿枠の競合・削除不可（[`gacha-reception-integration-plan.md`](./gacha-reception-integration-plan.md)） |
 
-枯渇 409 は Phase 1 非採用（在庫モデルなし）。
+ガチャ連携の配布モデル（受付入口・`DELETE mode=detach` 既定）: [`gacha-reception-integration-plan.md`](./gacha-reception-integration-plan.md)
 
 ## 脅威モデル（要点）
 

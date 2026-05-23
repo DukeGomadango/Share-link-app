@@ -1,5 +1,5 @@
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
-import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
@@ -50,17 +50,39 @@ function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  render,
   nativeButton,
+  children,
   ...props
 }: ButtonProps) {
+  const resolvedRender = asChild
+    ? (React.Children.only(children) as React.ReactElement)
+    : render
+  const resolvedNativeButton =
+    nativeButton ?? (resolvedRender ? false : undefined)
+
+  if (asChild) {
+    return (
+      <ButtonPrimitive
+        data-slot="button"
+        render={resolvedRender}
+        className={cn(buttonVariants({ variant, size, className }))}
+        nativeButton={resolvedNativeButton}
+        {...props}
+      />
+    )
+  }
+
   return (
     <ButtonPrimitive
       data-slot="button"
-      render={asChild ? <Slot /> : undefined}
+      render={render}
       className={cn(buttonVariants({ variant, size, className }))}
-      nativeButton={nativeButton ?? (asChild ? false : undefined)}
+      nativeButton={resolvedNativeButton}
       {...props}
-    />
+    >
+      {children}
+    </ButtonPrimitive>
   )
 }
 

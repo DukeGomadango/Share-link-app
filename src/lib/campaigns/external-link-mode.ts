@@ -1,7 +1,7 @@
 import type { campaigns } from "@/db/schema";
 
 export const EXTERNAL_LINK_SECURITY_LEVEL = "high" as const;
-export const EXTERNAL_LINK_DISTRIBUTION_MODE = "per_link" as const;
+export const EXTERNAL_LINK_DISTRIBUTION_MODE = "reception" as const;
 
 type CampaignRow = Pick<
   typeof campaigns.$inferSelect,
@@ -47,7 +47,7 @@ export function rejectsExternalLinkLockedFieldChange(
     body.distributionMode !== undefined &&
     body.distributionMode !== EXTERNAL_LINK_DISTRIBUTION_MODE
   ) {
-    return "ツール連携中は個別リンク配布に固定されています。連携を一時停止してから変更してください。";
+    return "ツール連携中は共通受付配布に固定されています。連携を一時停止してから変更してください。";
   }
   return null;
 }

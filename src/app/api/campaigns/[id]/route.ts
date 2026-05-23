@@ -10,6 +10,7 @@ import {
   patchForEnablingExternalLink,
   rejectsExternalLinkLockedFieldChange,
 } from "@/lib/campaigns/external-link-mode";
+import { ensurePublicReceptionToken } from "@/lib/campaigns/public-reception-token";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -143,6 +144,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "更新項目がありません" }, { status: 400 });
   }
 
+  const enablingLink = body.isExternalLinked === true;
+
   const updated = await db
     .update(campaigns)
     .set(patch as Record<string, unknown>)
@@ -151,6 +154,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   if (!updated[0]) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (enablingLink) {
+    await ensurePublicReceptionToken(id);
   }
 
   const row = await fetchCampaignWithStats(ctx.workspaceId, id);

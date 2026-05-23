@@ -71,6 +71,86 @@ paths:
         "404":
           description: キャンペーン不在または他ワークスペース
 
+  /api/v1/external/campaigns/{campaignId}/recipient-slots:
+    get:
+      tags: [claims]
+      summary: ガチャ連携スロットの有無確認（`claims:issue`）
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: external_transaction_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: linked 真偽（移行期は claim_url、受付固定後は reception_url 中心）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecipientSlotLookup"
+    post:
+      tags: [claims]
+      summary: 当選ファイルを受取枠に同期（`claims:issue`）
+      description: |
+        冪等キー `external_transaction_id`。`recipient_id` 指定時は既存スロットに載せる。
+        詳細は docs/gacha-reception-integration-plan.md。
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecipientSlotUpsert"
+      responses:
+        "200":
+          description: 既存枠更新
+        "201":
+          description: 新規枠作成
+        "409":
+          description: recipient_slot_conflict
+    delete:
+      tags: [claims]
+      summary: ガチャプレイヤー削除（`claims:issue`）
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: campaignId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: external_transaction_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [detach, purge]
+            default: detach
+      responses:
+        "200":
+          description: OK
+        "409":
+          description: slot_in_use
+
   /api/v1/external/issue-claims:
     post:
       tags: [claims]
@@ -204,3 +284,63 @@ components:
           type: string
           nullable: true
           description: 行単位のエラー（例：403/404 相当のコードと短文）
+
+    RecipientSlotLookup:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        linked:
+          type: boolean
+        claim_url:
+          type: string
+          format: uri
+          nullable: true
+        external_transaction_id:
+          type: string
+
+    RecipientSlotUpsert:
+      type: object
+      required: [listener_display_name, external_transaction_id]
+      properties:
+        listener_display_name:
+          type: string
+        external_transaction_id:
+          type: string
+        recipient_id:
+          type: string
+          format: uuid
+          nullable: true
+        campaign_asset_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: 空配列=ファイル0。省略はレガシー（非推奨）。
+
+    RecipientSlotUpsertResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        slot_id:
+          type: string
+          format: uuid
+        claim_id:
+          type: string
+          format: uuid
+        linked_asset_count:
+          type: integer
+        delivery_mode:
+          type: string
+          enum: [reception, per_link]
+        reception_url:
+          type: string
+          format: uri
+          nullable: true
+        claim_url:
+          type: string
+          format: uri
+          nullable: true
+        resolved_existing:
+          type: boolean

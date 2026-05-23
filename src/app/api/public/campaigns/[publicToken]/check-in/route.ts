@@ -8,6 +8,8 @@ import {
   claimSessionCookieName,
 } from "@/lib/claims/constants";
 import { createSlotAndClaim } from "@/lib/claims/create-slot-and-claim";
+import { findClaimByRecipientInCampaign } from "@/lib/claims/find-claim-by-recipient-in-campaign";
+import { findClaimForListenerResume } from "@/lib/claims/find-claim-for-listener-resume";
 import { checkInRateLimit } from "@/lib/public/check-in-rate-limit";
 import { getDb } from "@/db";
 import { campaigns, claimAssets, claimIdentityLinks, claims, listenerIdentities, recipients, campaignAssets, campaignRecipientSlots, slotAssets } from "@/db/schema";
@@ -185,52 +187,91 @@ export async function POST(request: Request, ctx: RouteParams) {
       recipientId = newRecipient?.id ?? null;
     }
 
-    created = await createSlotAndClaim({
-      campaignId: c.id,
-      listenerDisplayName: displayName,
-      listenerNote: body.note ?? null,
-      recipientId,
-    });
+    let reused: { claimId: string; slotId: string; claimSecret: string } | null =
+      null;
 
-    // パスキー認証済みの場合、新しい Claim を自動的にアイデンティティと紐付ける
     if (session && session.workspaceId === c.workspaceId) {
-      await db.insert(claimIdentityLinks).values({
-        claimId: created.claimId,
+      const resumed = await findClaimForListenerResume({
         listenerIdentityId: session.listenerIdentityId,
-      }).onConflictDoNothing(); // 念のため重複無視
+        campaignId: c.id,
+        workspaceId: c.workspaceId,
+      });
+      if (resumed) {
+        const [slotRow] = await db
+          .select({ slotId: claims.recipientSlotId })
+          .from(claims)
+          .where(eq(claims.id, resumed.claimId))
+          .limit(1);
+        reused = {
+          claimId: resumed.claimId,
+          claimSecret: resumed.claimSecret,
+          slotId: slotRow?.slotId ?? "",
+        };
+      }
     }
 
-    // 公開モード (Standard) の場合、キャンペーンの全ファイルを自動紐付けする
-    if (c.securityLevel === "standard") {
-      const allAssets = await db
-        .select({ id: campaignAssets.id })
-        .from(campaignAssets)
-        .where(eq(campaignAssets.campaignId, c.id));
+    if (!reused && recipientId) {
+      const byRecipient = await findClaimByRecipientInCampaign(c.id, recipientId);
+      if (byRecipient) {
+        reused = {
+          claimId: byRecipient.claimId,
+          claimSecret: byRecipient.claimSecret,
+          slotId: byRecipient.slotId,
+        };
+      }
+    }
 
-      if (allAssets.length > 0) {
-        await db.transaction(async (tx) => {
-          // 1. claimAssets への紐付け
-          await tx.insert(claimAssets).values(
-            allAssets.map((a) => ({
-              claimId: created.claimId,
-              campaignAssetId: a.id,
-            }))
-          );
+    if (reused) {
+      created = {
+        claimId: reused.claimId,
+        slotId: reused.slotId || reused.claimId,
+        claimSecret: reused.claimSecret,
+      };
+    } else {
+      created = await createSlotAndClaim({
+        campaignId: c.id,
+        listenerDisplayName: displayName,
+        listenerNote: body.note ?? null,
+        recipientId,
+      });
 
-          // 2. slotAssets への紐付け
-          await tx.insert(slotAssets).values(
-            allAssets.map((a) => ({
-              slotId: created.slotId,
-              campaignAssetId: a.id,
-            }))
-          );
+      // パスキー認証済みの場合、新しい Claim を自動的にアイデンティティと紐付ける
+      if (session && session.workspaceId === c.workspaceId) {
+        await db.insert(claimIdentityLinks).values({
+          claimId: created.claimId,
+          listenerIdentityId: session.listenerIdentityId,
+        }).onConflictDoNothing();
+      }
 
-          // 3. スロットステータスを準備完了 (ready) に更新
-          await tx
-            .update(campaignRecipientSlots)
-            .set({ status: "ready" })
-            .where(eq(campaignRecipientSlots.id, created.slotId));
-        });
+      // 公開モード (Standard) の場合、キャンペーンの全ファイルを自動紐付けする
+      if (c.securityLevel === "standard") {
+        const allAssets = await db
+          .select({ id: campaignAssets.id })
+          .from(campaignAssets)
+          .where(eq(campaignAssets.campaignId, c.id));
+
+        if (allAssets.length > 0) {
+          await db.transaction(async (tx) => {
+            await tx.insert(claimAssets).values(
+              allAssets.map((a) => ({
+                claimId: created.claimId,
+                campaignAssetId: a.id,
+              }))
+            );
+
+            await tx.insert(slotAssets).values(
+              allAssets.map((a) => ({
+                slotId: created.slotId,
+                campaignAssetId: a.id,
+              }))
+            );
+
+            await tx
+              .update(campaignRecipientSlots)
+              .set({ status: "ready" })
+              .where(eq(campaignRecipientSlots.id, created.slotId));
+          });
+        }
       }
     }
   } catch (e) {
