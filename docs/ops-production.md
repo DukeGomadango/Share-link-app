@@ -28,6 +28,8 @@ Phase 3（E2E・Storage 移行・Stripe）の順序とコマンド: [`phase3-roa
 
 ### 本番課金前の Dashboard 作業（フェーズ 0・手動）
 
+**チェックリスト**: [`security-config-checklist.md`](./security-config-checklist.md)（Vercel / R2 / Stripe / Supabase / Upstash の `[ ]` 一覧）
+
 - Stripe: チーム 2FA、本番 Webhook、`Radar` / 3DS
 - Supabase: OTP テンプレ（`{{ .Token }}`）、Redirect URL、Auth レート制限、CAPTCHA 検討
 - Vercel: `UPSTASH_REDIS_REST_*`（推奨）、`STRIPE_*` は Production のみ

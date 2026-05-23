@@ -11,7 +11,11 @@ import {
   computeAssetExpiresAt,
   normalizePlanTier,
 } from "@/lib/workspace/plan-limits";
-import { assertWorkspaceCanStoreBytes } from "@/lib/workspace/workspace-storage";
+import {
+  applyWorkspaceStorageDelta,
+  assertWorkspaceCanStoreBytes,
+} from "@/lib/workspace/workspace-storage";
+import { invalidateWorkspaceStorageSnapshot } from "@/lib/workspace/storage-snapshot-cache";
 
 export async function POST(request: Request) {
   const ctx = await getSessionWorkspaceContext();
@@ -104,6 +108,9 @@ export async function POST(request: Request) {
     sizeBytes,
     expiresAt,
   });
+
+  await applyWorkspaceStorageDelta(ctx.workspaceId, sizeBytes);
+  invalidateWorkspaceStorageSnapshot(ctx.workspaceId);
 
   return NextResponse.json({ id: assetId, ok: true, dedup: false });
 }

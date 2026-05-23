@@ -136,11 +136,11 @@ export function RecipientDetailDrawer({ recipient, isOpen, onClose, onUpdateTags
                 </Badge>
               ) : recipient.status === "verified" ? (
                 <Badge className="bg-sky-500/10 text-sky-600 border-sky-500/20 text-[10px] font-bold">
-                  <Shield className="w-3 h-3 mr-1" /> Verified
+                  <Shield className="w-3 h-3 mr-1" /> 本人確認済
                 </Badge>
               ) : (
                 <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-bold">
-                  <CheckCircle2 className="w-3 h-3 mr-1" /> Claimed
+                  <CheckCircle2 className="w-3 h-3 mr-1" /> 受取済
                 </Badge>
               )}
 

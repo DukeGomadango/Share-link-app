@@ -56,7 +56,7 @@ export function RecipientStatsCards({ stats, activeFilter, setActiveFilter }: Re
     },
     { 
       id: "verified", 
-      label: "認証済み (Verified)", 
+      label: "本人確認済み", 
       count: stats.verified, 
       trend: stats.trends.verified,
       rate: stats.breakdown.verifiedRate,
@@ -67,7 +67,7 @@ export function RecipientStatsCards({ stats, activeFilter, setActiveFilter }: Re
     },
     { 
       id: "claimed", 
-      label: "受取済 (Claimed)", 
+      label: "受取済み", 
       count: stats.claimed, 
       trend: stats.trends.claimed,
       rate: stats.breakdown.claimedRate,

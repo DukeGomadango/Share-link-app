@@ -14,6 +14,7 @@ type AssetThumbPreviewProps = {
   fallbackUrl?: string;
   imageClassName?: string;
   iconSize?: "sm" | "md";
+  lazy?: boolean;
 };
 
 export function AssetThumbPreview({
@@ -23,9 +24,12 @@ export function AssetThumbPreview({
   fallbackUrl,
   imageClassName,
   iconSize = "md",
+  lazy = true,
 }: AssetThumbPreviewProps) {
   const isImage = mimeType.startsWith("image/");
-  const { url: signedUrl } = useAssetSignedUrl(fileId, isImage, "preview");
+  const { url: signedUrl, inViewRef } = useAssetSignedUrl(fileId, isImage, "preview", {
+    lazy,
+  });
   const legacy = fallbackUrl?.trim();
   const imageSrc = signedUrl || legacy || null;
 
@@ -50,7 +54,9 @@ export function AssetThumbPreview({
     );
   }
 
-  return <div className="absolute inset-0 bg-muted/40 animate-pulse" aria-hidden />;
+  return (
+    <div ref={inViewRef} className="absolute inset-0 bg-muted/40 animate-pulse" aria-hidden />
+  );
 }
 
 /** 非画像向けアイコン（StepFileSelect の色分け用） */

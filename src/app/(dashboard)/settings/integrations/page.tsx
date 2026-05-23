@@ -66,7 +66,7 @@ export default function IntegrationsSettingsPage() {
       setOnceToken(data.token);
       setLabel("");
       await refresh();
-      toast.success("APIトークンを発行しました");
+      toast.success(t.integrations.issueSuccess);
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ export default function IntegrationsSettingsPage() {
     toast.success(
       isDangoOAuth
         ? t.integrations.revokeSuccessDangoOAuth
-        : "APIトークンを失効させました"
+        : t.integrations.revokeSuccess
     );
   }
 

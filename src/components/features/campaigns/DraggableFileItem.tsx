@@ -1,6 +1,6 @@
 import { useDraggable } from "@dnd-kit/core";
-import Image from "next/image";
-import { Check, FileAudio, FileImage, File, Trash2 } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
+import { CampaignFileThumb } from "./CampaignFileThumb";
 import { FileItem } from "./types";
 import { cn } from "@/lib/utils";
 
@@ -86,15 +86,7 @@ export function DraggableFileItem({
 
       {/* Thumbnail */}
       <div className="bg-emerald-500/10 rounded-lg text-emerald-500 shrink-0 relative overflow-hidden flex items-center justify-center w-full aspect-square mb-2">
-        {file.type === "image" && file.previewUrl ? (
-          <Image src={file.previewUrl} alt={file.name} fill priority={priority} className="object-cover" unoptimized />
-        ) : file.type === "audio" ? (
-          <FileAudio className="w-6 h-6" />
-        ) : file.type === "image" ? (
-          <FileImage className="w-6 h-6" />
-        ) : (
-          <File className="w-6 h-6" />
-        )}
+        <CampaignFileThumb file={file} priority={priority} lazy={!priority} />
       </div>
 
       {/* Info */}

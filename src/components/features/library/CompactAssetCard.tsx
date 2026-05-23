@@ -73,7 +73,9 @@ export function CompactAssetCard({
     : undefined;
 
   const isImage = file.type.startsWith("image/");
-  const { url: thumbUrl } = useAssetSignedUrl(file.id, isImage, "preview");
+  const { url: thumbUrl, inViewRef } = useAssetSignedUrl(file.id, isImage, "preview", {
+    lazy: true,
+  });
   const imageSrc = thumbUrl || file.url;
 
   return (
@@ -141,7 +143,10 @@ export function CompactAssetCard({
       </div>
 
       {/* Thumbnail Area */}
-      <div className="aspect-square bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden relative mb-1.5 shadow-inner group-hover:shadow-none transition-shadow">
+      <div
+        ref={inViewRef}
+        className="aspect-square bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden relative mb-1.5 shadow-inner group-hover:shadow-none transition-shadow"
+      >
         {isImage && imageSrc ? (
           <Image 
             src={imageSrc} 

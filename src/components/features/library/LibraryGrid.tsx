@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   DndContext,
@@ -22,6 +24,10 @@ import { CampaignSearchDropZone } from "@/components/features/library/CampaignSe
 import { AssetFile, CampaignSummary } from "@/components/features/library/types";
 
 interface LibraryGridProps {
+  loading?: boolean;
+  loadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
   files: AssetFile[];
   filteredFiles: AssetFile[];
   campaigns: CampaignSummary[];
@@ -68,7 +74,67 @@ interface LibraryGridProps {
   getFileIcon: (type: string) => React.ReactNode;
 }
 
+function LibraryLoadMoreSentinel({
+  hasMore,
+  loadingMore,
+  onLoadMore,
+}: {
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
+}) {
+  const { ref, inView } = useInView({ rootMargin: "320px" });
+
+  useEffect(() => {
+    if (inView && hasMore && !loadingMore) {
+      onLoadMore();
+    }
+  }, [inView, hasMore, loadingMore, onLoadMore]);
+
+  if (!hasMore) return null;
+
+  return (
+    <div
+      ref={ref}
+      className="flex h-12 items-center justify-center text-muted-foreground"
+      aria-hidden={!loadingMore}
+    >
+      {loadingMore ? <Loader2 className="h-5 w-5 animate-spin text-emerald-500" /> : null}
+    </div>
+  );
+}
+
+function LibraryGridSkeleton({ viewMode }: { viewMode: "detail" | "compact" }) {
+  const count = viewMode === "compact" ? 12 : 8;
+  return (
+    <div
+      className={cn(
+        "grid gap-4 md:gap-6",
+        viewMode === "compact"
+          ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
+          : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+      )}
+      aria-busy="true"
+      aria-label="Loading assets"
+    >
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className={cn(
+            "rounded-xl border border-border/40 bg-muted/30 animate-pulse",
+            viewMode === "compact" ? "aspect-square" : "h-[320px]"
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function LibraryGrid({
+  loading = false,
+  loadingMore = false,
+  hasMore = false,
+  onLoadMore,
   files,
   filteredFiles,
   campaigns,
@@ -230,7 +296,11 @@ export function LibraryGrid({
   });
   const dockCampaigns = (recentCampaigns.length > 0 ? recentCampaigns : campaigns).slice(0, 5);
 
-  if (files.length === 0) {
+  if (loading && files.length === 0) {
+    return <LibraryGridSkeleton viewMode={viewMode} />;
+  }
+
+  if (!loading && files.length === 0) {
     return (
       <GlassCard className="flex flex-col items-center justify-center py-20 text-center">
         <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
@@ -328,6 +398,13 @@ export function LibraryGrid({
             })}
           </div>
         )}
+        {onLoadMore ? (
+          <LibraryLoadMoreSentinel
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+            onLoadMore={onLoadMore}
+          />
+        ) : null}
       </div>
 
       <DragOverlay>

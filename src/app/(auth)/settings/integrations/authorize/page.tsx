@@ -151,7 +151,7 @@ function AuthorizeInner() {
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-foreground">{t.integrations.consentRead}</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      キャンペーンのアセット一覧やファイルのプレビュー情報（画像・音声等）を参照します。
+                      {t.integrations.consentReadDetail}
                     </p>
                   </div>
                 </div>
@@ -164,7 +164,7 @@ function AuthorizeInner() {
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-foreground">{t.integrations.consentWrite}</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      配布用キャンペーンの作成、景品ファイルの登録、ガチャ確率設定の保存を行います。
+                      {t.integrations.consentWriteDetail}
                     </p>
                   </div>
                 </div>
@@ -177,7 +177,7 @@ function AuthorizeInner() {
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-foreground">{t.integrations.consentIssue}</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      アセットごとに、リスナーに配布するための安全な受取用リンク（Claim）を新規に発行します。
+                      {t.integrations.consentIssueDetail}
                     </p>
                   </div>
                 </div>
@@ -243,7 +243,7 @@ function AuthorizeInner() {
                   onClick={() => setShowDevInfo((s) => !s)}
                 >
                   <Info className="w-3.5 h-3.5" />
-                  <span>Developer Metadata</span>
+                  <span>{t.integrations.devMetadataHeading}</span>
                 </button>
                 {showDevInfo && (
                   <div className="p-4 rounded-2xl bg-black/5 dark:bg-black/20 border border-border/20 text-left space-y-2 font-mono text-[10px] text-muted-foreground leading-relaxed animate-in fade-in duration-300">

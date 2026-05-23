@@ -9,7 +9,11 @@ function supabaseConnectHosts(): string[] {
     return ["https://*.supabase.co", "wss://*.supabase.co"];
   }
   try {
-    const host = new URL(raw).host;
+    const url = new URL(raw);
+    const host = url.host;
+    if (url.protocol === "http:") {
+      return [`http://${host}`, `ws://${host}`];
+    }
     return [`https://${host}`, `wss://${host}`];
   } catch {
     return ["https://*.supabase.co", "wss://*.supabase.co"];

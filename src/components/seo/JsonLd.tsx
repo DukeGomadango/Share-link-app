@@ -49,7 +49,7 @@ export function JsonLd({ variant }: JsonLdProps) {
         "受取人ごとの限定リンク",
         "ライブラリ・受取人管理",
         "だんごツール連携",
-        "パスキー（WebAuthn）対応",
+        "パスキー対応",
       ],
     },
     {

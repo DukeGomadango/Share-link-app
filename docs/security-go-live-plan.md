@@ -19,6 +19,8 @@
 
 運用・申告の土台。担当: 開発者＋Stripe / Supabase Dashboard。
 
+**作業用チェックリスト（コピペ・印刷向け）**: [`security-config-checklist.md`](./security-config-checklist.md)
+
 ### 0-A Stripe Dashboard（本番）
 
 | # | 作業 | 完了基準 |

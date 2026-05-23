@@ -39,7 +39,7 @@ export function SocialAuthButtons({
         throw err;
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "OAuth に失敗しました");
+      setError(err instanceof Error ? err.message : "外部アカウントでのログインに失敗しました");
       setLoading(null);
     }
   }

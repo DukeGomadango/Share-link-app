@@ -1,22 +1,41 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import type { AssetListFilters } from "@/lib/assets/library-list-filters";
 import { AssetFile } from "@/components/features/library/types";
 import { MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 import { toast } from "sonner";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { debounce } from "@/lib/utils";
-import { useWorkspaceStats } from "@/hooks/features/workspace/useWorkspaceStats";
+import { useWorkspaceLibrary } from "@/context/WorkspaceLibraryContext";
 import { useTranslation } from "@/lib/i18n";
 
 export function useLibraryFiles() {
   const { t } = useTranslation();
-  const [files, setFiles] = useState<AssetFile[]>([]);
-  const [storageStats, setStorageStats] = useState<{ usedBytes: number; limitBytes: number; planTier: string }>({
-    usedBytes: 0,
-    limitBytes: 2147483648,
-    planTier: "free",
-  });
+  const {
+    files,
+    setFiles,
+    stats: workspaceStats,
+    assetCounts,
+    loading: filesLoading,
+    loadingMore: filesLoadingMore,
+    hasMore: hasMoreFiles,
+    filteredTotal,
+    reloadList,
+    refresh: refreshLibrary,
+    loadMore: loadMoreFiles,
+    ensureAllFilesLoaded,
+  } = useWorkspaceLibrary();
+
+  const storageStats = useMemo(
+    () => ({
+      usedBytes: workspaceStats?.usedBytes ?? 0,
+      limitBytes: workspaceStats?.limitBytes ?? 2147483648,
+      planTier: workspaceStats?.planTier ?? "free",
+    }),
+    [workspaceStats]
+  );
+
   const [fileTypeFilter, setFileTypeFilter] = useState<"all" | "image" | "audio">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [unassignedOnly, setUnassignedOnly] = useState(false);
@@ -24,32 +43,44 @@ export function useLibraryFiles() {
   const [dateFilter, setDateFilter] = useState<"all" | "7d" | "30d" | "90d">("all");
   const [selectedTag, setSelectedTag] = useState("all");
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [nowTs] = useState(() => Date.now());
-  const { stats: workspaceStats } = useWorkspaceStats();
+  const listFiltersMountedRef = useRef(false);
 
-  const fetchFiles = useCallback(() => {
-    fetch("/api/files")
-      .then((r) => {
-        if (!r.ok) throw new Error(String(r.status));
-        return r.json();
-      })
-      .then((data) => {
-        setFiles(data.files as AssetFile[]);
-        if (data.stats) {
-          setStorageStats(data.stats);
-        }
-      })
-      .catch((e) => console.error("Failed to fetch files:", e));
-  }, []);
+  const listFilters = useMemo((): AssetListFilters => {
+    return {
+      q: searchQuery.trim() || undefined,
+      mimeCategory: fileTypeFilter === "all" ? undefined : fileTypeFilter,
+      unassignedOnly: unassignedOnly || undefined,
+      size: sizeFilter === "all" ? undefined : sizeFilter,
+      date: dateFilter === "all" ? undefined : dateFilter,
+      tag: selectedTag === "all" ? undefined : selectedTag,
+    };
+  }, [
+    searchQuery,
+    fileTypeFilter,
+    unassignedOnly,
+    sizeFilter,
+    dateFilter,
+    selectedTag,
+  ]);
 
-  const debouncedFetchFiles = useMemo(
-    () => debounce(() => fetchFiles(), 500),
-    [fetchFiles]
-  );
+  const listFiltersKey = JSON.stringify(listFilters);
 
   useEffect(() => {
-    fetchFiles();
-  }, [fetchFiles]);
+    if (!listFiltersMountedRef.current) {
+      listFiltersMountedRef.current = true;
+      void reloadList(listFilters);
+      return;
+    }
+    const timer = setTimeout(() => {
+      void reloadList(listFilters);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [listFiltersKey, listFilters, reloadList]);
+
+  const debouncedRefreshLibrary = useMemo(
+    () => debounce(() => void refreshLibrary(), 500),
+    [refreshLibrary]
+  );
 
   // リアルタイム更新 (Supabase Realtime)
   useEffect(() => {
@@ -92,7 +123,7 @@ export function useLibraryFiles() {
         },
         (payload) => {
           if (payload.eventType === "INSERT" || payload.eventType === "DELETE") {
-            debouncedFetchFiles();
+            debouncedRefreshLibrary();
           }
         }
       )
@@ -101,7 +132,7 @@ export function useLibraryFiles() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [workspaceStats?.workspaceId, debouncedFetchFiles]);
+  }, [workspaceStats?.workspaceId, debouncedRefreshLibrary, setFiles]);
 
   const uploadSingle = useCallback(async (file: File) => {
     const init = await fetch("/api/files/upload-url", {
@@ -193,7 +224,7 @@ export function useLibraryFiles() {
         toast.error(`${file.name} のアップロードに失敗しました。`);
       }
     }
-    fetchFiles();
+    await refreshLibrary();
     if (newAssetIds.length > 0) {
       toast.success(`${newAssetIds.length} 件のファイルを追加しました`);
     }
@@ -223,50 +254,15 @@ export function useLibraryFiles() {
       .map(([tag]) => tag);
   }, [files, inferSmartTags]);
 
-  const filteredFiles = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    return files.filter((file) => {
-      if (fileTypeFilter === "image" && !file.type.startsWith("image/")) return false;
-      if (fileTypeFilter === "audio" && !file.type.startsWith("audio/")) return false;
-      if (unassignedOnly && file.linkedCampaigns.length > 0) return false;
+  /** 一覧はサーバー側でフィルタ済み */
+  const filteredFiles = files;
 
-      if (sizeFilter !== "all") {
-        if (sizeFilter === "small" && file.size >= 1024 * 1024) return false;
-        if (sizeFilter === "medium" && (file.size < 1024 * 1024 || file.size >= 10 * 1024 * 1024))
-          return false;
-        if (sizeFilter === "large" && file.size < 10 * 1024 * 1024) return false;
-      }
-
-      if (dateFilter !== "all") {
-        const createdAt = new Date(file.createdAt).getTime();
-        const days = dateFilter === "7d" ? 7 : dateFilter === "30d" ? 30 : 90;
-        if (nowTs - createdAt > days * 24 * 60 * 60 * 1000) return false;
-      }
-
-      if (selectedTag !== "all" && !inferSmartTags(file).includes(selectedTag)) return false;
-
-      if (normalizedQuery) {
-        const haystack = `${file.name} ${file.linkedCampaigns.join(" ")}`.toLowerCase();
-        if (!haystack.includes(normalizedQuery)) return false;
-      }
-      return true;
-    });
-  }, [
-    files,
-    fileTypeFilter,
-    unassignedOnly,
-    sizeFilter,
-    dateFilter,
-    selectedTag,
-    searchQuery,
-    inferSmartTags,
-    nowTs,
-  ]);
-
-  const unassignedCount = useMemo(
-    () => files.filter((file) => file.linkedCampaigns.length === 0).length,
-    [files]
-  );
+  const unassignedCount = useMemo(() => {
+    if (assetCounts.total > 0 && !hasMoreFiles && files.length >= assetCounts.total) {
+      return assetCounts.unassigned;
+    }
+    return files.filter((file) => file.linkedCampaigns.length === 0).length;
+  }, [assetCounts, hasMoreFiles, files]);
 
   const handleRename = useCallback(async (fileId: string, newName: string) => {
     const r = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
@@ -275,12 +271,11 @@ export function useLibraryFiles() {
       body: JSON.stringify({ name: newName }),
     });
     if (!r.ok) throw new Error(`Rename failed: ${r.status}`);
-    
-    // ローカルステートを更新
-    setFiles((prev) => 
-      prev.map((f) => f.id === fileId ? { ...f, name: newName } : f)
+
+    setFiles((prev) =>
+      prev.map((f) => (f.id === fileId ? { ...f, name: newName } : f))
     );
-  }, []);
+  }, [setFiles]);
 
   const handleDelete = useCallback(async (fileId: string) => {
     const r = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
@@ -290,10 +285,10 @@ export function useLibraryFiles() {
       const err = await r.json().catch(() => ({}));
       throw new Error(err.message || `Delete failed: ${r.status}`);
     }
-    
-    // ローカルステートを更新
+
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
-  }, []);
+    void refreshLibrary();
+  }, [setFiles, refreshLibrary]);
 
   const handleBulkDelete = useCallback(async (fileIds: string[]) => {
     const results = await Promise.allSettled(
@@ -314,6 +309,7 @@ export function useLibraryFiles() {
       .map((r) => r.value);
 
     setFiles((prev) => prev.filter((f) => !successfulIds.includes(f.id)));
+    void refreshLibrary();
 
     const errors = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
     if (errors.length > 0) {
@@ -321,7 +317,7 @@ export function useLibraryFiles() {
         `${errors.length} 件のファイルの削除に失敗しました。キャンペーンに使用中の可能性があります。`
       );
     }
-  }, []);
+  }, [setFiles, refreshLibrary]);
 
   return {
     files,
@@ -345,8 +341,15 @@ export function useLibraryFiles() {
     handleRename,
     handleDelete,
     handleBulkDelete,
-    refreshFiles: fetchFiles,
+    refreshFiles: refreshLibrary,
     storageStats,
     uploadError,
+    filesLoading,
+    filesLoadingMore,
+    hasMoreFiles,
+    loadMoreFiles,
+    ensureAllFilesLoaded,
+    assetCounts,
+    filteredTotal,
   };
 }

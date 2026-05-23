@@ -34,6 +34,10 @@ export const workspaces = pgTable(
     storageLimit: bigint("storage_limit", { mode: "number" })
       .default(2147483648)
       .notNull(), // 2GB
+    /** 集計キャッシュ（assets.size_bytes の合計と同期） */
+    storageUsedBytes: bigint("storage_used_bytes", { mode: "number" })
+      .default(0)
+      .notNull(),
     stripeCustomerId: text("stripe_customer_id"),
     stripeSubscriptionId: text("stripe_subscription_id"),
     subscriptionCurrentPeriodEnd: timestamp("subscription_current_period_end", {

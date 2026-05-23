@@ -2,14 +2,29 @@
 
 import { useEffect, useState } from "react";
 
-type Purpose = "preview" | "view";
+import {
+  subscribeSignedUrl,
+  type SignedUrlPurpose,
+} from "@/lib/assets/signed-url-batch-client";
+import { useInView } from "@/hooks/useInView";
+
+type Purpose = SignedUrlPurpose;
+
+type UseAssetSignedUrlOptions = {
+  /** true のときビューポート進入後に署名 URL を要求 */
+  lazy?: boolean;
+};
 
 export function useAssetSignedUrl(
   fileId: string | undefined,
   enabled: boolean,
-  purpose: Purpose = "preview"
+  purpose: Purpose = "preview",
+  options?: UseAssetSignedUrlOptions
 ) {
-  const active = enabled && !!fileId;
+  const lazy = options?.lazy ?? false;
+  const { ref: inViewRef, inView } = useInView({ enabled: lazy && enabled && !!fileId });
+  const active = enabled && !!fileId && (!lazy || inView);
+
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
@@ -26,38 +41,24 @@ export function useAssetSignedUrl(
       }
     });
 
-    fetch(`/api/files/${fileId}/signed-url?purpose=${purpose}`)
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error(String(res.status));
-        }
-        return res.json() as Promise<{ url?: string }>;
-      })
-      .then((data) => {
-        if (!cancelled) {
-          setUrl(data.url ?? null);
-          setLoadedFor(fileId);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setUrl(null);
-          setLoadedFor(fileId);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
+    const unsubscribe = subscribeSignedUrl(fileId, purpose, (nextUrl) => {
+      if (cancelled) return;
+      setUrl(nextUrl);
+      setLoadedFor(fileId);
+      setLoading(false);
+    });
 
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, [active, fileId, purpose]);
 
-  const resolvedUrl =
-    active && loadedFor === fileId ? url : null;
+  const resolvedUrl = active && loadedFor === fileId ? url : null;
 
-  return { url: resolvedUrl, loading: active && loading };
+  return {
+    url: resolvedUrl,
+    loading: active && loading && !resolvedUrl,
+    inViewRef: lazy ? inViewRef : undefined,
+  };
 }

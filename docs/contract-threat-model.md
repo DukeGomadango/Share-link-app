@@ -17,7 +17,7 @@
 
 キャンペーンの **ツール連携一時停止**（`is_external_linked = false`）中は、外部 API の書き込みは `403 integration_paused`。読み取り（GET）は継続可能。
 
-OAuth／連携同意 UI では **アプリ名＋上記の平易文**のみを既定表示とし、機械語は「詳細」折りたたみに限定する。
+OAuth／連携同意 UI では **アプリ名＋上記の平易文**のみを既定表示とし、機械語（スコープ名・client_id 等）は「詳細」折りたたみに限定する。画面文案の正は `src/lib/i18n/locales/ja.ts` の `integrations.*`。
 
 ## ライフサイクル（Claim）
 

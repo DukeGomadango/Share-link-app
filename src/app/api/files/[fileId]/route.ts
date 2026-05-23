@@ -4,6 +4,8 @@ import { getDb } from "@/db";
 import { assets } from "@/db/schema";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { deleteStorageObject } from "@/lib/storage/delete-object";
+import { applyWorkspaceStorageDelta } from "@/lib/workspace/workspace-storage";
+import { invalidateWorkspaceStorageSnapshot } from "@/lib/workspace/storage-snapshot-cache";
 
 export async function PATCH(
   request: Request,
@@ -80,6 +82,9 @@ export async function DELETE(
     if (result.length === 0) {
       return NextResponse.json({ error: "Asset not found" }, { status: 404 });
     }
+
+    await applyWorkspaceStorageDelta(ctx.workspaceId, -asset.sizeBytes);
+    invalidateWorkspaceStorageSnapshot(ctx.workspaceId);
 
     return NextResponse.json({ success: true });
   } catch (e: unknown) {

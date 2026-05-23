@@ -93,7 +93,7 @@ export function RecipientTable({
                         ) : recipient.status === "verified" ? (
                           <span className="w-1.5 h-1.5 rounded-full bg-sky-500" title="Verified" />
                         ) : (
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Claimed" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="受取済" />
                         )}
                       </div>
                       <div className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export function RecipientTable({
                           ) : recipient.status === "verified" ? (
                             <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-sky-500/20 text-sky-600 bg-sky-500/5 font-bold uppercase">Verified</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-emerald-500/20 text-emerald-600 bg-emerald-500/5 font-bold uppercase">Claimed</Badge>
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-emerald-500/20 text-emerald-600 bg-emerald-500/5 font-bold">受取済</Badge>
                           )}
                         </div>
                       </div>

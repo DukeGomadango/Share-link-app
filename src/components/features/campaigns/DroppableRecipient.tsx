@@ -7,8 +7,6 @@ import {
   Copy,
   ExternalLink,
   Check,
-  FileAudio,
-  FileImage,
   AlertCircle,
   Plus,
   KeyRound,
@@ -16,7 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
+import { CampaignFileThumb } from "./CampaignFileThumb";
 import { Recipient, FileItem } from "./types";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -243,13 +241,11 @@ export function DroppableRecipient({
                   style={{ zIndex: 10 - i }}
                   className="relative w-10 h-10 rounded-xl ring-2 ring-background bg-emerald-500/10 flex items-center justify-center overflow-hidden shadow-sm shrink-0"
                 >
-                  {file.type === "image" && file.previewUrl ? (
-                    <Image src={file.previewUrl} alt={file.name} fill className="object-cover" unoptimized />
-                  ) : file.type === "audio" ? (
-                    <FileAudio className="w-5 h-5 text-emerald-500" />
-                  ) : (
-                    <FileImage className="w-5 h-5 text-emerald-500" />
-                  )}
+                  <CampaignFileThumb
+                    file={file}
+                    iconClassName="w-5 h-5 text-emerald-500"
+                    lazy
+                  />
                 </motion.div>
               ))}
               {assignedFiles.length > 4 && (

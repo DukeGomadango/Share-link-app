@@ -8,6 +8,7 @@ import { LibraryToasts } from "@/components/features/library/LibraryToasts";
 import type { AssignResult, CampaignSummary } from "@/components/features/library/types";
 import { useCommandPaletteStore } from "@/stores/commandPaletteStore";
 import { useRegisterCommandPaletteSource } from "@/hooks/features/library/useRegisterCommandPaletteSource";
+import { useWorkspaceLibrary } from "@/context/WorkspaceLibraryContext";
 
 import { DashboardHeader } from "@/components/features/dashboard/DashboardHeader";
 import { NextBestActions } from "@/components/features/dashboard/NextBestActions";
@@ -43,6 +44,7 @@ export default function DashboardPage() {
     campaignName: "",
   });
   const { t } = useTranslation();
+  const { files: workspaceFiles } = useWorkspaceLibrary();
 
   const fetchStats = useCallback(async () => {
     await Promise.resolve();
@@ -82,19 +84,14 @@ export default function DashboardPage() {
   );
 
   const openQuickAssign = useCallback(() => {
-    fetch("/api/files")
-      .then((r) => r.json())
-      .then((files) => {
-        const ids = (files as Array<{ id: string; linkedCampaigns: string[] }>)
-          .filter((file) => file.linkedCampaigns.length === 0)
-          .map((file) => file.id);
-        setUnassignedFileIds(ids);
-        if (ids.length === 0) return;
-        setCommandDropQuery("");
-        openCommandDrop();
-      })
-      .catch((e) => console.error("Failed to fetch files:", e));
-  }, [openCommandDrop, setCommandDropQuery]);
+    const ids = workspaceFiles
+      .filter((file) => file.linkedCampaigns.length === 0)
+      .map((file) => file.id);
+    setUnassignedFileIds(ids);
+    if (ids.length === 0) return;
+    setCommandDropQuery("");
+    openCommandDrop();
+  }, [workspaceFiles, openCommandDrop, setCommandDropQuery]);
 
   const closeCommandDrop = useCallback(() => {
     closeCommandDropState();

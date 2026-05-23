@@ -21,6 +21,7 @@ import type {
 import { MAX_UPLOAD_BYTES } from "@/lib/storage/config";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { debounce } from "@/lib/utils";
+import { useWorkspaceLibrary } from "@/context/WorkspaceLibraryContext";
 
 async function uploadLibraryAssetFromFile(file: File): Promise<string> {
   const init = await fetch("/api/files/upload-url", {
@@ -111,7 +112,11 @@ export function useCampaignDetail() {
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
 
   const [showLibraryModal, setShowLibraryModal] = useState(false);
-  const [libraryFiles, setLibraryFiles] = useState<LibraryFile[]>([]);
+  const {
+    files: workspaceLibraryFiles,
+    refresh: refreshWorkspaceLibrary,
+    ensureAllFilesLoaded,
+  } = useWorkspaceLibrary();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -302,14 +307,24 @@ export function useCampaignDetail() {
   }, [campaignId, debouncedLoadWorkflow]);
 
   const fetchLibraryFiles = useCallback(() => {
-    fetch("/api/files")
-      .then((r) => r.json())
-      .then((data) => {
-        const files = Array.isArray(data) ? data : (data.files || []);
-        setLibraryFiles(files as LibraryFile[]);
-      })
-      .catch((e) => console.error(e));
-  }, []);
+    void refreshWorkspaceLibrary();
+    void ensureAllFilesLoaded();
+  }, [refreshWorkspaceLibrary, ensureAllFilesLoaded]);
+
+  const libraryFiles: LibraryFile[] = useMemo(
+    () =>
+      workspaceLibraryFiles.map((f) => ({
+        id: f.id,
+        name: f.name,
+        type: f.type,
+        size: f.size,
+        createdAt: f.createdAt,
+        expiresAt: f.expiresAt,
+        url: f.url,
+        linkedCampaigns: f.linkedCampaigns,
+      })),
+    [workspaceLibraryFiles]
+  );
 
   const assignFromLibrary = useCallback(
     async (libraryAssetIds: string[]) => {

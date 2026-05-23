@@ -1,7 +1,7 @@
 /**
  * サイト共通設定（OGP・sitemap・robots・JsonLd で共有）
  * 本番 URL: NEXT_PUBLIC_APP_URL（末尾スラッシュなし）
- * OGP: src/app/opengraph-image.png（Next.js ファイル規約・1200×630 推奨）
+ * OGP: src/app/opengraph-image.tsx（Next.js ファイル規約・1200×630）
  */
 export function getSiteUrl(): string {
   const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");

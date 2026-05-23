@@ -27,14 +27,14 @@ export async function resolveIntegrationBearer(
 ): Promise<IntegrationContext | Response> {
   const auth = request.headers.get("authorization");
   if (!auth?.toLowerCase().startsWith("bearer ")) {
-    return jsonWithCors({ error: "unauthorized", message: "Bearer が必要です" }, request, {
+    return jsonWithCors({ error: "unauthorized", message: "連携の認証情報が必要です" }, request, {
       status: 401,
     });
   }
 
   const plain = auth.slice(7).trim();
   if (!plain) {
-    return jsonWithCors({ error: "unauthorized", message: "Bearer が空です" }, request, {
+    return jsonWithCors({ error: "unauthorized", message: "連携の認証情報が不正です" }, request, {
       status: 401,
     });
   }
@@ -53,7 +53,7 @@ export async function resolveIntegrationBearer(
 
   const token = row[0];
   if (!token) {
-    return jsonWithCors({ error: "unauthorized", message: "トークンが無効です" }, request, {
+    return jsonWithCors({ error: "unauthorized", message: "連携が無効です" }, request, {
       status: 401,
     });
   }
@@ -61,7 +61,7 @@ export async function resolveIntegrationBearer(
   const scopes = parseIntegrationScopes(token.scopes);
   if (requiredScope && !tokenHasScope(scopes, requiredScope)) {
     return jsonWithCors(
-      { error: "forbidden", message: `スコープ ${requiredScope} が必要です` },
+      { error: "forbidden", message: "この操作を行う権限がありません" },
       request,
       { status: 403 }
     );

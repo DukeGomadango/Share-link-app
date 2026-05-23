@@ -115,7 +115,12 @@ export function DraggableAssetCard({
     : undefined;
 
   const isImage = file.type.startsWith("image/");
-  const { url: thumbUrl } = useAssetSignedUrl(file.id, isImage, "preview");
+  const { url: thumbUrl, loading: thumbLoading, inViewRef } = useAssetSignedUrl(
+    file.id,
+    isImage,
+    "preview",
+    { lazy: true }
+  );
   const imageSrc = thumbUrl || file.url;
 
   return (
@@ -160,7 +165,10 @@ export function DraggableAssetCard({
               <GripVertical className="w-4 h-4" />
             </button>
           </div>
-          <div className="w-16 h-16 bg-muted/50 rounded-xl flex items-center justify-center overflow-hidden relative shrink-0 shadow-inner group-hover:shadow-none transition-shadow">
+          <div
+            ref={inViewRef}
+            className="w-16 h-16 bg-muted/50 rounded-xl flex items-center justify-center overflow-hidden relative shrink-0 shadow-inner group-hover:shadow-none transition-shadow"
+          >
             {isImage && imageSrc ? (
               <Image 
                 src={imageSrc} 
@@ -169,8 +177,8 @@ export function DraggableAssetCard({
                 className="object-cover transition-transform duration-500 group-hover:scale-110" 
                 unoptimized 
               />
-            ) : isImage ? (
-              <div className="w-full h-full bg-muted/40 animate-pulse" />
+            ) : isImage && (thumbLoading || !imageSrc) ? (
+              <div className="w-full h-full bg-muted/40 animate-pulse" aria-hidden />
             ) : (
               <div className="transform group-hover:scale-110 transition-transform duration-500">
                 {getFileIcon(file.type)}

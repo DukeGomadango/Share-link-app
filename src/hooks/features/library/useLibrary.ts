@@ -32,6 +32,12 @@ export function useLibrary() {
     handleDelete,
     handleBulkDelete,
     storageStats,
+    filesLoading,
+    filesLoadingMore,
+    hasMoreFiles,
+    loadMoreFiles,
+    assetCounts,
+    filteredTotal,
   } = useLibraryFiles();
 
   // 2. Campaigns & Search
@@ -173,5 +179,11 @@ export function useLibrary() {
     closeCommandDrop,
     assignFromCommandDrop,
     storageStats,
+    filesLoading,
+    filesLoadingMore,
+    hasMoreFiles,
+    loadMoreFiles,
+    assetCounts,
+    filteredTotal,
   };
 }

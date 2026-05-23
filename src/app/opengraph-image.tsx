@@ -46,10 +46,18 @@ export default function OpenGraphImage() {
           </div>
           <span style={{ fontSize: 28, fontWeight: 700, opacity: 0.9 }}>{SITE_CONFIG.name}</span>
         </div>
-        <div style={{ fontSize: 56, fontWeight: 800, lineHeight: 1.15, maxWidth: 900 }}>
-          配信者向け
-          <br />
-          ファイル配布プラットフォーム
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            fontSize: 56,
+            fontWeight: 800,
+            lineHeight: 1.15,
+            maxWidth: 900,
+          }}
+        >
+          <span>配信者向け</span>
+          <span>ファイル配布プラットフォーム</span>
         </div>
         <p style={{ marginTop: 28, fontSize: 26, lineHeight: 1.5, opacity: 0.85, maxWidth: 820 }}>
           キャンペーン単位の特典配布 · 受取人ごとの限定リンク · だんごツール連携

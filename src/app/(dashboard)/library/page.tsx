@@ -71,6 +71,11 @@ export default function LibraryPage() {
     handleRename,
     handleDelete,
     handleBulkDelete,
+    filesLoading,
+    filesLoadingMore,
+    hasMoreFiles,
+    loadMoreFiles,
+    assetCounts,
     handleUndoAssign,
     handleDragStart,
     handleDragEnd,
@@ -145,7 +150,10 @@ export default function LibraryPage() {
     <div className={`space-y-6 ${isIntentDockOpen ? "pb-36" : "pb-20"}`}>
       <LibraryHeader title={t.library.title} subtitle={t.library.subtitle} />
 
-      <LibraryRetentionBanner expiringSoonCount={expiringSoonCount} totalFiles={files.length} />
+      <LibraryRetentionBanner
+        expiringSoonCount={expiringSoonCount}
+        totalFiles={assetCounts.total > 0 ? assetCounts.total : files.length}
+      />
 
       <div className="mb-8 space-y-4">
         <FileDropzone onFilesDropped={handleFilesDropped} />
@@ -197,6 +205,10 @@ export default function LibraryPage() {
       />
 
       <LibraryGrid
+        loading={filesLoading}
+        loadingMore={filesLoadingMore}
+        hasMore={hasMoreFiles}
+        onLoadMore={loadMoreFiles}
         files={files}
         filteredFiles={filteredFiles}
         campaigns={campaigns}

@@ -91,12 +91,12 @@ export const en: TranslationKeys = {
     addCountFiles: "Add {count} Files",
     recipients: "Recipients",
     recipientsSectionDescription:
-      "Issue claim links per asset from the file pool on the left and track them here (the pool is your stack of distributable source files).",
+      "Issue recipient links per file from the file pool on the left and track them here (the pool is your stack of distributable source files).",
     recipientsNeedPoolFiles:
-      "Add files to the pool on the left first. Once the pool has assets, use “Add Recipients” to issue links one by one.",
+      "Add files to the pool on the left first. Once the pool has files, use “Add Recipients” to issue links one by one.",
     addRecipients: "Add Recipients",
     addRecipientsButtonTitle:
-      "Issue one claim link by picking a display name and a pool asset (add files to the pool first if it’s empty)",
+      "Issue one recipient link by picking a display name and a pool file (add files to the pool first if it’s empty)",
     directCampaign: "Direct Campaign",
     campaignFlow: "Campaign Flow",
     exportLinks: "Export Links",
@@ -105,23 +105,23 @@ export const en: TranslationKeys = {
     exportDone: "Downloaded CSV",
     exportFailed: "Export failed",
     bulkIssueDone:
-      "Issued a claim link for each pool asset (existing idempotent links were left unchanged)",
+      "Issued a recipient link for each pool file (existing idempotent links were left unchanged)",
     bulkIssueFailed: "Bulk issue failed",
-    bulkIssueNoAssets: "Add assets to the file pool first",
+    bulkIssueNoAssets: "Add files to the file pool first",
     exporting: "Exporting…",
     bulkIssuing: "Issuing…",
     csvRecipient: "Recipient display name",
-    csvAsset: "Asset",
+    csvAsset: "File",
     csvStatus: "Status",
     csvExternalId: "External transaction ID",
-    csvLink: "Claim URL",
+    csvLink: "Recipient URL",
     delete: "Delete",
     deleteConfirmTitle: "Delete Campaign",
-    deleteConfirmDescription: "Are you sure you want to delete this campaign? All issued claim links will be invalidated, and this action cannot be undone.",
+    deleteConfirmDescription: "Are you sure you want to delete this campaign? All issued recipient links will be invalidated, and this action cannot be undone.",
     deleteSuccess: "Campaign deleted successfully",
     deleteFailed: "Failed to delete campaign",
     recipientsEmpty:
-      "No issued claim links yet. Use “Generate All” to create one link per file in the pool.",
+      "No issued recipient links yet. Use “Generate All” to create one link per file in the pool.",
     addRecipientTitle: "Add recipient",
     directInput: "Create New",
     selectFromRegistry: "Select from Registry",
@@ -134,16 +134,16 @@ export const en: TranslationKeys = {
     gridView: "Grid View",
     listView: "List View",
     addRecipientDescription:
-      "Enter a display name and pick a pool asset to issue one claim link. You can create multiple links for the same asset for different people.",
+      "Enter a display name and pick a pool file to issue one recipient link. You can create multiple links for the same file for different people.",
     addRecipientNameLabel: "Recipient display name",
     addRecipientNamePlaceholder: "e.g. Jane Fan, Supporter A",
-    addRecipientAssetLabel: "Asset to attach",
+    addRecipientAssetLabel: "File to attach",
     addRecipientNoPool: "Add files to the pool first.",
     addRecipientSubmit: "Issue link",
     addRecipientSubmitting: "Issuing…",
-    addRecipientValidation: "Enter a name and select an asset.",
+    addRecipientValidation: "Enter a name and select a file.",
     addRecipientError: "Could not issue the link.",
-    addRecipientSuccess: "Claim link issued.",
+    addRecipientSuccess: "Recipient link issued.",
     filesSelected: "{count} files selected",
     searchPlaceholder: "Search campaigns",
     views: {
@@ -212,12 +212,12 @@ export const en: TranslationKeys = {
       lockedHint: "Limited distribution and per-link mode are locked while integrated",
       enableConfirmTitle: "Start Dango tool integration",
       enableConfirmDescription:
-        "This campaign switches to limited distribution (passkey required) and per-link delivery, and accepts updates from the Dango tool. You cannot switch to public distribution while integrated. Workspace API access (OAuth) in the Dango tool is configured separately from the Distribute tab.",
+        "This campaign switches to limited distribution (passkey required) and per-link delivery, and accepts updates from the Dango tool. You cannot switch to public distribution while integrated. Connect the Dango tool separately from its Distribute tab (“Start integration”).",
       enableConfirmResumeDescription:
-        "Resume accepting updates from the Dango tool. Distribution stays limited with per-link delivery. If you revoked the API token, reconnect from the Dango tool Distribute tab—not from this button alone.",
+        "Resume accepting updates from the Dango tool. Distribution stays limited with per-link delivery. If you disconnected the tool, reconnect from the Dango tool Distribute tab—not from this button alone.",
       pauseConfirmTitle: "Pause tool integration",
       pauseConfirmDescription:
-        "Stops new updates from the Dango tool (e.g. slot issuance). API tokens stay valid. To fully disconnect, revoke the token under Settings → Integrations.",
+        "Stops new updates from the Dango tool (e.g. adding recipient slots). The tool connection stays active. To fully disconnect, remove the connection under Settings → Integrations.",
       enableConfirmAction: "Start integration",
       resumeConfirmAction: "Resume integration",
       pauseConfirmAction: "Pause",
@@ -229,14 +229,14 @@ export const en: TranslationKeys = {
       syncSuccess: "Gacha configuration updated",
       modeEnabled: "Tool integration is accepting updates from Dango tools",
       modePaused:
-        "Paused updates from Dango tools (API tokens remain valid)",
+        "Paused updates from Dango tools (the tool connection remains active)",
       pauseHint:
-        "To fully disconnect, revoke the token under Settings → Integrations.",
+        "To fully disconnect, remove the connection under Settings → Integrations.",
     },
   },
   library: {
     title: "Library",
-    subtitle: "Manage all your uploaded assets globally.",
+    subtitle: "Manage all your uploaded files.",
     uploadArea: {
       drop: "Drop files here... ✨",
       drag: "Drag & drop files here",
@@ -383,7 +383,7 @@ export const en: TranslationKeys = {
     proTagline:
       "For live events and production runs—distribute gifts without storage or expiry worries.",
     proHighlights: [
-      "Full campaigns, claim links, and library",
+      "Full campaigns, recipient links, and library",
       "Up to 50GB storage",
       "Files are not auto-deleted",
       "Built for large events and long-running distributions",
@@ -478,7 +478,7 @@ export const en: TranslationKeys = {
     },
     integrationsLink: {
       heading: "External integrations",
-      description: "Manage Bearer tokens for tools like the Dango app.",
+      description: "Manage connections to tools like the Dango app.",
       open: "Open integrations",
     },
     account: {
@@ -490,52 +490,61 @@ export const en: TranslationKeys = {
   },
   integrations: {
     title: "External integrations (Dango tools)",
-    subtitle: "Issue and revoke integration tokens for this workspace.",
+    subtitle: "Manage connections between this workspace and the Dango tool.",
     backToSettings: "Back to settings",
-    listHeading: "Active tokens",
-    empty: "No integration tokens yet.",
+    listHeading: "Registered connections",
+    empty: "No connections yet.",
     labelPlaceholder: "Note (optional)",
-    issueToken: "Issue token",
+    issueToken: "Issue manual integration key",
+    issueSuccess: "Integration key issued",
     issuedOnce:
-      "This token is shown only once. Copy it and store it securely. Treat it as a secret.",
-    revoke: "Revoke",
-    createdAtLine: "Issued: {date}",
+      "This key is shown only once. Copy it and store it securely. Do not share it with others.",
+    revoke: "Disconnect",
+    createdAtLine: "Registered: {date}",
     lastUsedLine: "Last used: {date}",
     lastUsedNever: "Last used: never",
-    scopesLine: "Scopes: {scopes}",
-    authorizeTitle: "Approve integration",
-    authorizeSubtitle: "An external app wants to connect. Review and approve.",
-    consentLead: "The Dango tools app requests the following",
-    consentRead: "Read campaigns and file (asset) listings",
+    scopesLine: "Capabilities (details): {scopes}",
+    authorizeTitle: "Approve connection",
+    authorizeSubtitle: "The Dango tool wants to connect to this account. Review and approve.",
+    consentLead: "The Dango tool requests the following",
+    consentRead: "View campaigns and file listings",
+    consentReadDetail:
+      "View file lists and previews (images, audio, etc.) within campaigns.",
     consentWrite: "Create campaigns, register files, and save gacha settings",
-    consentIssue: "Issue recipient claim links",
-    scopesDetail: "Details (machine-readable scopes)",
+    consentWriteDetail:
+      "Create distribution campaigns, register prize files, and save gacha probability settings.",
+    consentIssue: "Issue recipient links",
+    consentIssueDetail:
+      "Create secure recipient links to deliver files to listeners.",
+    scopesDetail: "Technical permission names (for developers)",
+    devMetadataHeading: "Developer details",
     approve: "Approve and continue",
     deny: "Cancel",
-    missingParams: "client_id or redirect_uri is missing",
+    missingParams: "Connection information is incomplete. Try again from the Dango tool.",
     redirectNote:
-      "After approval, a one-time token is appended to the redirect_uri query string.",
+      "After approval you return to the Dango tool and distribution features become available.",
     oauthRotationNote:
-      "Re-approving from Dango tools revokes previous OAuth tokens for the same client and keeps only the new one.",
+      "Re-approving from the Dango tool disables older connections for the same purpose and keeps only the newest one.",
     duplicateOAuthHint:
-      "There are {count} Dango tools OAuth tokens. You can keep the most recently used one.",
+      "There are {count} Dango tool connections. You can keep only the most recently used one.",
     pruneOAuth: "Prune duplicates",
-    pruneConfirmTitle: "Prune OAuth tokens",
+    pruneConfirmTitle: "Prune duplicate connections",
     pruneConfirmDescription:
-      "Keeps one OAuth: dango-tools-gacha token (preferring latest use) and deletes the rest. Manually issued tokens are not affected.",
+      "Keeps one Dango tool connection (preferring latest use) and removes the rest. Manually issued keys are not affected.",
     pruneConfirmAction: "Prune",
-    pruneSuccess: "Removed {count} duplicate token(s)",
+    pruneSuccess: "Removed {count} duplicate connection(s)",
     pruneFailed: "Prune failed",
-    revokeConfirmTitle: "Revoke token",
+    revokeConfirmTitle: "Disconnect",
     revokeConfirmDescription:
-      "Revoke this API token? Integrations using it will stop working.",
+      "Disconnect this integration? Features that rely on it will stop working.",
     revokeConfirmDescriptionDangoOAuth:
-      "Revoke this API token? In the Dango tool, users must reconnect from the Distribute tab (resuming tool integration on a campaign does not restore the token).",
+      "Disconnect this integration? In the Dango tool, users must reconnect from the Distribute tab (“Start integration”). Resuming tool integration on a campaign alone does not restore the connection.",
+    revokeSuccess: "Disconnected",
     revokeSuccessDangoOAuth:
-      "Token revoked. Reconnect from the Dango tool Distribute tab.",
-    revokeConfirmAction: "Revoke",
-    clientIdLabel: "Client ID",
-    redirectLabel: "Redirect URI",
+      "Disconnected. Reconnect from the Dango tool Distribute tab.",
+    revokeConfirmAction: "Disconnect",
+    clientIdLabel: "App identifier",
+    redirectLabel: "Return URL",
   },
   auth: {
     otp: {
@@ -575,7 +584,7 @@ export const en: TranslationKeys = {
   onboarding: {
     title: "Welcome to Dango Share Link!",
     description:
-      "Try it out! Drag a file from your File Pool into a Recipient Card. A secure, unique claim link will be generated automatically. ✨",
+      "Try it out! Drag a file from your File Pool into a Recipient Card. A secure, unique recipient link will be generated automatically. ✨",
     gotIt: "Got it, let's go!",
   },
   claim: {
@@ -624,7 +633,7 @@ export const en: TranslationKeys = {
     itemsCountCompact: "{count} Items",
     viewCollection: "View Collection",
     emptyTitle: "No gifts found yet",
-    emptyDescription: "Gifts will appear here automatically when you claim them via a link.",
+    emptyDescription: "Gifts will appear here automatically when you open them via a link.",
     until: "Until {date}",
     portalLabel: "Dango Share Link",
     settings: "Settings",

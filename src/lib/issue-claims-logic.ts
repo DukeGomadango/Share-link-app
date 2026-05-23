@@ -121,7 +121,7 @@ export async function issueClaimsBatch(
       results.push({
         external_transaction_id: extId,
         ok: false,
-        error: "Claim の作成に失敗しました",
+        error: "受取リンクの作成に失敗しました",
       });
     }
   }

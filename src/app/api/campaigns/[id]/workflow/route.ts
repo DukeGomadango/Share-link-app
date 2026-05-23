@@ -1,12 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
-import { createSignedReadUrl } from "@/lib/assets/signed-urls";
 import { resolveCampaignAssetDisplayName } from "@/lib/campaign-assets/display-name";
 import { fetchWorkflowRecipientsForCampaign } from "@/lib/claims/workflow-recipients";
 import { ensurePublicReceptionToken } from "@/lib/campaigns/public-reception-token";
 import { getSessionWorkspaceContext } from "@/lib/auth/session";
-import { fetchCampaignWithStats } from "@/lib/campaigns-query";
+import { fetchCampaignById } from "@/lib/campaigns-query";
 import { getDb } from "@/db";
 import { assets as libraryAssets, campaignAssets, campaigns } from "@/db/schema";
 import type { Campaign, FileItem } from "@/components/features/campaigns/types";
@@ -46,7 +45,7 @@ export async function GET(_request: Request, ctx: RouteParams) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const campaign = (await fetchCampaignWithStats(
+  const campaign = (await fetchCampaignById(
     session.workspaceId,
     campaignId
   )) as Campaign | null;
@@ -65,37 +64,33 @@ export async function GET(_request: Request, ctx: RouteParams) {
     .leftJoin(libraryAssets, eq(campaignAssets.assetId, libraryAssets.id))
     .where(eq(campaignAssets.campaignId, campaignId));
 
-  const poolFiles: FileItem[] = await Promise.all(
-    assetRows.map(async ({ ca, lib }) => {
-      const name = resolveCampaignAssetDisplayName({
-        label: ca.label,
-        libraryOriginalFilename: lib?.originalFilename,
-        assetUrl: ca.assetUrl,
-        fallback: "file",
-      });
-      let previewUrl: string | undefined;
-      let type: "audio" | "image" | "file" = "file";
+  const poolFiles: FileItem[] = assetRows.map(({ ca, lib }) => {
+    const name = resolveCampaignAssetDisplayName({
+      label: ca.label,
+      libraryOriginalFilename: lib?.originalFilename,
+      assetUrl: ca.assetUrl,
+      fallback: "file",
+    });
+    let previewUrl: string | undefined;
+    let type: "audio" | "image" | "file" = "file";
 
-      if (lib) {
-        type = guessType(lib.mimeType, null);
-        const signed = await createSignedReadUrl(lib.bucket, lib.objectKey);
-        previewUrl = signed ?? undefined;
-      } else if (ca.assetUrl?.trim()) {
-        previewUrl = ca.assetUrl.trim();
-        type = guessType(undefined, ca.assetUrl);
-      }
+    if (lib) {
+      type = guessType(lib.mimeType, null);
+    } else if (ca.assetUrl?.trim()) {
+      previewUrl = ca.assetUrl.trim();
+      type = guessType(undefined, ca.assetUrl);
+    }
 
-      return {
-        id: ca.id,
-        name,
-        type,
-        previewUrl,
-        libraryAssetId: ca.assetId || undefined,
-        expiresAt: lib?.expiresAt?.toISOString(),
-        gachaRarityId: ca.gachaRarityId || undefined,
-      };
-    })
-  );
+    return {
+      id: ca.id,
+      name,
+      type,
+      previewUrl,
+      libraryAssetId: ca.assetId || undefined,
+      expiresAt: lib?.expiresAt?.toISOString(),
+      gachaRarityId: ca.gachaRarityId || undefined,
+    };
+  });
 
   const wfRows = await fetchWorkflowRecipientsForCampaign(campaignId, session.workspaceId);
 
