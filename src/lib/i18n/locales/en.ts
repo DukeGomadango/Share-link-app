@@ -1,6 +1,10 @@
 import type { TranslationKeys } from "./ja";
 
 export const en: TranslationKeys = {
+  app: {
+    brandName: "Dango Share Link",
+    brandSlug: "dango-share-link",
+  },
   metadata: {
     title: "Dango Share Link | Secure & Beautiful. Next-gen File Sharing",
     description: "Share your important data seamlessly with anyone using intuitive operations. Dango Share Link is a next-generation file sharing service that combines security and beauty.",
@@ -564,7 +568,7 @@ export const en: TranslationKeys = {
     },
   },
   onboarding: {
-    title: "Welcome to Digital Return MVP!",
+    title: "Welcome to Dango Share Link!",
     description:
       "Try it out! Drag a file from your File Pool into a Recipient Card. A secure, unique claim link will be generated automatically. ✨",
     gotIt: "Got it, let's go!",

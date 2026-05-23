@@ -61,7 +61,7 @@ function AuthorizeInner() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 bg-background relative overflow-hidden">
-      {/* 揺らめく背景のグラデーションオーブ (だんごシェア×だんごツールの色調) */}
+      {/* 揺らめく背景のグラデーションオーブ (だんごシェアリンク×だんごツールの色調) */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/10 dark:bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none animate-pulse duration-[8s]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 dark:bg-purple-500/5 blur-[120px] rounded-full pointer-events-none animate-pulse duration-[10s]" />
 
@@ -91,7 +91,9 @@ function AuthorizeInner() {
               <div className="w-16 h-16 rounded-[2rem] bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-white/20 relative transform hover:scale-105 transition-transform duration-300">
                 <Gift className="w-8 h-8 text-white animate-bounce duration-[3s]" />
               </div>
-              <span className="text-[10px] font-bold tracking-wider text-emerald-600/80 dark:text-emerald-400/80 uppercase">だんごシェア</span>
+              <span className="text-[10px] font-bold tracking-wider text-emerald-600/80 dark:text-emerald-400/80 uppercase">
+                だんごシェアリンク
+              </span>
             </div>
 
             <div className="flex-1 flex flex-col items-center justify-center py-4">

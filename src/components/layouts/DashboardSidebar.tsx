@@ -17,7 +17,7 @@ export function DashboardSidebar() {
     <aside className="w-64 h-full hidden lg:flex flex-col glass border-r-0 rounded-l-none">
       <div className="p-6 flex items-center space-x-2">
         <Gift className="w-6 h-6 text-emerald-500" />
-        <span className="font-bold text-lg tracking-tight">SharePlatform</span>
+        <span className="font-bold text-lg tracking-tight">{t.app.brandName}</span>
       </div>
 
       <nav className="flex-1 px-4 space-y-2 mt-4">
