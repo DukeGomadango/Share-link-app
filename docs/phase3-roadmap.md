@@ -52,7 +52,8 @@ npm run storage:inventory
 
 - `R2_BUCKET_NAME` 以外の `bucket` が 0 件になるまで Supabase fallback を残す
 - 移行スクリプトは **idempotent**（再実行安全）
-- fallback 削除はバケット空＋参照 0 件確認後
+- **本番は R2 必須**（`isStorageConfigured`）。legacy bucket 名の読取・削除コードは DB に旧 bucket が無ければ次 PR で削除可
+- Supabase Dashboard 上の旧バケットが空であることを目視確認してからコード削除
 
 ## 3c: Stripe（未実装・設計指針）
 

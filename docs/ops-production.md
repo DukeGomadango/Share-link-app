@@ -82,8 +82,9 @@ WHERE workspace_id = '<workspace-uuid>';
 ## R2 と旧 Supabase Storage
 
 - **新規アップロード**: R2 設定時は R2 のみ（[`src/lib/storage/provider.ts`](../src/lib/storage/provider.ts)）
-- **既存オブジェクト**: `assets.bucket` に従い R2 / Supabase を自動判別して削除・署名
-- Supabase Storage バケットは読み取り専用フォールバックとして残し、移行完了後にバケット空＋env 整理
+- **既存オブジェクト**: `assets.bucket` に従い R2 / Supabase を自動判別して削除・署名（DB 上は R2 bucket 名のみの想定）
+- **本番**: `isStorageConfigured()` は R2 必須。Supabase Storage フォールバックは開発用のみ
+- 棚卸し: `npm run storage:inventory` — 旧 bucket が 0 件なら Supabase バケットを空にしてからコード削除を検討
 
 ## Cron
 

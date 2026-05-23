@@ -37,8 +37,14 @@ export function isSupabaseStorageConfigured(): boolean {
   return getSupabaseAdmin() !== null;
 }
 
+/**
+ * ストレージ利用可能か。本番は R2 必須（棚卸しで R2 統一後の方針）。
+ * ローカルは R2 未設定時のみ Supabase Storage フォールバック可。
+ */
 export function isStorageConfigured(): boolean {
-  return isR2Configured() || isSupabaseStorageConfigured();
+  if (isR2Configured()) return true;
+  if (process.env.NODE_ENV === "production") return false;
+  return isSupabaseStorageConfigured();
 }
 
 export function isR2StorageBucket(bucket: string): boolean {
