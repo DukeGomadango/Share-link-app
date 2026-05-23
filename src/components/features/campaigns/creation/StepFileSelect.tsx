@@ -1,11 +1,11 @@
 "use client";
 
-import { Plus, Library, X, Loader2, FileImage, FileAudio, File as FileIcon, Search } from "lucide-react";
+import { Plus, Library, X, Loader2, Search } from "lucide-react";
 import { useState } from "react";
 import { FileDropzone } from "@/components/shared/FileDropzone";
+import { AssetThumbPreview, assetMimeIcon } from "@/components/shared/AssetThumbPreview";
 import { useLibraryFiles } from "@/hooks/features/library/useLibraryFiles";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 
 import type { TranslationKeys } from "@/lib/i18n/locales/ja";
 
@@ -38,12 +38,6 @@ export function StepFileSelect({ assetIds, onUpdate, t }: StepFileSelectProps) {
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const getFileIcon = (type: string) => {
-    if (type.startsWith("image/")) return <FileImage className="w-6 h-6 text-blue-500" />;
-    if (type.startsWith("audio/")) return <FileAudio className="w-6 h-6 text-purple-500" />;
-    return <FileIcon className="w-6 h-6 text-gray-500" />;
   };
 
   const selectedFiles = files.filter(f => assetIds.includes(f.id));
@@ -119,7 +113,6 @@ export function StepFileSelect({ assetIds, onUpdate, t }: StepFileSelectProps) {
               ) : (
                 filteredFiles.map(file => {
                   const isSelected = assetIds.includes(file.id);
-                  const isImage = file.type.startsWith("image/");
                   return (
                     <div
                       key={file.id}
@@ -130,10 +123,16 @@ export function StepFileSelect({ assetIds, onUpdate, t }: StepFileSelectProps) {
                       )}
                     >
                       <div className="w-12 h-12 mb-2 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden relative">
-                        {isImage ? (
-                          <Image src={file.url} alt={file.name} fill className="object-cover" unoptimized />
+                        {file.type.startsWith("image/") ? (
+                          <AssetThumbPreview
+                            fileId={file.id}
+                            mimeType={file.type}
+                            name={file.name}
+                            fallbackUrl={file.url}
+                            iconSize="sm"
+                          />
                         ) : (
-                          getFileIcon(file.type)
+                          assetMimeIcon(file.type, "w-6 h-6 text-muted-foreground")
                         )}
                       </div>
                       <p className="text-xs font-medium text-center line-clamp-1 w-full" title={file.name}>
@@ -164,15 +163,19 @@ export function StepFileSelect({ assetIds, onUpdate, t }: StepFileSelectProps) {
           </div>
         ) : (
           <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-            {selectedFiles.map(file => {
-              const isImage = file.type.startsWith("image/");
-              return (
+            {selectedFiles.map(file => (
                 <div key={file.id} className="flex-shrink-0 flex items-center bg-background border border-border/50 rounded-lg p-2 pr-3 w-48 shadow-sm group">
                   <div className="w-8 h-8 rounded-md bg-muted/50 flex items-center justify-center overflow-hidden relative mr-2 shrink-0">
-                    {isImage ? (
-                      <Image src={file.url} alt={file.name} fill className="object-cover" unoptimized />
+                    {file.type.startsWith("image/") ? (
+                      <AssetThumbPreview
+                        fileId={file.id}
+                        mimeType={file.type}
+                        name={file.name}
+                        fallbackUrl={file.url}
+                        iconSize="sm"
+                      />
                     ) : (
-                      getFileIcon(file.type)
+                      assetMimeIcon(file.type, "w-5 h-5 text-muted-foreground")
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -186,8 +189,7 @@ export function StepFileSelect({ assetIds, onUpdate, t }: StepFileSelectProps) {
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
-              );
-            })}
+            ))}
           </div>
         )}
       </div>

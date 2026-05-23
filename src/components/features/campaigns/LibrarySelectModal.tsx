@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
-import { X, Check, FileAudio, File } from "lucide-react";
+import { X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AssetThumbPreview } from "@/components/shared/AssetThumbPreview";
 import { LibraryFile } from "./types";
 import { useTranslation } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -73,8 +73,6 @@ export function LibrarySelectModal({
             {libraryFiles.map((file) => {
               const isSelected = selectedIds.has(file.id);
               const isAlreadyAdded = assignedAssetIds.includes(file.id);
-              const isImage = file.type.startsWith("image/");
-              
               return (
                 <div
                   key={file.id}
@@ -102,23 +100,17 @@ export function LibrarySelectModal({
                   </div>
 
                   <div className="bg-muted/30 rounded-lg shrink-0 relative overflow-hidden flex items-center justify-center w-full aspect-square mb-2">
-                    {isImage ? (
-                      <Image 
-                        src={file.url} 
-                        alt={file.name} 
-                        fill 
-                        className={cn(
-                          "object-cover transition-transform duration-300",
-                          !isAlreadyAdded && "group-hover:scale-110",
-                          isAlreadyAdded && "filter grayscale-[0.3]"
-                        )} 
-                        unoptimized 
-                      />
-                    ) : file.type.startsWith("audio/") ? (
-                      <FileAudio className={cn("w-8 h-8", isAlreadyAdded ? "text-muted-foreground" : "text-emerald-500")} />
-                    ) : (
-                      <File className="w-8 h-8 text-muted-foreground" />
-                    )}
+                    <AssetThumbPreview
+                      fileId={file.id}
+                      mimeType={file.type}
+                      name={file.name}
+                      fallbackUrl={file.url}
+                      imageClassName={cn(
+                        "transition-transform duration-300",
+                        !isAlreadyAdded && "group-hover:scale-110",
+                        isAlreadyAdded && "filter grayscale-[0.3]"
+                      )}
+                    />
 
                     {/* Added Overlay */}
                     {isAlreadyAdded && (
