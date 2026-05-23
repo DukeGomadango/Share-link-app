@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
 import { ReactNode } from "react";
+import { NOINDEX_METADATA } from "@/lib/seo/noindex";
+
+export const metadata: Metadata = NOINDEX_METADATA;
 
 export default function ClaimLayout({ children }: { children: ReactNode }) {
   return (

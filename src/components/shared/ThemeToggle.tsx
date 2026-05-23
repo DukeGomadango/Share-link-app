@@ -20,7 +20,17 @@ export function ThemeToggle() {
   }, []);
 
   if (!mounted) {
-    return <Button variant="ghost" size="icon" className="rounded-full w-10 h-10" />;
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="relative rounded-full h-10 w-10"
+        aria-hidden
+        tabIndex={-1}
+      >
+        <Sun className="h-[1.2rem] w-[1.2rem] opacity-0" />
+      </Button>
+    );
   }
 
   return (

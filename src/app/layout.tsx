@@ -5,34 +5,66 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/lib/i18n";
 import { GlobalScrollbarActivity } from "@/components/shared/GlobalScrollbarActivity";
 import { Toaster } from "sonner";
+import { GoogleAnalytics } from "@/components/seo/GoogleAnalytics";
+import { getSiteUrl, SITE_CONFIG, siteOgImageUrl } from "@/lib/site";
+
+const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
 
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
+const defaultOgImage = siteOgImageUrl();
+
 export const metadata: Metadata = {
-  title: "だんごシェアリンク | 安全で、美しい。次世代のファイル共有",
-  description: "直感的な操作で、大切なデータを誰とでもシームレスに共有しよう。だんごシェアリンクは、安全性と美しさを兼ね備えた次世代のファイル共有サービスです。",
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: SITE_CONFIG.defaultTitle,
+    template: `%s | ${SITE_CONFIG.name}`,
+  },
+  description: SITE_CONFIG.description,
+  applicationName: SITE_CONFIG.name,
+  authors: [{ name: "Dukegomadango" }],
+  creator: "Dukegomadango",
+  openGraph: {
+    type: "website",
+    locale: "ja_JP",
+    siteName: SITE_CONFIG.name,
+    title: SITE_CONFIG.name,
+    description: SITE_CONFIG.description,
+    images: [
+      {
+        url: defaultOgImage,
+        width: 1200,
+        height: 630,
+        alt: SITE_CONFIG.name,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_CONFIG.name,
+    description: SITE_CONFIG.description,
+    images: [defaultOgImage],
+    creator: SITE_CONFIG.twitterCreator,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "32x32" },
       { url: "/icon.svg", type: "image/svg+xml" },
     ],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
-  },
-  openGraph: {
-    title: "だんごシェアリンク",
-    description: "安全で、美しい。次世代のファイル共有",
-    url: "https://share.dango.app", // 仮のURL、必要に応じて変更してください
-    siteName: "だんごシェアリンク",
-    locale: "ja_JP",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "だんごシェアリンク",
-    description: "安全で、美しい。次世代のファイル共有",
   },
 };
 
@@ -51,6 +83,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <I18nProvider>
+            <GoogleAnalytics />
             <GlobalScrollbarActivity />
             <Toaster richColors closeButton position="top-center" />
             {children}

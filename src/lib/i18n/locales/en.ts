@@ -392,6 +392,11 @@ export const en: TranslationKeys = {
     pricePerYear: "year",
     priceEquivalent: "Equivalent to {amount} / month",
     ctaPro: "Start Pro",
+    marketingCtaFree: "Get started free",
+    marketingCtaPro: "Sign up for Pro",
+    marketingCtaSupporter: "Sign up as Supporter",
+    marketingPricingNote:
+      "You can change plans anytime in settings after signing up. Prices shown are indicative.",
     supporterSectionTitle: "Support development",
     supporterSectionLead:
       "Same Pro features, plus optional perks for backing the project.",

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Crown, Heart, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,17 +33,22 @@ const BADGE_SLOT_CLASS =
 const PLAN_FOOTER_CLASS =
   "mt-auto flex min-h-[5.75rem] flex-col justify-end gap-3 pt-2";
 
+export type BillingPlanColumnsMode = "checkout" | "marketing";
+
 type BillingPlanColumnsProps = {
   interval: BillingInterval;
-  pending: string | null;
-  onCheckout: (tier: CheckoutTier, interval: BillingInterval) => void;
+  mode?: BillingPlanColumnsMode;
+  pending?: string | null;
+  onCheckout?: (tier: CheckoutTier, interval: BillingInterval) => void;
 };
 
 export function BillingPlanColumns({
   interval,
-  pending,
+  mode = "checkout",
+  pending = null,
   onCheckout,
 }: BillingPlanColumnsProps) {
+  const isMarketing = mode === "marketing";
   const { t } = useTranslation();
 
   const freeFeatures: PlanFeature[] = [
@@ -71,7 +77,7 @@ export function BillingPlanColumns({
   return (
     <div className="space-y-8 overflow-visible">
       <div className="grid grid-cols-1 gap-5 overflow-visible lg:grid-cols-3 lg:items-stretch lg:gap-5">
-        <FreeColumn features={freeFeatures} />
+        <FreeColumn features={freeFeatures} mode={mode} />
 
         <ProColumn
           interval={interval}
@@ -79,6 +85,7 @@ export function BillingPlanColumns({
           pending={pending}
           onCheckout={onCheckout}
           badge={recommendedBadge}
+          mode={mode}
         />
 
         <SupporterColumn
@@ -86,10 +93,11 @@ export function BillingPlanColumns({
           features={supporterFeatures}
           pending={pending}
           onCheckout={onCheckout}
+          mode={mode}
         />
       </div>
 
-      <BillingTrustFooter />
+      <BillingTrustFooter variant={isMarketing ? "marketing" : "checkout"} />
     </div>
   );
 }
@@ -123,7 +131,13 @@ function PlanColumnShell({
   );
 }
 
-function FreeColumn({ features }: { features: PlanFeature[] }) {
+function FreeColumn({
+  features,
+  mode,
+}: {
+  features: PlanFeature[];
+  mode: BillingPlanColumnsMode;
+}) {
   const { t } = useTranslation();
 
   return (
@@ -137,15 +151,26 @@ function FreeColumn({ features }: { features: PlanFeature[] }) {
         <PriceDisplay amount={0} interval="month" freeSubtext={t.billing.freePriceSubtext} />
         <PlanFeatureList items={features} accent="muted" />
         <div className={PLAN_FOOTER_CLASS}>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            disabled
-            className="w-full rounded-full border border-dashed border-border bg-background/50 backdrop-blur-sm text-muted-foreground font-medium cursor-default dark:border-white/20"
-          >
-            {t.billing.freeCurrentPlan}
-          </Button>
+          {mode === "marketing" ? (
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="w-full rounded-full border border-border bg-background/80 font-medium backdrop-blur-sm dark:border-white/20"
+            >
+              <Link href="/register">{t.billing.marketingCtaFree}</Link>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              disabled
+              className="w-full rounded-full border border-dashed border-border bg-background/50 backdrop-blur-sm text-muted-foreground font-medium cursor-default dark:border-white/20"
+            >
+              {t.billing.freeCurrentPlan}
+            </Button>
+          )}
         </div>
       </div>
     </PlanColumnShell>
@@ -158,12 +183,14 @@ function ProColumn({
   pending,
   onCheckout,
   badge,
+  mode,
 }: {
   interval: BillingInterval;
   features: PlanFeature[];
   pending: string | null;
-  onCheckout: (tier: CheckoutTier, interval: BillingInterval) => void;
+  onCheckout?: (tier: CheckoutTier, interval: BillingInterval) => void;
   badge: React.ReactNode;
+  mode: BillingPlanColumnsMode;
 }) {
   const { t } = useTranslation();
   const amount =
@@ -190,23 +217,39 @@ function ProColumn({
         <PriceDisplay amount={amount} interval={interval} accent="pro" />
         <PlanFeatureList items={features} accent="pro" />
         <div className={PLAN_FOOTER_CLASS}>
-          <Button
-            type="button"
-            size="lg"
-            className={cn(
-              "w-full rounded-full font-bold text-white border-0",
-              "bg-gradient-to-r from-emerald-500 to-teal-600",
-              "shadow-lg shadow-emerald-500/30",
-              "transition-all duration-200",
-              "hover:from-emerald-400 hover:to-teal-500 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-500/35"
-            )}
-            disabled={pending !== null}
-            onClick={() => onCheckout("pro", interval)}
-          >
-            {pending === checkoutPendingKey("pro", interval)
-              ? t.common.loading
-              : t.billing.ctaPro}
-          </Button>
+          {mode === "marketing" ? (
+            <Button
+              asChild
+              size="lg"
+              className={cn(
+                "w-full rounded-full font-bold text-white border-0",
+                "bg-gradient-to-r from-emerald-500 to-teal-600",
+                "shadow-lg shadow-emerald-500/30",
+                "transition-all duration-200",
+                "hover:from-emerald-400 hover:to-teal-500 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-500/35"
+              )}
+            >
+              <Link href="/register">{t.billing.marketingCtaPro}</Link>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="lg"
+              className={cn(
+                "w-full rounded-full font-bold text-white border-0",
+                "bg-gradient-to-r from-emerald-500 to-teal-600",
+                "shadow-lg shadow-emerald-500/30",
+                "transition-all duration-200",
+                "hover:from-emerald-400 hover:to-teal-500 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-500/35"
+              )}
+              disabled={pending !== null}
+              onClick={() => onCheckout?.("pro", interval)}
+            >
+              {pending === checkoutPendingKey("pro", interval)
+                ? t.common.loading
+                : t.billing.ctaPro}
+            </Button>
+          )}
         </div>
       </div>
     </PlanColumnShell>
@@ -218,11 +261,13 @@ function SupporterColumn({
   features,
   pending,
   onCheckout,
+  mode,
 }: {
   interval: BillingInterval;
   features: PlanFeature[];
   pending: string | null;
-  onCheckout: (tier: CheckoutTier, interval: BillingInterval) => void;
+  onCheckout?: (tier: CheckoutTier, interval: BillingInterval) => void;
+  mode: BillingPlanColumnsMode;
 }) {
   const { t } = useTranslation();
   const amount =
@@ -246,24 +291,41 @@ function SupporterColumn({
           <p className="text-[10px] text-muted-foreground leading-relaxed min-h-[2.5rem]">
             {t.billing.supporterSameFeaturesNote}
           </p>
-          <Button
-            type="button"
-            size="lg"
-            className={cn(
-              "w-full rounded-full font-bold text-white border-0",
-              "bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500",
-              "shadow-md shadow-amber-500/25",
-              "transition-all duration-200",
-              "hover:from-amber-400 hover:via-amber-500 hover:to-orange-400",
-              "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30"
-            )}
-            disabled={pending !== null}
-            onClick={() => onCheckout("supporter", interval)}
-          >
-            {pending === checkoutPendingKey("supporter", interval)
-              ? t.common.loading
-              : t.billing.ctaSupporter}
-          </Button>
+          {mode === "marketing" ? (
+            <Button
+              asChild
+              size="lg"
+              className={cn(
+                "w-full rounded-full font-bold text-white border-0",
+                "bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500",
+                "shadow-md shadow-amber-500/25",
+                "transition-all duration-200",
+                "hover:from-amber-400 hover:via-amber-500 hover:to-orange-400",
+                "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30"
+              )}
+            >
+              <Link href="/register">{t.billing.marketingCtaSupporter}</Link>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="lg"
+              className={cn(
+                "w-full rounded-full font-bold text-white border-0",
+                "bg-gradient-to-r from-amber-500 via-amber-600 to-orange-500",
+                "shadow-md shadow-amber-500/25",
+                "transition-all duration-200",
+                "hover:from-amber-400 hover:via-amber-500 hover:to-orange-400",
+                "hover:-translate-y-0.5 hover:shadow-lg hover:shadow-amber-500/30"
+              )}
+              disabled={pending !== null}
+              onClick={() => onCheckout?.("supporter", interval)}
+            >
+              {pending === checkoutPendingKey("supporter", interval)
+                ? t.common.loading
+                : t.billing.ctaSupporter}
+            </Button>
+          )}
         </div>
       </div>
     </PlanColumnShell>

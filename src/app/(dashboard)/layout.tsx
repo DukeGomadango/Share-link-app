@@ -1,4 +1,8 @@
+import type { Metadata } from "next";
 import { DashboardSidebar } from "@/components/layouts/DashboardSidebar";
+import { NOINDEX_METADATA } from "@/lib/seo/noindex";
+
+export const metadata: Metadata = NOINDEX_METADATA;
 import { OnboardingTour } from "@/components/features/onboarding/OnboardingTour";
 import { GlobalCommandPaletteHotkey } from "@/components/features/library/GlobalCommandPaletteHotkey";
 import { GlobalCommandPaletteRoot } from "@/components/features/library/GlobalCommandPaletteRoot";

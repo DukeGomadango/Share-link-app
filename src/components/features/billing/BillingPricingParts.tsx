@@ -143,7 +143,11 @@ function FeatureIcon({
   );
 }
 
-export function BillingTrustFooter() {
+export function BillingTrustFooter({
+  variant = "checkout",
+}: {
+  variant?: "checkout" | "marketing";
+}) {
   const { t } = useTranslation();
 
   return (
@@ -158,12 +162,14 @@ export function BillingTrustFooter() {
         </span>
       </div>
       <p className="text-xs text-muted-foreground text-center leading-relaxed glass-text-safe">
-        {t.billing.checkoutFootnote}
+        {variant === "marketing" ? t.billing.marketingPricingNote : t.billing.checkoutFootnote}
       </p>
-      <div className="glass-panel-strong flex items-start gap-2 rounded-2xl border border-emerald-500/25 px-4 py-3 text-sm text-muted-foreground">
-        <Shield className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-        <p>{t.billing.trustCancel}</p>
-      </div>
+      {variant === "checkout" && (
+        <div className="glass-panel-strong flex items-start gap-2 rounded-2xl border border-emerald-500/25 px-4 py-3 text-sm text-muted-foreground">
+          <Shield className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+          <p>{t.billing.trustCancel}</p>
+        </div>
+      )}
     </div>
   );
 }

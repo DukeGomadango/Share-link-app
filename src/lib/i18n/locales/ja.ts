@@ -388,6 +388,11 @@ export const ja = {
     pricePerYear: "年",
     priceEquivalent: "実質 {amount} / 月",
     ctaPro: "Pro を始める",
+    marketingCtaFree: "無料で始める",
+    marketingCtaPro: "登録して Pro を選ぶ",
+    marketingCtaSupporter: "登録してサポーターになる",
+    marketingPricingNote:
+      "登録後、設定画面からいつでもプランを変更できます。表示価格は税込の目安です。",
     supporterSectionTitle: "さらに開発を応援する",
     supporterSectionLead:
       "Pro と同じ機能に加え、運営への応援特典があります。ご支援は任意です。",
