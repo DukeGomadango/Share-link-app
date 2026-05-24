@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+
 import { buildClaimBundleForSecret } from "@/lib/claim/bundle-for-token";
+import { writeClaimSessionCookie } from "@/lib/claims/claim-session-cookie";
 import { readClaimSecretFromCookies } from "@/lib/webauthn/resolve-claim-session";
 
 export const revalidate = 0;
@@ -14,8 +16,6 @@ export async function GET(_request: Request, ctx: RouteParams) {
     return NextResponse.json({ error: "invalid_token" }, { status: 400 });
   }
 
-  // クッキーからセッション情報を取得（もしあれば）
-  // campaignId を特定するために一度バンドルを（未認証状態で）取得する必要がある
   const initialBundle = await buildClaimBundleForSecret(secret);
   if (!initialBundle) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -23,12 +23,16 @@ export async function GET(_request: Request, ctx: RouteParams) {
 
   const campaignId = initialBundle.campaignId;
   const cookieStore = await cookies();
-  const sessionSecret = campaignId 
+
+  if (campaignId) {
+    writeClaimSessionCookie(cookieStore, campaignId, secret);
+  }
+
+  const sessionSecret = campaignId
     ? readClaimSecretFromCookies((name) => cookieStore.get(name)?.value, campaignId)
     : undefined;
 
-  // セッション情報を含めて再度取得（認証済みならファイルが含まれる）
   const bundle = await buildClaimBundleForSecret(secret, sessionSecret);
-  
+
   return NextResponse.json(bundle);
 }

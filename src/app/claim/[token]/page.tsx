@@ -109,7 +109,10 @@ export default function ClaimPage() {
   const refetchBundle = useCallback(async () => {
     if (!token) return;
     try {
-      const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`, { cache: "no-store" });
+      const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`, {
+        cache: "no-store",
+        credentials: "include",
+      });
       if (!r.ok) return;
       const data = await r.json();
       if (data.files && data.files.length > 0) {
@@ -192,7 +195,10 @@ export default function ClaimPage() {
       setClaimLoading(true);
       setClaimError(null);
       try {
-        const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`, { cache: "no-store" });
+        const r = await fetch(`/api/claim/${encodeURIComponent(token)}?t=${Date.now()}`, {
+          cache: "no-store",
+          credentials: "include",
+        });
         if (!r.ok) {
           if (r.status === 404) {
             setClaimError("ギフトが見つかりません。URLが正しいか確認してください。");
@@ -297,8 +303,10 @@ export default function ClaimPage() {
             </div>
             
             {bundle?.campaignId && (
-              <PasskeyRegisterCard 
-                campaignId={bundle.campaignId} 
+              <PasskeyRegisterCard
+                flow="unlock"
+                campaignId={bundle.campaignId}
+                currentName={bundle.displayName}
                 onSuccess={() => window.location.reload()}
               />
             )}

@@ -87,8 +87,9 @@ export async function buildClaimBundleForSecret(
     .limit(1);
   const passkeyLinked = Boolean(passkeyRows[0]);
 
-  // 認証チェック: 公開設定か、セッションがトークンと一致するか
-  const isAuthorized = isPublic || (sessionSecret === claimSecret);
+  const hasClaimSession = sessionSecret === claimSecret;
+  // 公開: リンクのみで閲覧可。限定: 受取 Cookie + パスキー登録済み
+  const isAuthorized = isPublic || (hasClaimSession && passkeyLinked);
 
   // 有効期限チェック
   if (hit.expiresAt && hit.expiresAt < new Date()) {

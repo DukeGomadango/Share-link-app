@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       expectedChallenge: challengeRow.challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
-      requireUserVerification: false,
+      requireUserVerification: true,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "verification_failed";
