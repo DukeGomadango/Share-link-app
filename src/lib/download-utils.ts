@@ -56,22 +56,30 @@ export async function downloadSingleFile(
   }
 }
 
+export type DownloadEntry = {
+  src: string;
+  filename: string;
+  id?: string;
+};
+
 export type SequentialDownloadResult = {
   succeeded: number;
   failed: string[];
+  failedIds: string[];
 };
 
 /**
  * 複数ファイルを順番にダウンロード（メモリ・接続負荷を抑える）
  */
 export async function downloadFilesSequentially(
-  files: Array<{ src: string; filename: string }>,
+  files: DownloadEntry[],
   options?: {
     onProgress?: (current: number, total: number, filename: string) => void;
     gapMs?: number;
   }
 ): Promise<SequentialDownloadResult> {
   const failed: string[] = [];
+  const failedIds: string[] = [];
   const gapMs = options?.gapMs ?? SEQUENTIAL_DOWNLOAD_GAP_MS;
 
   for (let i = 0; i < files.length; i++) {
@@ -80,6 +88,9 @@ export async function downloadFilesSequentially(
     const ok = await downloadSingleFile(file.src, file.filename);
     if (!ok) {
       failed.push(file.filename);
+      if (file.id) {
+        failedIds.push(file.id);
+      }
     }
     if (gapMs > 0 && i < files.length - 1) {
       await new Promise((resolve) => setTimeout(resolve, gapMs));
@@ -89,7 +100,42 @@ export async function downloadFilesSequentially(
   return {
     succeeded: files.length - failed.length,
     failed,
+    failedIds,
   };
+}
+
+/**
+ * Web Share API で1ファイルを共有（「写真に保存」等をユーザーが選択）
+ */
+export async function shareFileFromUrl(
+  url: string,
+  filename: string,
+  title?: string
+): Promise<boolean> {
+  if (typeof navigator === "undefined" || !navigator.share) {
+    return false;
+  }
+  try {
+    const response = await fetchWithTimeout(url, { credentials: "include" });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const blob = await response.blob();
+    const type = blob.type || "application/octet-stream";
+    const file = new File([blob], filename, { type });
+    const payload: ShareData = { title: title ?? filename, files: [file] };
+    if (navigator.canShare && !navigator.canShare(payload)) {
+      return false;
+    }
+    await navigator.share(payload);
+    return true;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return true;
+    }
+    console.error("Share failed:", error);
+    return false;
+  }
 }
 
 /**

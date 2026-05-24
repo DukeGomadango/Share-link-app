@@ -641,6 +641,27 @@ export const en: TranslationKeys = {
     downloadAsZip: "Save as ZIP (for desktop)",
     downloadPartialFailure: "{count} file(s) could not be saved. Check your connection and try again.",
     downloadAllFailed: "Could not save files. Check your connection and try again.",
+    downloadBlockedHint:
+      "Your browser may block consecutive saves. Tap an image to save one at a time, or open this page in Safari or Chrome.",
+    saveFailedBadge: "Could not save",
+    saveTipsTitle: "Saving tips",
+    saveDestinationNote:
+      "Save downloads files to your device. The destination varies by device and browser (on iPhone, files may go to the Files app).",
+    longPressHintIos:
+      "To add to Photos, long-press the image and choose Add to Photos.",
+    longPressHintAndroid:
+      "To save to your gallery, long-press the image and choose Save image, or check Downloads after saving.",
+    bulkSaveWarning:
+      "You have {count} items. On phones, saving one at a time (tap an image) is more reliable.",
+    inAppBrowserTitle: "Save more reliably",
+    inAppBrowserBodyIos:
+      "In-app browsers often block saves. Tap the share icon and choose Open in Safari.",
+    inAppBrowserBodyAndroid:
+      "In-app browsers often block saves. Open the menu (⋮) and choose Open in browser.",
+    inAppBrowserDismiss: "Dismiss",
+    lightboxSaveImage: "Save this image",
+    lightboxShare: "Share",
+    lightboxShareUnavailable: "Sharing is not available on this device",
     downloadSelectedAlert: "Downloading {count} selected files",
     collectionTitle: "Your Collection",
     collectionSubtitle: "History of gifts you've received",

@@ -10,16 +10,22 @@ import { Download, Gift } from "lucide-react";
 import { ClaimFile } from "./types";
 import { useTranslation } from "@/lib/i18n";
 
-// サブコンポーネント
 import { ClaimFileCard } from "./ClaimFileCard";
 import { ClaimActionBar } from "./ClaimActionBar";
+import { ClaimInAppBrowserBanner } from "./ClaimInAppBrowserBanner";
+import { ClaimSaveTips } from "./ClaimSaveTips";
 import { Lightbox } from "@/components/shared/Lightbox";
 
 import { claimDownloadUrl } from "@/lib/claim/download-url";
 import {
+  BULK_SAVE_WARN_THRESHOLD,
+  isInAppBrowser,
+} from "@/lib/claim/device-save-hints";
+import {
   downloadSingleFile,
   downloadFilesAsZip,
   downloadFilesSequentially,
+  type DownloadEntry,
 } from "@/lib/download-utils";
 import {
   DropdownMenu,
@@ -34,7 +40,6 @@ interface ClaimContentViewProps {
   files: ClaimFile[];
   expiryDate: Date;
   campaignName: string;
-  /** 指定時は R2 直 fetch ではなく同一オリジンのダウンロード API を使う */
   claimToken?: string;
   hideActionBar?: boolean;
   onOpenCollection?: () => void;
@@ -47,23 +52,60 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
+  const [failedFileIds, setFailedFileIds] = useState<Set<string>>(new Set());
   const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
 
   const downloadSrc = (file: ClaimFile) =>
     claimToken ? claimDownloadUrl(claimToken, file.id) : file.src;
 
-  const toDownloadEntries = (targets: ClaimFile[]) =>
-    targets.map((f) => ({ src: downloadSrc(f), filename: f.filename }));
+  const toDownloadEntries = (targets: ClaimFile[]): DownloadEntry[] =>
+    targets.map((f) => ({
+      id: f.id,
+      src: downloadSrc(f),
+      filename: f.filename,
+    }));
 
-  const notifyDownloadResult = (succeeded: number, failed: string[]) => {
+  const notifyDownloadResult = (
+    succeeded: number,
+    failed: string[],
+    failedIds: string[]
+  ) => {
+    if (failedIds.length > 0) {
+      setFailedFileIds((prev) => {
+        const next = new Set(prev);
+        for (const id of failedIds) next.add(id);
+        return next;
+      });
+    }
+
     if (failed.length === 0) return;
+
     if (succeeded === 0) {
       toast.error(t.claim.downloadAllFailed);
+      if (isInAppBrowser()) {
+        toast.message(t.claim.downloadBlockedHint, { duration: 8000 });
+      }
       return;
     }
+
     toast.warning(
       t.claim.downloadPartialFailure.replace("{count}", String(failed.length))
     );
+    if (isInAppBrowser() && failed.length > 1) {
+      toast.message(t.claim.downloadBlockedHint, { duration: 8000 });
+    }
+  };
+
+  const markFileSaveResult = (fileId: string, ok: boolean) => {
+    setFailedFileIds((prev) => {
+      const next = new Set(prev);
+      if (ok) {
+        next.delete(fileId);
+      } else {
+        next.add(fileId);
+      }
+      return next;
+    });
   };
 
   const toggleSelection = (id: string) => {
@@ -92,6 +134,7 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
     setDownloadProgress(null);
     try {
       const ok = await downloadSingleFile(src, file!.filename || "file");
+      markFileSaveResult(fileId, ok);
       if (!ok) {
         toast.error(t.claim.downloadAllFailed);
       }
@@ -120,7 +163,7 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
     setIsDownloading(true);
     setDownloadProgress({ current: 0, total: targets.length });
     try {
-      const { succeeded, failed } = await downloadFilesSequentially(
+      const { succeeded, failed, failedIds } = await downloadFilesSequentially(
         toDownloadEntries(targets),
         {
           onProgress: (current, total) => {
@@ -128,7 +171,7 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
           },
         }
       );
-      notifyDownloadResult(succeeded, failed);
+      notifyDownloadResult(succeeded, failed, failedIds);
     } finally {
       setIsDownloading(false);
       setDownloadProgress(null);
@@ -165,7 +208,8 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
     ? files
     : files.filter((f) => selectedFileIds.has(f.id));
 
-  // Portal マウント先の確認（SSR対策）
+  const showBulkWarning = targets.length >= BULK_SAVE_WARN_THRESHOLD;
+
   const mounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -174,7 +218,6 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
 
   return (
     <div className="w-full space-y-6 py-6 pb-36">
-      {/* ヘッダー */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -200,16 +243,24 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
         </div>
       </motion.div>
 
+      <ClaimInAppBrowserBanner />
+
       <ClaimActionBar 
         itemCount={files.length} 
         allSelected={allSelected} 
         onSelectAll={selectAll} 
       />
 
-      {/* ファイル一覧 (Bento Grid) */}
+      <ClaimSaveTips />
+
+      {showBulkWarning && (
+        <p className="text-sm text-amber-800/90 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 leading-relaxed">
+          {t.claim.bulkSaveWarning.replace("{count}", String(targets.length))}
+        </p>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
         {files.map((file, index) => {
-          // Bentoロジック: 最初のアイテム、または特定のインデックスで横幅を広げる
           const isLarge = index === 0 && file.type === "image";
           
           return (
@@ -223,6 +274,7 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
                 file={file}
                 index={index}
                 isSelected={selectedFileIds.has(file.id)}
+                saveFailed={failedFileIds.has(file.id)}
                 onToggle={toggleSelection}
                 onDownload={handleDownloadSingle}
                 onClick={() => setActivePreviewIndex(index)}
@@ -232,17 +284,14 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
         })}
       </div>
       
-      {/* フッター */}
       <div className="pt-8 pb-4 text-center">
         <p className="text-xs text-muted-foreground/60 whitespace-pre-line">
           {t.claim.expiryNotice}
         </p>
       </div>
 
-      {/* フローティング・ダウンロードバー (Portal経由で body 直下にレンダリング) */}
       {!hideActionBar && mounted && createPortal(
         <div className="fixed-bottom-bar-safe fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
-          {/* グラデーション・マスク */}
           <div className="h-32 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent" />
           <motion.div
           initial={{ y: 20, opacity: 0 }}
@@ -326,7 +375,6 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
         document.body
       )}
 
-      {/* ライトボックス */}
       {activePreviewIndex !== null && (
         <Lightbox
           files={files}
@@ -334,6 +382,7 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
           onClose={() => setActivePreviewIndex(null)}
           onNavigate={(index) => setActivePreviewIndex(index)}
           onDownload={handleDownloadSingle}
+          getDownloadSrc={downloadSrc}
         />
       )}
     </div>

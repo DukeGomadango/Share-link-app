@@ -14,6 +14,7 @@ interface ClaimFileCardProps {
   file: ClaimFile;
   index: number;
   isSelected: boolean;
+  saveFailed?: boolean;
   onToggle: (id: string) => void;
   onDownload: (id: string) => void;
   onClick: () => void;
@@ -37,6 +38,7 @@ export function ClaimFileCard({
   file,
   index,
   isSelected,
+  saveFailed = false,
   onToggle,
   onDownload,
   onClick,
@@ -91,6 +93,12 @@ export function ClaimFileCard({
           <Download className="w-4 h-4" />
         </Button>
       </motion.div>
+
+      {saveFailed && (
+        <div className="absolute bottom-4 left-4 right-4 z-20 rounded-xl bg-amber-500/95 px-3 py-2 text-center text-xs font-bold text-white shadow-md">
+          {t.claim.saveFailedBadge}
+        </div>
+      )}
 
       {/* ファイルプレビュー */}
       <div className="pt-12">

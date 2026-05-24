@@ -638,6 +638,26 @@ export const ja = {
     downloadAsZip: "ZIPでまとめて保存（PC向け）",
     downloadPartialFailure: "{count} 件の保存に失敗しました。通信環境をご確認のうえ、もう一度お試しください。",
     downloadAllFailed: "保存できませんでした。通信環境をご確認のうえ、もう一度お試しください。",
+    downloadBlockedHint:
+      "お使いのブラウザでは連続保存ができない場合があります。画像をタップして1枚ずつ保存するか、Safari などのブラウザで開いてください。",
+    saveFailedBadge: "保存できませんでした",
+    saveTipsTitle: "保存のヒント",
+    saveDestinationNote:
+      "「保存」ボタンで端末にダウンロードします。保存先は機種やブラウザによって異なります（iPhone では「ファイル」アプリになることがあります）。",
+    longPressHintIos: "写真アプリに入れたいときは、画像を長押しして「写真に保存」を選ぶ方法が確実です。",
+    longPressHintAndroid:
+      "写真アプリに入れたいときは、画像を長押しして「画像を保存」を選ぶか、ダウンロード後にギャラリーから確認してください。",
+    bulkSaveWarning:
+      "{count} 件あります。スマホでは1枚ずつ（画像をタップして保存）の方が確実です。",
+    inAppBrowserTitle: "保存しやすくするには",
+    inAppBrowserBodyIos:
+      "アプリ内ブラウザでは保存がうまくいかないことがあります。画面下の共有ボタン（□↑）から「Safariで開く」を選んでください。",
+    inAppBrowserBodyAndroid:
+      "アプリ内ブラウザでは保存がうまくいかないことがあります。メニュー（⋮）から「ブラウザで開く」を選んでください。",
+    inAppBrowserDismiss: "閉じる",
+    lightboxSaveImage: "この画像を保存",
+    lightboxShare: "共有",
+    lightboxShareUnavailable: "この端末では共有メニューを利用できません",
     downloadSelectedAlert: "選択した {count} 件のファイルをダウンロードします",
     collectionTitle: "自分のコレクション",
     collectionSubtitle: "これまでに受け取ったギフトの履歴です",
