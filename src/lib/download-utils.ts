@@ -5,7 +5,10 @@ import JSZip from "jszip";
  */
 export async function downloadSingleFile(url: string, filename: string) {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { credentials: "include" });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
     const blob = await response.blob();
     const blobUrl = window.URL.createObjectURL(blob);
     
@@ -36,7 +39,10 @@ export async function downloadFilesAsZip(
   // 各ファイルをフェッチして ZIP に追加
   const downloadPromises = files.map(async (file) => {
     try {
-      const response = await fetch(file.src);
+      const response = await fetch(file.src, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
       const blob = await response.blob();
       zip.file(file.filename, blob);
     } catch (error) {

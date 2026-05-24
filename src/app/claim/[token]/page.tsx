@@ -392,6 +392,7 @@ export default function ClaimPage() {
                   files={bundle.files} 
                   expiryDate={new Date(bundle.expiryIso)} 
                   campaignName={bundle.campaignName}
+                  claimToken={token}
                   hideActionBar={isCollectionOpen}
                   onOpenCollection={() => setIsCollectionOpen(true)}
                 />

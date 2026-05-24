@@ -25,6 +25,7 @@ export default function ClaimSessionByCampaignPage() {
     campaignName: string;
     pending?: boolean;
     passkeyLinked?: boolean;
+    claimSecret?: string;
     files: ClaimFile[];
   } | null>(null);
   const [noSession, setNoSession] = useState(false);
@@ -82,6 +83,7 @@ export default function ClaimSessionByCampaignPage() {
         campaignName: data.campaignName,
         pending: data.pending,
         passkeyLinked: data.passkeyLinked,
+        claimSecret: data.claimSecret,
         files,
       });
       
@@ -269,6 +271,7 @@ export default function ClaimSessionByCampaignPage() {
           files={bundle.files}
           expiryDate={new Date(bundle.expiryIso)}
           campaignName={bundle.campaignName}
+          claimToken={bundle.claimSecret}
         />
         {!bundle.passkeyLinked ? (
           <PasskeyRegisterCard

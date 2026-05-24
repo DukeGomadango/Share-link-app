@@ -59,6 +59,42 @@ export async function createR2SignedUploadUrl(
   }
 }
 
+export type R2ObjectBody = {
+  body: ReadableStream<Uint8Array>;
+  contentType: string;
+  contentLength?: number;
+};
+
+/** サーバー側で R2 オブジェクトを読み出す（受取ダウンロードプロキシ用） */
+export async function readR2Object(
+  objectKey: string
+): Promise<R2ObjectBody | null> {
+  const client = getR2Client();
+  if (!client) {
+    return null;
+  }
+  try {
+    const out = await client.send(
+      new GetObjectCommand({
+        Bucket: getR2BucketName(),
+        Key: objectKey,
+      })
+    );
+    if (!out.Body) {
+      return null;
+    }
+    const body = out.Body.transformToWebStream() as ReadableStream<Uint8Array>;
+    return {
+      body,
+      contentType: out.ContentType ?? "application/octet-stream",
+      contentLength: out.ContentLength,
+    };
+  } catch (e) {
+    console.error("R2 read object failed:", e);
+    return null;
+  }
+}
+
 export async function deleteR2Object(objectKey: string): Promise<boolean> {
   const client = getR2Client();
   if (!client) {

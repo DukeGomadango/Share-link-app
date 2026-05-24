@@ -14,6 +14,7 @@ import { ClaimFileCard } from "./ClaimFileCard";
 import { ClaimActionBar } from "./ClaimActionBar";
 import { Lightbox } from "@/components/shared/Lightbox";
 
+import { claimDownloadUrl } from "@/lib/claim/download-url";
 import { downloadSingleFile, downloadFilesAsZip } from "@/lib/download-utils";
 import {
   DropdownMenu,
@@ -28,15 +29,20 @@ interface ClaimContentViewProps {
   files: ClaimFile[];
   expiryDate: Date;
   campaignName: string;
+  /** 指定時は R2 直 fetch ではなく同一オリジンのダウンロード API を使う */
+  claimToken?: string;
   hideActionBar?: boolean;
   onOpenCollection?: () => void;
 }
 
-export function ClaimContentView({ files, expiryDate, campaignName, hideActionBar, onOpenCollection }: ClaimContentViewProps) {
+export function ClaimContentView({ files, expiryDate, campaignName, claimToken, hideActionBar, onOpenCollection }: ClaimContentViewProps) {
   const { t } = useTranslation();
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
   const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
+
+  const downloadSrc = (file: ClaimFile) =>
+    claimToken ? claimDownloadUrl(claimToken, file.id) : file.src;
 
   const toggleSelection = (id: string) => {
     const newSelected = new Set(selectedFileIds);
@@ -58,10 +64,11 @@ export function ClaimContentView({ files, expiryDate, campaignName, hideActionBa
 
   const handleDownloadSingle = async (fileId: string) => {
     const file = files.find((f) => f.id === fileId);
-    if (!file?.src) return;
+    const src = file ? downloadSrc(file) : "";
+    if (!src) return;
     setIsDownloading(true);
     try {
-      await downloadSingleFile(file.src, file.filename || "file");
+      await downloadSingleFile(src, file!.filename || "file");
     } finally {
       setIsDownloading(false);
     }
@@ -71,7 +78,7 @@ export function ClaimContentView({ files, expiryDate, campaignName, hideActionBa
     setIsDownloading(true);
     try {
       await downloadFilesAsZip(
-        targets.map(f => ({ src: f.src, filename: f.filename })),
+        targets.map((f) => ({ src: downloadSrc(f), filename: f.filename })),
         "dango-bundle.zip"
       );
     } finally {
@@ -83,8 +90,9 @@ export function ClaimContentView({ files, expiryDate, campaignName, hideActionBa
     setIsDownloading(true);
     try {
       for (const f of targets) {
-        if (f.src) {
-          await downloadSingleFile(f.src, f.filename);
+        const src = downloadSrc(f);
+        if (src) {
+          await downloadSingleFile(src, f.filename);
         }
       }
     } finally {
