@@ -17,6 +17,7 @@ import { MarketingPricingSection } from "@/components/marketing/MarketingPricing
 import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { LP_FAQ } from "@/lib/seo/lp-faq";
+import { SITE_CONFIG } from "@/lib/site";
 
 const FEATURES = [
   {
@@ -67,12 +68,12 @@ export function LandingPage() {
             配信者・クリエイター向けファイル配布
           </p>
           <h1 className="text-3xl font-bold tracking-tight sm:text-5xl sm:leading-tight">
-            特典配布を、
-            <span className="text-primary">安全</span>に、
-            <span className="text-primary">美しく</span>。
+            {SITE_CONFIG.tagline.line1}
+            <span className="text-primary">{SITE_CONFIG.tagline.line2Highlight}</span>
+            {SITE_CONFIG.tagline.line2After}
           </h1>
           <p className="mt-5 text-base leading-relaxed text-muted-foreground sm:text-lg">
-            だんごシェアリンクは、キャンペーン単位でファイルを配り、受取人ごとに限定リンクを発行する配布プラットフォームです。IRIAM・YouTube
+            だんごシェアリンクは、受取人ごとに専用リンクを発行してファイルを配るプラットフォームです。IRIAM・YouTube
             配信の特典音声、イベント限定データの配布にも。
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">

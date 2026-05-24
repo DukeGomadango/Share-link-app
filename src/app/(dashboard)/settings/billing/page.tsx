@@ -151,7 +151,7 @@ function BillingSettingsContent() {
   const isSupporter = status?.billingTier === "supporter";
 
   return (
-    <div className="billing-page space-y-6 max-w-5xl mx-auto overflow-visible">
+    <div className="billing-page mx-auto max-w-5xl space-y-6 overflow-visible">
       <div>
         <Link
           href="/settings"
@@ -159,8 +159,8 @@ function BillingSettingsContent() {
         >
           ← {t.settings.title}
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight mt-2">{t.billing.title}</h1>
-        <p className="text-muted-foreground mt-1">{t.billing.subtitle}</p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">{t.billing.title}</h1>
+        <p className="mt-1 text-muted-foreground">{t.billing.subtitle}</p>
       </div>
 
       {loading ? (

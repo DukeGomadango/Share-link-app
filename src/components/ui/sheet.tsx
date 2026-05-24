@@ -42,8 +42,10 @@ export function Sheet({ children, isOpen, onClose }: SheetProps) {
             className="fixed right-0 top-0 z-[101] h-full w-full max-w-md border-l border-border/50 bg-background/95 shadow-2xl backdrop-blur-xl"
           >
             <button
+              type="button"
               onClick={onClose}
-              className="absolute right-6 top-6 z-10 rounded-full p-2 text-muted-foreground hover:bg-muted transition-colors"
+              className="absolute right-4 top-4 z-10 flex size-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+              aria-label="閉じる"
             >
               <X className="w-5 h-5" />
             </button>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCoarsePointer } from "@/hooks/useCoarsePointer";
 import { Loader2 } from "lucide-react";
 import { useInView } from "@/hooks/useInView";
 import { AnimatePresence, motion } from "framer-motion";
@@ -13,7 +14,7 @@ import {
   SensorOptions,
 } from "@dnd-kit/core";
 import { Layers, GripVertical, FolderOpen, Trash2 } from "lucide-react";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useVirtualizer, useWindowVirtualizer } from "@tanstack/react-virtual";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { cn } from "@/lib/utils";
 import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
@@ -72,6 +73,8 @@ interface LibraryGridProps {
   };
   formatSize: (bytes: number) => string;
   getFileIcon: (type: string) => React.ReactNode;
+  /** モバイル: ページ全体スクロール（二重スクロール回避） */
+  pageScroll?: boolean;
 }
 
 function LibraryLoadMoreSentinel({
@@ -161,10 +164,16 @@ export function LibraryGrid({
   labels,
   formatSize,
   getFileIcon,
+  pageScroll = false,
 }: LibraryGridProps) {
+  const coarsePointer = useCoarsePointer();
+  const pageScrollEnabled = pageScroll || coarsePointer;
+  const marqueeEnabled = !coarsePointer;
   const isIntentDockOpen = draggedFileIds.length > 0;
   const selectedCount = selectedFileIds.size;
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const pageScrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
   const [columnCount, setColumnCount] = useState(1);
   const [selectionBox, setSelectionBox] = useState<{
     startX: number;
@@ -177,6 +186,7 @@ export function LibraryGrid({
   >([]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    if (!marqueeEnabled) return;
     // D&D or existing button clicks should not start marquee
     if ((e.target as HTMLElement).closest("[data-file-id]") || (e.target as HTMLElement).closest("button")) return;
     
@@ -287,13 +297,40 @@ export function LibraryGrid({
   }, [viewMode]);
 
   const rowCount = Math.ceil(filteredFiles.length / columnCount);
+  const estimateRowHeight = viewMode === "compact" ? 168 : 360;
+
+  useLayoutEffect(() => {
+    if (!pageScrollEnabled) return;
+    const update = () => {
+      const el = pageScrollAnchorRef.current;
+      if (!el) return;
+      setScrollMargin(el.getBoundingClientRect().top + window.scrollY);
+    };
+    update();
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, { passive: true });
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update);
+    };
+  }, [pageScrollEnabled, filteredFiles.length, viewMode]);
+
   // eslint-disable-next-line react-hooks/incompatible-library
-  const rowVirtualizer = useVirtualizer({
-    count: rowCount,
+  const panelRowVirtualizer = useVirtualizer({
+    count: pageScrollEnabled ? 0 : rowCount,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => viewMode === "compact" ? 200 : 360,
+    estimateSize: () => estimateRowHeight,
     overscan: 4,
   });
+
+  const windowRowVirtualizer = useWindowVirtualizer({
+    count: pageScrollEnabled ? rowCount : 0,
+    estimateSize: () => estimateRowHeight,
+    overscan: 4,
+    scrollMargin,
+  });
+
+  const rowVirtualizer = pageScrollEnabled ? windowRowVirtualizer : panelRowVirtualizer;
   const dockCampaigns = (recentCampaigns.length > 0 ? recentCampaigns : campaigns).slice(0, 5);
 
   if (loading && files.length === 0) {
@@ -316,14 +353,22 @@ export function LibraryGrid({
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div 
-        ref={scrollRef} 
+      <div
+        ref={(node) => {
+          scrollRef.current = node;
+          pageScrollAnchorRef.current = node;
+        }}
         key={viewMode}
-        className="h-[68vh] overflow-auto pr-1 relative select-none"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        className={cn(
+          "relative pr-1 select-none",
+          pageScrollEnabled
+            ? "min-h-[120px] overflow-visible"
+            : "min-h-[min(50vh,400px)] h-[min(68vh,calc(100dvh-14rem))] overflow-auto lg:h-[68vh]"
+        )}
+        onMouseDown={marqueeEnabled && !pageScrollEnabled ? handleMouseDown : undefined}
+        onMouseMove={marqueeEnabled && !pageScrollEnabled ? handleMouseMove : undefined}
+        onMouseUp={marqueeEnabled && !pageScrollEnabled ? handleMouseUp : undefined}
+        onMouseLeave={marqueeEnabled && !pageScrollEnabled ? handleMouseUp : undefined}
       >
         {boxStyles && (
           <div 
@@ -343,6 +388,9 @@ export function LibraryGrid({
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
               const rowStartIndex = virtualRow.index * columnCount;
               const rowItems = filteredFiles.slice(rowStartIndex, rowStartIndex + columnCount);
+              const rowOffset = pageScrollEnabled
+                ? virtualRow.start - scrollMargin
+                : virtualRow.start;
               return (
                 <div
                   key={virtualRow.key}
@@ -350,7 +398,7 @@ export function LibraryGrid({
                   data-index={virtualRow.index}
                   className="absolute left-0 top-0 w-full px-1"
                   style={{
-                    transform: `translateY(${virtualRow.start}px)`,
+                    transform: `translateY(${rowOffset}px)`,
                   }}
                 >
                   <div
@@ -442,7 +490,7 @@ export function LibraryGrid({
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: 14, scale: 0.96, filter: "blur(6px)" }}
             transition={{ type: "spring", stiffness: 300, damping: 28, mass: 0.95 }}
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[min(980px,calc(100vw-1rem))]"
+            className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] left-1/2 z-40 w-[min(980px,calc(100vw-1rem))] -translate-x-1/2 lg:bottom-4"
           >
             <motion.div
               initial={{ borderRadius: 999 }}
@@ -505,7 +553,7 @@ export function LibraryGrid({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30"
+            className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] left-1/2 z-30 w-[min(92vw,900px)] -translate-x-1/2 lg:bottom-4"
           >
             <div className="rounded-full border border-border/70 bg-background/85 backdrop-blur-xl shadow-lg px-4 py-2 text-xs text-muted-foreground flex items-center">
               <Layers className="w-3.5 h-3.5 mr-2 text-emerald-500" />

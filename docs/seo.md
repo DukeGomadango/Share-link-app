@@ -45,3 +45,17 @@
 ## OG 画像の差し替え
 
 `src/app/opengraph-image.tsx` のデザインを編集するか、従来どおり静的 PNG を使う場合は `opengraph-image.png` に差し替え（tsx がある場合は tsx が優先）。
+
+### OGP デザイン構成（1200×630）
+
+| ファイル | 役割 |
+|----------|------|
+| `src/app/opengraph-image.tsx` | 2 カラム合成・フォント読込 |
+| `src/lib/og/og-layout.ts` | 余白・タイポ・mock 寸法 |
+| `src/lib/og/og-background.tsx` | 全面パターン・対角グラデ・オーブ |
+| `src/lib/og/og-product-mock.tsx` | 右カラムのリンクカード mock |
+| `src/lib/og/og-icons.tsx` | mock 内アイコン（統一 stroke） |
+| `src/lib/marketing/link-card-preview.ts` | mock 文言（LP と共有） |
+| `src/lib/site.ts` | キャッチコピー `tagline` |
+
+左カラムはキャッチコピーのみ（説明バッジは `og:description` に任せる）。中央に矢印コネクタ、右にリンクカード mock。背景は右下のリンクチェーン 1 モチーフ + 対角流線。LP は `OG_LAYOUT` を共有。

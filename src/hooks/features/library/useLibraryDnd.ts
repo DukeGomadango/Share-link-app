@@ -1,13 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import {
-  DragEndEvent,
-  DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
+import { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import { useAppDndSensors } from "@/lib/dnd-sensors";
 import { useCommandPaletteStore } from "@/stores/commandPaletteStore";
 
 interface UseLibraryDndProps {
@@ -32,13 +27,7 @@ export function useLibraryDnd({
   const closeCommandDropStore = useCommandPaletteStore((state) => state.close);
   const setCommandDropQuery = useCommandPaletteStore((state) => state.setQuery);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
+  const sensors = useAppDndSensors();
 
   const handleDragStart = (event: DragStartEvent) => {
     const fileId = event.active.data.current?.fileId;

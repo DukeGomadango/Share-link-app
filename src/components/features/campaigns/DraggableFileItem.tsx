@@ -54,10 +54,10 @@ export function DraggableFileItem({
         type="button"
         aria-label={isSelected ? "Deselect file" : "Select file"}
         className={cn(
-          "z-10 rounded border flex items-center justify-center shrink-0 transition-all absolute top-2 left-2 w-4 h-4",
+          "z-10 absolute top-2 left-2 flex size-6 shrink-0 items-center justify-center rounded border transition-all md:size-4",
           isSelected 
             ? "bg-emerald-500 border-emerald-500 text-white" 
-            : "border-border hover:border-emerald-500 bg-background/80 opacity-0 group-hover:opacity-100"
+            : "border-border hover:border-emerald-500 bg-background/80 opacity-100 md:opacity-0 md:group-hover:opacity-100"
         )}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
@@ -73,7 +73,7 @@ export function DraggableFileItem({
         <button
           type="button"
           aria-label="Remove from campaign"
-          className="z-10 absolute top-2 right-2 w-4 h-4 flex items-center justify-center text-muted-foreground hover:text-destructive transition-all opacity-0 group-hover:opacity-100"
+          className="z-10 absolute top-2 right-2 flex size-8 items-center justify-center text-muted-foreground transition-all opacity-100 hover:text-destructive md:opacity-0 md:group-hover:opacity-100"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={(event) => {
             event.stopPropagation();

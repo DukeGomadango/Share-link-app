@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Gift } from "lucide-react";
 import { MarketingHeaderActions } from "@/components/marketing/MarketingHeaderActions";
+import { MarketingMobileNav } from "@/components/marketing/MarketingMobileNav";
 import { SITE_CONFIG } from "@/lib/site";
 
 export function MarketingShell({
@@ -36,7 +37,10 @@ export function MarketingShell({
               よくある質問
             </a>
           </nav>
-          <MarketingHeaderActions />
+          <div className="flex items-center gap-2">
+            <MarketingMobileNav />
+            <MarketingHeaderActions />
+          </div>
         </div>
       </header>
       <main className="flex-1">{children}</main>

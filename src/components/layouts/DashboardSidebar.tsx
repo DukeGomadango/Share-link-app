@@ -1,72 +1,41 @@
 "use client";
 
-import Link from "next/link";
-import { LayoutDashboard, Megaphone, Settings, Gift, FolderOpen, Plug, Users } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Gift } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { LanguageToggle } from "@/components/shared/LanguageToggle";
 import { useTranslation } from "@/lib/i18n";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { PlanStatusWidget } from "@/components/shared/PlanStatusWidget";
 import { useWorkspaceStats } from "@/hooks/features/workspace/useWorkspaceStats";
+import { DASHBOARD_SIDEBAR_NAV } from "@/lib/dashboard-nav";
+import { DashboardNavLink } from "@/components/layouts/DashboardNavLink";
 
 export function DashboardSidebar() {
   const { t } = useTranslation();
+  const pathname = usePathname();
   const { stats } = useWorkspaceStats();
 
   return (
-    <aside className="w-64 h-full hidden lg:flex flex-col glass border-r-0 rounded-l-none">
-      <div className="p-6 flex items-center space-x-2">
-        <Gift className="w-6 h-6 text-emerald-500" />
-        <span className="font-bold text-lg tracking-tight">{t.app.brandName}</span>
+    <aside className="hidden h-full w-64 flex-col rounded-l-none border-r-0 glass lg:flex">
+      <div className="flex items-center space-x-2 p-6">
+        <Gift className="h-6 w-6 text-emerald-500" aria-hidden />
+        <span className="text-lg font-bold tracking-tight">{t.app.brandName}</span>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2 mt-4">
-        {/* ... (navigation links) ... */}
-        <Link
-          href="/dashboard"
-          className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-emerald-500/10 text-foreground/80 hover:text-emerald-500 transition-colors"
-        >
-          <LayoutDashboard className="w-5 h-5" />
-          <span>{t.nav.dashboard}</span>
-        </Link>
-        <Link
-          href="/campaigns"
-          className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-emerald-500/10 text-foreground/80 hover:text-emerald-500 transition-colors"
-        >
-          <Megaphone className="w-5 h-5" />
-          <span>{t.nav.campaigns}</span>
-        </Link>
-        <Link
-          href="/library"
-          className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-emerald-500/10 text-foreground/80 hover:text-emerald-500 transition-colors"
-        >
-          <FolderOpen className="w-5 h-5" />
-          <span>{t.nav.library}</span>
-        </Link>
-        <Link
-          href="/recipients"
-          className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-emerald-500/10 text-foreground/80 hover:text-emerald-500 transition-colors"
-        >
-          <Users className="w-5 h-5" />
-          <span>{t.nav.recipients}</span>
-        </Link>
-        <Link
-          href="/settings/integrations"
-          className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-emerald-500/10 text-foreground/80 hover:text-emerald-500 transition-colors"
-        >
-          <Plug className="w-5 h-5" />
-          <span>{t.nav.integrations}</span>
-        </Link>
-        <Link
-          href="/settings"
-          className="flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-emerald-500/10 text-foreground/80 hover:text-emerald-500 transition-colors"
-        >
-          <Settings className="w-5 h-5" />
-          <span>{t.nav.settings}</span>
-        </Link>
+      <nav className="mt-4 flex-1 space-y-2 px-4" aria-label={t.nav.mobileNavLabel}>
+        {DASHBOARD_SIDEBAR_NAV.map((item) => (
+          <DashboardNavLink
+            key={item.id}
+            item={item}
+            label={t.nav[item.labelKey]}
+            active={item.isActive(pathname)}
+            variant="sidebar"
+          />
+        ))}
       </nav>
 
-      <div className="px-4 mb-4">
+      <div className="mb-4 px-4">
         <PlanStatusWidget
           planTier={stats?.planTier === "pro" ? "pro" : "free"}
           billingTier={stats?.billingTier ?? null}
@@ -75,10 +44,10 @@ export function DashboardSidebar() {
         />
       </div>
 
-      <div className="p-4 border-t border-border space-y-2">
-        <SignOutButton label={t.settings.account.signOut} className="w-full" variant="ghost" />
-        <LanguageToggle className="w-full justify-center" />
-        <div className="flex justify-between items-center">
+      <div className="space-y-2 border-t border-border p-4">
+        <SignOutButton label={t.settings.account.signOut} className="w-full min-h-11" variant="ghost" />
+        <LanguageToggle className="w-full min-h-11 justify-center" />
+        <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{t.nav.version}</span>
           <ThemeToggle />
         </div>

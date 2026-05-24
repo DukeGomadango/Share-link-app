@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useCoarsePointer } from "@/hooks/useCoarsePointer";
 import { FileImage, FileAudio, File as FileIcon, Trash2, Loader2 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
 import { FileDropzone } from "@/components/shared/FileDropzone";
@@ -20,6 +21,8 @@ import { LibraryFilters } from "@/components/features/library/LibraryFilters";
 import { LibraryGrid } from "@/components/features/library/LibraryGrid";
 import { LibraryToasts } from "@/components/features/library/LibraryToasts";
 import { LibraryRetentionBanner } from "@/components/features/library/LibraryRetentionBanner";
+import { LibraryMobileToolbar } from "@/components/features/library/LibraryMobileToolbar";
+import { CollapsibleCallout } from "@/components/shared/CollapsibleCallout";
 
 export default function LibraryPage() {
   const { t, locale } = useTranslation();
@@ -86,7 +89,9 @@ export default function LibraryPage() {
 
   const selectedFiles = filteredFiles.filter(f => selectedFileIds.has(f.id));
   const linkedSelectedCount = selectedFiles.filter(f => f.linkedCampaigns.length > 0).length;
+  const coarsePointer = useCoarsePointer();
   const [viewMode, setViewMode] = useState<"detail" | "compact">("detail");
+  const displayViewMode = coarsePointer ? "compact" : viewMode;
   const [isBulkRemoving, setIsBulkRemoving] = useState(false);
 
   const onBulkRemove = async () => {
@@ -146,8 +151,63 @@ export default function LibraryPage() {
 
   const isIntentDockOpen = draggedFileIds.length > 0;
 
+  const activeFilterCount = [
+    fileTypeFilter !== "all",
+    unassignedOnly,
+    sizeFilter !== "all",
+    dateFilter !== "all",
+    selectedTag !== "",
+    searchQuery.trim() !== "",
+  ].filter(Boolean).length;
+
+  const libraryFilterProps = {
+    fileTypeFilter,
+    onFileTypeFilterChange: setFileTypeFilter,
+    searchQuery,
+    onSearchQueryChange: setSearchQuery,
+    unassignedOnly,
+    onUnassignedOnlyChange: setUnassignedOnly,
+    sizeFilter,
+    onSizeFilterChange: setSizeFilter,
+    dateFilter,
+    onDateFilterChange: setDateFilter,
+    selectedTag,
+    smartTags,
+    onSelectedTagChange: setSelectedTag,
+    selectedCount,
+    campaignsCount: campaigns.length,
+    viewMode: displayViewMode,
+    onViewModeChange: setViewMode,
+    onClearSelection: () => setSelectedFileIds(new Set()),
+    onOpenCommandDrop: openCommandDropForSelection,
+    onOpenAssignModal: () => {
+      setAssignTargetCampaignId(campaigns[0]?.id ?? "");
+      setCampaignQuery("");
+      setIsAssignModalOpen(true);
+    },
+    onBulkDelete: () => setIsBulkConfirmOpen(true),
+    labels: {
+      searchPlaceholder: t.library.searchAssetsPlaceholder,
+      filtersLabel: t.library.filtersLabel,
+      unassignedOnly: t.library.unassignedOnly,
+      sizeLabel: t.library.sizeLabel,
+      dateLabel: t.library.dateLabel,
+      tagLabel: t.library.tagLabel,
+      viewModeDetail: t.library.viewModeDetail,
+      viewModeCompact: t.library.viewModeCompact,
+      dateOptions: t.library.dateOptions,
+      sizeOptions: t.library.sizeOptions,
+      fileType: t.library.fileType,
+      openCommandDrop: t.library.openCommandDrop,
+      clearSelection: t.library.clearSelection,
+      assignToCampaign: t.library.assignToCampaign,
+      deleteSelected: "ライブラリから削除",
+    },
+    activeFilterCount,
+  };
+
   return (
-    <div className={`space-y-6 ${isIntentDockOpen ? "pb-36" : "pb-20"}`}>
+    <div className={`space-y-4 md:space-y-6 ${isIntentDockOpen ? "pb-36" : "pb-20"}`}>
       <LibraryHeader title={t.library.title} subtitle={t.library.subtitle} />
 
       <LibraryRetentionBanner
@@ -155,56 +215,26 @@ export default function LibraryPage() {
         totalFiles={assetCounts.total > 0 ? assetCounts.total : files.length}
       />
 
-      <div className="mb-8 space-y-4">
+      <CollapsibleCallout title={t.mobile.uploadAssets} className="lg:hidden" defaultOpen={files.length === 0}>
+        <FileDropzone onFilesDropped={handleFilesDropped} />
+      </CollapsibleCallout>
+      <div className="mb-4 hidden space-y-4 lg:block">
         <FileDropzone onFilesDropped={handleFilesDropped} />
       </div>
 
-      <LibraryFilters
-        fileTypeFilter={fileTypeFilter}
-        onFileTypeFilterChange={setFileTypeFilter}
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        unassignedOnly={unassignedOnly}
-        onUnassignedOnlyChange={setUnassignedOnly}
-        sizeFilter={sizeFilter}
-        onSizeFilterChange={setSizeFilter}
-        dateFilter={dateFilter}
-        onDateFilterChange={setDateFilter}
-        selectedTag={selectedTag}
-        smartTags={smartTags}
-        onSelectedTagChange={setSelectedTag}
-        selectedCount={selectedCount}
-        campaignsCount={campaigns.length}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onClearSelection={() => setSelectedFileIds(new Set())}
-        onOpenCommandDrop={openCommandDropForSelection}
-        onOpenAssignModal={() => {
-          setAssignTargetCampaignId(campaigns[0]?.id ?? "");
-          setCampaignQuery("");
-          setIsAssignModalOpen(true);
-        }}
-        onBulkDelete={() => setIsBulkConfirmOpen(true)}
-        labels={{
-          searchPlaceholder: t.library.searchAssetsPlaceholder,
-          filtersLabel: t.library.filtersLabel,
-          unassignedOnly: t.library.unassignedOnly,
-          sizeLabel: t.library.sizeLabel,
-          dateLabel: t.library.dateLabel,
-          tagLabel: t.library.tagLabel,
-          viewModeDetail: t.library.viewModeDetail,
-          viewModeCompact: t.library.viewModeCompact,
-          dateOptions: t.library.dateOptions,
-          sizeOptions: t.library.sizeOptions,
-          fileType: t.library.fileType,
-          openCommandDrop: t.library.openCommandDrop,
-          clearSelection: t.library.clearSelection,
-          assignToCampaign: t.library.assignToCampaign,
-          deleteSelected: "ライブラリから削除",
-        }}
-      />
+      <LibraryMobileToolbar {...libraryFilterProps} />
+
+      <div className="hidden lg:block">
+        <LibraryFilters
+          {...(() => {
+            const { activeFilterCount: _n, ...rest } = libraryFilterProps;
+            return rest;
+          })()}
+        />
+      </div>
 
       <LibraryGrid
+        pageScroll={coarsePointer}
         loading={filesLoading}
         loadingMore={filesLoadingMore}
         hasMore={hasMoreFiles}
@@ -220,7 +250,7 @@ export default function LibraryPage() {
         unassignedCount={unassignedCount}
         locale={locale}
         sensors={sensors}
-        viewMode={viewMode}
+        viewMode={displayViewMode}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onToggleSelection={toggleSelection}

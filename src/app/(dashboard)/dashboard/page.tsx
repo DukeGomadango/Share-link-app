@@ -14,6 +14,8 @@ import { DashboardHeader } from "@/components/features/dashboard/DashboardHeader
 import { NextBestActions } from "@/components/features/dashboard/NextBestActions";
 import { StatCards } from "@/components/features/dashboard/StatCards";
 import { InsightCards } from "@/components/features/dashboard/InsightCards";
+import { DashboardStatsCompact } from "@/components/features/dashboard/DashboardStatsCompact";
+import { CollapsibleCallout } from "@/components/shared/CollapsibleCallout";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardOverviewStats | null>(null);
@@ -152,20 +154,29 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <DashboardHeader title={t.dashboard.title} buttonText={t.dashboard.newCampaign} />
 
-      <BentoGrid>
-        <NextBestActions 
-          unassignedAssets={stats?.unassignedAssets ?? 0} 
-          onQuickAssign={openQuickAssign} 
-          t={t} 
-        />
+      <NextBestActions
+        unassignedAssets={stats?.unassignedAssets ?? 0}
+        onQuickAssign={openQuickAssign}
+        t={t}
+      />
 
-        <StatCards stats={stats} loading={statsLoading} t={t} />
+      <DashboardStatsCompact stats={stats} loading={statsLoading} />
 
-        <InsightCards stats={stats} t={t} />
-      </BentoGrid>
+      <div className="hidden md:block">
+        <BentoGrid>
+          <StatCards stats={stats} loading={statsLoading} t={t} />
+          <InsightCards stats={stats} t={t} />
+        </BentoGrid>
+      </div>
+
+      <div className="md:hidden">
+        <CollapsibleCallout title={t.dashboard.roiProof} tone="neutral">
+          <InsightCards stats={stats} t={t} />
+        </CollapsibleCallout>
+      </div>
 
       <LibraryToasts
         showUndoToast={showAssignToast}

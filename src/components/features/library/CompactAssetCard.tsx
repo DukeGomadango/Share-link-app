@@ -93,7 +93,7 @@ export function CompactAssetCard({
       {/* Checkbox and Drag Handle - Visible on Hover or when Selected */}
       <div className={cn(
         "absolute top-1.5 left-1.5 z-10 flex gap-1 transition-opacity duration-200",
-        isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        isSelected ? "opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100"
       )}>
         <button
           type="button"
@@ -122,7 +122,7 @@ export function CompactAssetCard({
       </div>
 
       {/* Action Buttons - Visible on Hover */}
-      <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+      <div className="absolute top-1.5 right-1.5 z-10 flex gap-1 opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100">
         <button
           onClick={handleStartEdit}
           className="w-5 h-5 bg-background/80 border border-border hover:bg-emerald-50 rounded text-muted-foreground hover:text-emerald-500 transition-all flex items-center justify-center"

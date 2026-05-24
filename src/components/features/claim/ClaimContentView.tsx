@@ -187,14 +187,14 @@ export function ClaimContentView({ files, expiryDate, campaignName, hideActionBa
 
       {/* フローティング・ダウンロードバー (Portal経由で body 直下にレンダリング) */}
       {!hideActionBar && mounted && createPortal(
-        <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
+        <div className="fixed-bottom-bar-safe fixed bottom-0 left-0 right-0 z-50 pointer-events-none">
           {/* グラデーション・マスク */}
           <div className="h-32 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent" />
           <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute bottom-8 left-0 right-0 px-4 flex justify-center"
+          className="absolute bottom-[max(2rem,env(safe-area-inset-bottom))] left-0 right-0 flex justify-center px-4"
         >
           <div className="pointer-events-auto w-full max-w-sm bg-white/70 backdrop-blur-2xl rounded-full p-2 flex items-center justify-between border border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
             <div className="px-4 text-sm font-medium">

@@ -9,14 +9,15 @@ export function CampaignsHeader() {
   const { t } = useTranslation();
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t.campaigns.title}</h1>
-        <p className="text-muted-foreground mt-1">{t.campaigns.subtitle}</p>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{t.campaigns.title}</h1>
+        <p className="mt-1 hidden text-muted-foreground sm:block">{t.campaigns.subtitle}</p>
       </div>
       <Button
         asChild
-        className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-6 shadow-lg shadow-emerald-500/20 transition-all hover:scale-105"
+        size="touch"
+        className="w-full bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 sm:w-auto sm:rounded-full sm:px-6"
       >
         <Link href="/campaigns/new">
           <Plus className="w-4 h-4 mr-2" />

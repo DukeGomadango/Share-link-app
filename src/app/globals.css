@@ -379,3 +379,36 @@
     background: oklch(0.7 0.14 158.452 / 0.3);
   }
 }
+
+/* Mobile safe areas (notch / home indicator) */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+.fixed-bottom-safe {
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+.fixed-bottom-bar-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Dashboard / touch-primary UI: minimum tap targets */
+@media (pointer: coarse) {
+  [data-touch-target="primary"] {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+}

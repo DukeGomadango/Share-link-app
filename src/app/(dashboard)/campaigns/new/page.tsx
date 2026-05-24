@@ -28,12 +28,18 @@ export default function NewCampaignPage() {
   const [step, setStep] = useState(1);
   const totalSteps = 3;
 
+  const defaultExpiresAt = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split("T")[0];
+  };
+
   // Form Data
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     tags: [] as string[],
-    expiresAt: "", // Default empty (smart default handled in UI or effect)
+    expiresAt: defaultExpiresAt(),
     securityLevel: "standard" as "standard" | "high",
     assetIds: [] as string[],
   });
@@ -47,13 +53,6 @@ export default function NewCampaignPage() {
     { id: 2, label: t.campaigns.new.steps.step2 },
     { id: 3, label: t.campaigns.new.steps.step3 },
   ];
-
-  // Smart Default for Expiry (30 days from now)
-  useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    setFormData(prev => ({ ...prev, expiresAt: d.toISOString().split("T")[0] }));
-  });
 
   const handleNext = () => {
     if (step === 1 && !formData.name.trim()) return;
@@ -83,7 +82,7 @@ export default function NewCampaignPage() {
         throw new Error(err.error || "作成に失敗しました");
       }
       const campaign = await res.json();
-      router.push(`/campaigns/${campaign.id}`);
+      router.push(`/campaigns/${campaign.id}?tab=files`);
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "作成に失敗しました");
@@ -91,25 +90,65 @@ export default function NewCampaignPage() {
     }
   }
 
+  const navButtons = (
+    <>
+      <Button
+        variant="ghost"
+        onClick={step === 1 ? () => router.push("/campaigns") : handlePrev}
+        className="min-h-11 flex-1 rounded-full px-4 hover:bg-muted/50 sm:flex-none sm:px-6"
+        disabled={loading}
+      >
+        <ChevronLeft className="mr-2 size-4" />
+        {step === 1 ? t.common.cancel : t.campaigns.new.prevStep}
+      </Button>
+      <Button
+        onClick={handleNext}
+        disabled={loading || (step === 1 && !formData.name.trim())}
+        size="touch"
+        className={cn(
+          "min-h-11 flex-1 rounded-full px-6 shadow-xl sm:flex-none sm:px-10",
+          step === totalSteps
+            ? "bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600"
+            : "bg-foreground text-background hover:opacity-90"
+        )}
+      >
+        {loading ? (
+          <div className="flex items-center">
+            <div className="mr-2 size-4 animate-spin rounded-full border-2 border-background/30 border-t-background" />
+            {t.common.loading}
+          </div>
+        ) : step === totalSteps ? (
+          <>
+            <Megaphone className="mr-2 size-4" />
+            {t.campaigns.new.submit}
+          </>
+        ) : (
+          <>
+            {t.campaigns.new.nextStep}
+            <ChevronRight className="ml-2 size-4" />
+          </>
+        )}
+      </Button>
+    </>
+  );
+
   return (
-    <div className="max-w-4xl mx-auto space-y-10 pb-20">
-      {/* Header */}
-      <div className="flex items-center space-x-4">
-        <Button variant="ghost" size="icon" asChild className="rounded-full">
+    <div className="mx-auto max-w-4xl space-y-6 pb-32 md:space-y-10 md:pb-20">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" asChild className="shrink-0 rounded-full">
           <Link href="/campaigns">
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="size-5" />
           </Link>
         </Button>
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight md:text-4xl md:bg-gradient-to-r md:from-foreground md:to-foreground/70 md:bg-clip-text md:text-transparent">
             {t.campaigns.new.title}
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">{t.campaigns.new.subtitle}</p>
+          <p className="mt-1 hidden text-sm text-muted-foreground sm:block">{t.campaigns.new.subtitle}</p>
         </div>
       </div>
 
-      {/* Stepper */}
-      <Stepper steps={steps} currentStep={step} className="mb-12" />
+      <Stepper steps={steps} currentStep={step} className="mb-6 md:mb-12" />
 
       {/* Main Content */}
       <div className="relative">
@@ -119,7 +158,7 @@ export default function NewCampaignPage() {
           </div>
         )}
 
-        <GlassCard className="p-8 md:p-12 overflow-hidden min-h-[400px] flex flex-col">
+        <GlassCard className="flex min-h-[320px] flex-col overflow-hidden p-5 md:min-h-[400px] md:p-12">
           {/* Step 1: Basic Info */}
           {step === 1 && (
             <StepBasicInfo 
@@ -150,51 +189,18 @@ export default function NewCampaignPage() {
             />
           )}
 
-          {/* Navigation Buttons */}
-          <div className="mt-auto pt-10 flex justify-between items-center border-t border-border/30">
-            <Button 
-              variant="ghost" 
-              onClick={step === 1 ? () => router.push("/campaigns") : handlePrev}
-              className="rounded-full px-6 hover:bg-muted/50"
-              disabled={loading}
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              {step === 1 ? t.common.cancel : t.campaigns.new.prevStep}
-            </Button>
-            
-            <Button
-              onClick={handleNext}
-              disabled={loading || (step === 1 && !formData.name.trim())}
-              className={cn(
-                "rounded-full px-10 transition-all duration-300 shadow-xl",
-                step === totalSteps 
-                  ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20"
-                  : "bg-foreground text-background hover:opacity-90"
-              )}
-            >
-              {loading ? (
-                <div className="flex items-center">
-                  <div className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin mr-2" />
-                  {t.common.loading}
-                </div>
-              ) : (
-                <>
-                  {step === totalSteps ? (
-                    <>
-                      <Megaphone className="w-4 h-4 mr-2" />
-                      {t.campaigns.new.submit}
-                    </>
-                  ) : (
-                    <>
-                      {t.campaigns.new.nextStep}
-                      <ChevronRight className="w-4 h-4 ml-2" />
-                    </>
-                  )}
-                </>
-              )}
-            </Button>
+          <div className="mt-auto hidden items-center justify-between border-t border-border/30 pt-10 md:flex">
+            {navButtons}
           </div>
         </GlassCard>
+      </div>
+
+      <div
+        className="fixed-bottom-safe fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-40 flex gap-2 border-t border-border/50 bg-background/95 px-3 py-3 backdrop-blur-md md:hidden"
+        role="navigation"
+        aria-label={t.campaigns.new.title}
+      >
+        {navButtons}
       </div>
     </div>
   );

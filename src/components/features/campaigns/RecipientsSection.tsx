@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/lib/i18n";
+import { useIsLgUp } from "@/hooks/useBreakpoint";
 import { DroppableRecipient } from "@/components/features/campaigns/DroppableRecipient";
 import { Recipient, FileItem } from "@/components/features/campaigns/types";
 import { useState } from "react";
@@ -34,6 +35,10 @@ interface RecipientsSectionProps {
   onViewModeChange?: (mode: "grid" | "list") => void;
   /** だんごツール等からの deep link（`focus_external_tx`） */
   focusExternalTx?: string | null;
+  layoutMode?: "panel" | "standalone";
+  onRequestAssignWizard?: (recipientId: string) => void;
+  /** 下書き時に empty / FAB から公開フローへ */
+  onPublishForAdd?: () => void;
 }
 
 export function RecipientsSection({
@@ -52,8 +57,12 @@ export function RecipientsSection({
   viewMode = "grid",
   onViewModeChange,
   focusExternalTx = null,
+  layoutMode = "panel",
+  onRequestAssignWizard,
+  onPublishForAdd,
 }: RecipientsSectionProps) {
   const { t } = useTranslation();
+  const isLgUp = useIsLgUp();
   const [detailRecipientId, setDetailRecipientId] = useState<string | null>(null);
 
   // 事前準備された（待機中ではない）スロットのリスト
@@ -74,7 +83,12 @@ export function RecipientsSection({
 
   return (
     <>
-      <GlassCard className="flex flex-col overflow-hidden h-full">
+      <GlassCard
+        className={cn(
+          "flex flex-col overflow-hidden",
+          layoutMode === "panel" ? "h-full" : "h-full min-h-[min(62dvh,560px)]"
+        )}
+      >
       <div className="shrink-0 space-y-2 mb-4 pb-4 border-b border-border/50">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold flex items-center min-w-0">
@@ -116,19 +130,24 @@ export function RecipientsSection({
 
               <Button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 text-emerald-500 hover:text-emerald-600"
-                disabled={addRecipientsDisabled || !onAddRecipients}
-                onClick={onAddRecipients}
+                variant={isDraft ? "outline" : "ghost"}
+                size={isLgUp ? "sm" : "touch"}
+                className={cn(
+                  "shrink-0 text-emerald-600 hover:text-emerald-700",
+                  !isLgUp && "min-h-10 px-3"
+                )}
+                disabled={addRecipientsDisabled && !isDraft}
+                onClick={isDraft ? onPublishForAdd : onAddRecipients}
                 title={
-                  addRecipientsDisabled
-                    ? "キャンペーンを公開すると追加できるようになります"
-                    : t.campaigns.addRecipientsButtonTitle
+                  isDraft
+                    ? t.mobile.addRecipientsPublishFirst
+                    : addRecipientsDisabled
+                      ? "キャンペーンを公開すると追加できるようになります"
+                      : t.campaigns.addRecipientsButtonTitle
                 }
               >
-                <MailPlus className="w-4 h-4 mr-1" />
-                {t.campaigns.addRecipients}
+                <MailPlus className="mr-1 size-4" />
+                {isDraft ? t.mobile.addRecipientsPublishFirst : t.campaigns.addRecipients}
               </Button>
             </div>
           )}
@@ -160,9 +179,23 @@ export function RecipientsSection({
         isPublic || viewMode === "list" ? "block space-y-2" : "grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-max"
       )}>
         {recipients.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8 px-2 border border-dashed border-border/60 rounded-xl">
-            {isPublic ? "まだアクセスはありません" : t.campaigns.recipientsEmpty}
-          </p>
+          <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border/60 px-4 py-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              {isPublic ? "まだアクセスはありません" : t.campaigns.recipientsEmpty}
+            </p>
+            {!isPublic && onAddRecipients ? (
+              <Button
+                type="button"
+                size="touch"
+                className="bg-emerald-500 text-white hover:bg-emerald-600"
+                disabled={addRecipientsDisabled && !isDraft}
+                onClick={isDraft ? onPublishForAdd : onAddRecipients}
+              >
+                <MailPlus className="mr-2 size-4" />
+                {isDraft ? t.mobile.addRecipientsPublishFirst : t.campaigns.addRecipients}
+              </Button>
+            ) : null}
+          </div>
         ) : isPublic ? (
           <PublicActivityTimeline 
             recipients={recipients}
@@ -200,6 +233,7 @@ export function RecipientsSection({
                   readOnly={readOnly}
                   onClick={() => setDetailRecipientId(recipient.id)}
                   focusHighlight={focusHighlight}
+                  onRequestAssignWizard={onRequestAssignWizard}
                 />
               );
             }
@@ -248,6 +282,7 @@ type DroppableRecipientRowProps = {
   matchingPreparedSlot?: Recipient;
   onMerge?: (sourceId: string, targetId: string) => void;
   focusHighlight?: boolean;
+  onRequestAssignWizard?: (recipientId: string) => void;
 };
 
 function DroppableRecipientRow({
@@ -260,6 +295,7 @@ function DroppableRecipientRow({
   matchingPreparedSlot,
   onMerge,
   focusHighlight = false,
+  onRequestAssignWizard,
 }: DroppableRecipientRowProps) {
   const { isOver, setNodeRef: setDroppableRef } = useDroppable({
     id: `recipient-${recipient.id}`,
@@ -378,7 +414,22 @@ function DroppableRecipientRow({
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+      <div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+        {onRequestAssignWizard && !readOnly ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9 shrink-0 border-emerald-500/30 px-2 text-[10px] font-bold text-emerald-600"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRequestAssignWizard(recipient.id);
+            }}
+          >
+            <Plus className="mr-0.5 h-3 w-3" />
+            割り当て
+          </Button>
+        ) : null}
         {recipient.link && (
           <>
             <Button

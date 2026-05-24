@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 import { useTranslation } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
 interface FilePoolSectionProps {
   files: FileItem[];
@@ -21,6 +22,8 @@ interface FilePoolSectionProps {
   onUnassignFiles?: (fileIds: string[]) => void;
   rarities?: { id: string; name: string; color: string }[];
   onUpdateFileRarity?: (fileId: string, rarityId: string | null) => void;
+  /** panel: デスクトップ2カラム用の h-full / standalone: モバイルタブ内 */
+  layoutMode?: "panel" | "standalone";
 }
 
 export function FilePoolSection({
@@ -34,6 +37,7 @@ export function FilePoolSection({
   onUnassignFiles,
   rarities = [],
   onUpdateFileRarity,
+  layoutMode = "panel",
 }: FilePoolSectionProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -148,7 +152,12 @@ export function FilePoolSection({
   } : null;
 
   return (
-    <GlassCard className="flex flex-col overflow-hidden h-full">
+    <GlassCard
+      className={cn(
+        "flex flex-col overflow-hidden",
+        layoutMode === "panel" ? "h-full" : "h-full min-h-[min(62dvh,560px)]"
+      )}
+    >
       <div className="space-y-4 mb-4 pb-4 border-b border-border/50 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

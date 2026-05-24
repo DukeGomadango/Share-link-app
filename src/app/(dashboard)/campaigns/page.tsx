@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useIsLgUp } from "@/hooks/useBreakpoint";
+import { CampaignsMobileToolbar } from "@/components/features/campaigns/CampaignsMobileToolbar";
 import { useCampaigns } from "@/hooks/features/campaigns/useCampaigns";
 import { CampaignsHeader } from "@/components/features/campaigns/CampaignsHeader";
 import { CampaignsFilters } from "@/components/features/campaigns/CampaignsFilters";
@@ -58,8 +60,49 @@ export default function CampaignsPage() {
   } = useCampaigns();
 
   const { t } = useTranslation();
+  const isLgUp = useIsLgUp();
   const [idsToDelete, setIdsToDelete] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (!isLgUp && viewMode === "kanban") {
+      setViewMode("list");
+    }
+  }, [isLgUp, viewMode, setViewMode]);
+
+  const campaignFilterProps = useMemo(
+    () => ({
+      searchQuery,
+      onSearchChange: setSearchQuery,
+      viewMode,
+      onViewModeChange: setViewMode,
+      activeFilter,
+      onFilterChange: setActiveFilter,
+      quickFilters: QUICK_FILTERS,
+      allTags,
+      selectedTag,
+      onTagChange: setSelectedTag,
+    }),
+    [
+      searchQuery,
+      viewMode,
+      activeFilter,
+      allTags,
+      selectedTag,
+      setSearchQuery,
+      setViewMode,
+      setActiveFilter,
+      setSelectedTag,
+    ]
+  );
+
+  const activeFilterCount = [
+    selectedTag,
+    searchQuery.trim(),
+    activeFilter !== "all",
+  ].filter(Boolean).length;
+
+  const effectiveViewMode = isLgUp ? viewMode : "list";
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -142,20 +185,19 @@ export default function CampaignsPage() {
         <EmptyCampaignState />
       ) : (
         <>
-          <CampaignsFilters
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
+          <CampaignsMobileToolbar
+            {...campaignFilterProps}
+            activeFilterCount={activeFilterCount}
+            quickFilters={QUICK_FILTERS}
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
-            quickFilters={QUICK_FILTERS}
-            allTags={allTags}
-            selectedTag={selectedTag}
-            onTagChange={setSelectedTag}
           />
 
-          {viewMode === "list" ? (
+          <div className="hidden lg:block">
+            <CampaignsFilters {...campaignFilterProps} />
+          </div>
+
+          {effectiveViewMode === "list" ? (
             <CampaignsListView
               campaigns={visibleCampaigns}
               selectedCampaignIds={selectedCampaignIds}

@@ -209,7 +209,7 @@ export function DraggableAssetCard({
               >
                 {file.name}
               </h3>
-              <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex shrink-0 gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                 <button
                   onClick={handleStartEdit}
                   className="p-1.5 hover:bg-emerald-50 rounded-md text-muted-foreground hover:text-emerald-500 transition-all"

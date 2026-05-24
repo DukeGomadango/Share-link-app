@@ -7,25 +7,24 @@ import { LanguageToggle } from "@/components/shared/LanguageToggle";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { ProfileEmailSection } from "@/components/settings/ProfileEmailSection";
+import { SettingsSection } from "@/components/settings/SettingsSection";
 import { useTranslation } from "@/lib/i18n";
 
 export default function SettingsPage() {
   const { t } = useTranslation();
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="mx-auto max-w-4xl space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t.settings.title}</h1>
-        <p className="text-muted-foreground mt-1">{t.settings.subtitle}</p>
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{t.settings.title}</h1>
+        <p className="mt-1 text-muted-foreground">{t.settings.subtitle}</p>
       </div>
 
-      {/* 外観 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-2">
-          <h3 className="font-semibold text-lg">{t.settings.appearance.heading}</h3>
-          <p className="text-sm text-muted-foreground">{t.settings.appearance.description}</p>
-        </div>
-        <GlassCard className="md:col-span-2 space-y-6">
+      <SettingsSection
+        heading={t.settings.appearance.heading}
+        description={t.settings.appearance.description}
+      >
+        <GlassCard className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">{t.settings.appearance.themePreference}</h4>
@@ -36,17 +35,13 @@ export default function SettingsPage() {
             <ThemeToggle />
           </div>
         </GlassCard>
-      </div>
+      </SettingsSection>
 
-      <div className="border-t border-border/50 my-8" />
-
-      {/* 言語 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-2">
-          <h3 className="font-semibold text-lg">{t.settings.language.heading}</h3>
-          <p className="text-sm text-muted-foreground">{t.settings.language.description}</p>
-        </div>
-        <GlassCard className="md:col-span-2 space-y-6">
+      <SettingsSection
+        heading={t.settings.language.heading}
+        description={t.settings.language.description}
+      >
+        <GlassCard className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">{t.settings.language.label}</h4>
@@ -57,63 +52,47 @@ export default function SettingsPage() {
             <LanguageToggle />
           </div>
         </GlassCard>
-      </div>
+      </SettingsSection>
 
-      <div className="border-t border-border/50 my-8" />
-
-      {/* プランと請求 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-2">
-          <h3 className="font-semibold text-lg">{t.settings.billingLink.heading}</h3>
-          <p className="text-sm text-muted-foreground">{t.settings.billingLink.description}</p>
-        </div>
-        <GlassCard className="md:col-span-2 flex flex-wrap items-center justify-between gap-4">
+      <SettingsSection
+        heading={t.settings.billingLink.heading}
+        description={t.settings.billingLink.description}
+      >
+        <GlassCard className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
           <p className="text-sm text-muted-foreground">{t.billing.subtitle}</p>
-          <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shrink-0" asChild>
+          <Button className="min-h-11 w-full shrink-0 bg-emerald-500 text-white hover:bg-emerald-600 sm:w-auto sm:rounded-full" asChild>
             <Link href="/settings/billing">{t.settings.billingLink.open}</Link>
           </Button>
         </GlassCard>
-      </div>
+      </SettingsSection>
 
-      <div className="border-t border-border/50 my-8" />
-
-      {/* 外部連携 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-2">
-          <h3 className="font-semibold text-lg">{t.settings.integrationsLink.heading}</h3>
-          <p className="text-sm text-muted-foreground">{t.settings.integrationsLink.description}</p>
-        </div>
-        <GlassCard className="md:col-span-2 flex flex-wrap items-center justify-between gap-4">
+      <SettingsSection
+        heading={t.settings.integrationsLink.heading}
+        description={t.settings.integrationsLink.description}
+      >
+        <GlassCard className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
           <p className="text-sm text-muted-foreground">{t.integrations.subtitle}</p>
-          <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full shrink-0" asChild>
+          <Button className="min-h-11 w-full shrink-0 bg-emerald-500 text-white hover:bg-emerald-600 sm:w-auto sm:rounded-full" asChild>
             <Link href="/settings/integrations">{t.settings.integrationsLink.open}</Link>
           </Button>
         </GlassCard>
-      </div>
+      </SettingsSection>
 
-      <div className="border-t border-border/50 my-8" />
-
-      {/* アカウント */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-2">
-          <h3 className="font-semibold text-lg">{t.settings.account.heading}</h3>
-          <p className="text-sm text-muted-foreground">{t.settings.account.description}</p>
-        </div>
-        <GlassCard className="md:col-span-2 flex flex-wrap items-center justify-between gap-4">
+      <SettingsSection
+        heading={t.settings.account.heading}
+        description={t.settings.account.description}
+      >
+        <GlassCard className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
           <p className="text-sm text-muted-foreground">{t.settings.account.signOutHint}</p>
-          <SignOutButton label={t.settings.account.signOut} />
+          <SignOutButton label={t.settings.account.signOut} className="min-h-11 w-full sm:w-auto" />
         </GlassCard>
-      </div>
+      </SettingsSection>
 
-      <div className="border-t border-border/50 my-8" />
-
-      {/* プロフィール */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 space-y-2">
-          <h3 className="font-semibold text-lg">{t.settings.profile.heading}</h3>
-          <p className="text-sm text-muted-foreground">{t.settings.profile.description}</p>
-        </div>
-        <GlassCard className="md:col-span-2 space-y-6">
+      <SettingsSection
+        heading={t.settings.profile.heading}
+        description={t.settings.profile.description}
+      >
+        <GlassCard className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">{t.settings.profile.displayName}</label>
@@ -124,12 +103,12 @@ export default function SettingsPage() {
               />
             </div>
             <ProfileEmailSection />
-            <Button className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full">
+            <Button className="min-h-11 w-full bg-emerald-500 text-white hover:bg-emerald-600 sm:w-auto sm:rounded-full">
               {t.settings.profile.saveChanges}
             </Button>
           </div>
         </GlassCard>
-      </div>
+      </SettingsSection>
     </div>
   );
 }

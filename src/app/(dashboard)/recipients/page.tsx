@@ -12,6 +12,7 @@ import {
 import { useTranslation } from "@/lib/i18n";
 import { RecipientDetailDrawer } from "@/components/features/recipients/RecipientDetailDrawer";
 import { RecipientStatsCards } from "@/components/features/recipients/RecipientStatsCards";
+import { RecipientStatsCompact } from "@/components/features/recipients/RecipientStatsCompact";
 import { RecipientTable } from "@/components/features/recipients/RecipientTable";
 import { RecipientBulkActions } from "@/components/features/recipients/RecipientBulkActions";
 import { QuickAssignModal } from "@/components/features/recipients/QuickAssignModal";
@@ -115,21 +116,21 @@ export default function RecipientsPage() {
   };
 
   return (
-    <div className="space-y-6 relative pb-24 px-1 min-h-screen">
+    <div className="relative space-y-4 px-1 pb-24 md:space-y-6">
       {/* Premium Texture Overlay */}
       <div className="fixed inset-0 opacity-[0.015] pointer-events-none z-50 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center md:gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent md:text-3xl">
             {t.nav.recipients}
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1 hidden text-muted-foreground md:block">
             配信先リスナーの名簿を一元管理します。
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <input
               type="file"
@@ -154,25 +155,31 @@ export default function RecipientsPage() {
         </div>
       </div>
 
-      {/* Insight Stats */}
-      <RecipientStatsCards 
-        stats={stats} 
-        activeFilter={activeFilter} 
-        setActiveFilter={setActiveFilter} 
+      <RecipientStatsCompact
+        stats={stats}
+        activeFilter={activeFilter}
+        setActiveFilter={setActiveFilter}
       />
 
-      {/* Filters & Search */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="hidden md:block">
+        <RecipientStatsCards
+          stats={stats}
+          activeFilter={activeFilter}
+          setActiveFilter={setActiveFilter}
+        />
+      </div>
+
+      <div className="flex flex-col items-stretch justify-between gap-3 md:flex-row md:items-center md:gap-4">
         <div className="relative w-full md:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input 
             placeholder="名前またはプラットフォームIDで検索..." 
-            className="pl-10 bg-background/50 border-border/50 rounded-xl focus-visible:ring-emerald-500/50"
+            className="min-h-11 rounded-xl border-border/50 bg-background/50 pl-10 focus-visible:ring-emerald-500/50"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="hidden items-center gap-2 md:flex">
           <Button 
             variant="ghost" 
             size="sm" 

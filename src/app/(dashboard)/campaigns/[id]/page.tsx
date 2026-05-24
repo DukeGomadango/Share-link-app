@@ -1,11 +1,9 @@
 "use client";
 import { useCallback, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { DndContext, DragOverlay } from "@dnd-kit/core";
-import { Link as LinkIcon, Download, FileAudio, FileImage, Megaphone, Users, Calendar, X, Trash2, Check, AlertCircle, Settings, Plus, ExternalLink } from "lucide-react";
+import { Link as LinkIcon, Megaphone, X, Trash2, Check, AlertCircle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import Image from "next/image";
 import { toast } from "sonner";
 
 interface GachaRarity {
@@ -15,19 +13,29 @@ interface GachaRarity {
   color: string;
 }
 
-import { StackedDragOverlay } from "@/components/shared/dnd/StackedDragOverlay";
 import { LibrarySelectModal } from "@/components/features/campaigns/LibrarySelectModal";
 import { AddRecipientModal } from "@/components/features/campaigns/AddRecipientModal";
 import { useCampaignDetail } from "@/hooks/features/campaigns/useCampaignDetail";
-
-import { FilePoolSection } from "@/components/features/campaigns/FilePoolSection";
-import { RecipientsSection } from "@/components/features/campaigns/RecipientsSection";
-
 import { useTranslation } from "@/lib/i18n";
+import { useIsLgUp } from "@/hooks/useBreakpoint";
+import { CampaignDetailMobileHeader } from "@/components/features/campaigns/detail/CampaignDetailMobileHeader";
+import { CampaignSettingsSheet } from "@/components/features/campaigns/detail/CampaignSettingsSheet";
+import { CampaignPublicLinkBanner } from "@/components/features/campaigns/detail/CampaignPublicLinkBanner";
+import { CampaignDetailWorkArea } from "@/components/features/campaigns/detail/CampaignDetailWorkArea";
+import { CampaignAssignWizard } from "@/components/features/campaigns/detail/CampaignAssignWizard";
+import { CampaignDetailDesktopHeader } from "@/components/features/campaigns/detail/CampaignDetailDesktopHeader";
+import { CampaignAssignFooter } from "@/components/features/campaigns/detail/CampaignAssignFooter";
+import { CampaignAddRecipientFab } from "@/components/features/campaigns/detail/CampaignAddRecipientFab";
+import { CampaignDangoToolBar } from "@/components/features/campaigns/detail/CampaignDangoToolBar";
+import type { CampaignWorkTab } from "@/components/features/campaigns/detail/CampaignDetailWorkTabs";
 import { escapeCsvField } from "@/lib/csv";
 import { cn } from "@/lib/utils";
 import { ConfirmModal } from "@/components/shared/ConfirmModal";
 import { hasGachaConfigHistory } from "@/lib/campaigns/external-link-mode";
+import {
+  buildDangoGachaDesignUrl,
+  isDangoToolUrlSameOriginAsShareLink,
+} from "@/lib/integrations/dango-tool-url";
 
 export default function CampaignDetailPage() {
   const { t } = useTranslation();
@@ -60,6 +68,7 @@ export default function CampaignDetailPage() {
     toggleAllSelection,
     handleDragStart,
     handleDragEnd,
+    assignFilesToRecipient,
     handleFilesDropped,
     deleteCampaign,
     handleUpdateGachaConfig,
@@ -86,6 +95,41 @@ export default function CampaignDetailPage() {
   const [integrationBusy, setIntegrationBusy] = useState(false);
   const [banner, setBanner] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [recipientsViewMode, setRecipientsViewMode] = useState<"grid" | "list">("grid");
+  const isLgUp = useIsLgUp();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const initialTab = searchParams.get("tab");
+  const [workTab, setWorkTab] = useState<CampaignWorkTab>(
+    initialTab === "recipients" ? "recipients" : "files"
+  );
+  const [assignWizardOpen, setAssignWizardOpen] = useState(false);
+  const [wizardInitialRecipientId, setWizardInitialRecipientId] = useState<string | null>(null);
+
+  const openAssignWizard = useCallback(
+    (opts?: { recipientId?: string }) => {
+      setWizardInitialRecipientId(opts?.recipientId ?? null);
+      setAssignWizardOpen(true);
+    },
+    []
+  );
+
+  const openAddRecipient = useCallback(() => {
+    setAddRecipientResetKey((k) => k + 1);
+    setAddRecipientOpen(true);
+  }, []);
+
+  const openDangoTool = useCallback(() => {
+    if (!campaignId) return;
+    const apiBaseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    if (apiBaseUrl && isDangoToolUrlSameOriginAsShareLink(apiBaseUrl)) {
+      toast.error(
+        "だんごツールの URL がこのアプリ（シェアリンク）を指しています。.env.local の NEXT_PUBLIC_DANGO_TOOL_URL を http://localhost:3001（だんごツール側）に設定してください。"
+      );
+      return;
+    }
+    window.open(buildDangoGachaDesignUrl(campaignId, apiBaseUrl), "_blank", "noopener,noreferrer");
+  }, [campaignId]);
+
+  const recipientsViewModeEffective = isLgUp ? recipientsViewMode : "list";
 
   const handleUpdateStatus = useCallback(
     async (newStatus: "active" | "completed") => {
@@ -259,294 +303,90 @@ export default function CampaignDetailPage() {
   );
 
 
+  const copyReceptionUrl = useCallback(() => {
+    if (!campaign?.publicReceptionToken) return;
+    const u = `${window.location.origin}/receive/${campaign.publicReceptionToken}`;
+    void navigator.clipboard.writeText(u);
+    toast.success("受付URLをコピーしました");
+  }, [campaign]);
+
+  const showRecipientFab =
+    !isLgUp &&
+    workTab === "recipients" &&
+    !isPublic &&
+    campaign?.status !== "completed";
+
+  const needsMobileBottomPad = selectedFileIds.size > 0 || showRecipientFab;
+
+  const openPublishFlow = useCallback(() => {
+    if (campaign?.status === "draft") {
+      setPendingStatus("active");
+      setConfirmOpen(true);
+    } else if (campaign?.status === "active") {
+      setPendingStatus("completed");
+      setConfirmOpen(true);
+    } else if (campaign?.status === "completed") {
+      setPendingStatus("active");
+      setConfirmOpen(true);
+    }
+  }, [campaign?.status]);
+
   return (
-    <div className="space-y-6 h-[calc(100vh-8rem)] flex flex-col">
-      <div className="flex justify-between items-center shrink-0">
-        <div>
-          <div className="flex items-center space-x-2 text-sm text-emerald-500 mb-1">
-            <span className="uppercase tracking-wider font-semibold text-xs">{t.campaigns.directCampaign}</span>
-            <span>•</span>
-            <span className="text-muted-foreground font-mono text-xs">{campaign?.id ?? "…"}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">
-              {workflowLoading ? "…" : campaign?.name ?? t.campaigns.campaignFlow}
-            </h1>
-            {!workflowLoading && campaign && (
-              <span
-                className={cn(
-                  "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                  campaign.status === "active"
-                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                    : campaign.status === "completed"
-                    ? "bg-slate-500/10 text-slate-500 border-slate-500/20"
-                    : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                )}
-              >
-                {t.campaigns.status[campaign.status]}
-              </span>
-            )}
-            {!workflowLoading && liveViewers > 0 && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 shadow-sm animate-in fade-in zoom-in-95">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tight font-mono">
-                  LIVE {liveViewers}
-                </span>
-              </div>
-            )}
-          </div>
-          {!workflowLoading && campaign && campaignId ? (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-muted-foreground">配布モード</span>
-              
-              {campaign.isExternalLinked && (
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 border border-purple-500/20 text-[10px] font-bold">
-                  <LinkIcon className="w-3 h-3" />
-                  {t.campaigns.gacha.linkedBadge}
-                </div>
-              )}
+    <div
+      className={cn(
+        "flex flex-col gap-4",
+        isLgUp && "h-[calc(100vh-8rem)] min-h-0 gap-6",
+        needsMobileBottomPad && "pb-24 lg:pb-0"
+      )}
+    >
+      <CampaignDetailMobileHeader
+        campaign={campaign ?? null}
+        workflowLoading={workflowLoading}
+        liveViewers={liveViewers}
+        statusBusy={statusBusy}
+        selectedFileCount={selectedFileIds.size}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenAssignWizard={() => openAssignWizard()}
+        onPublishAction={openPublishFlow}
+        onCopyReceptionUrl={
+          campaign?.distributionMode === "reception" && campaign.publicReceptionToken
+            ? copyReceptionUrl
+            : undefined
+        }
+      />
 
-              {campaign.isExternalLinked && (
-                <span className="text-[10px] text-muted-foreground max-w-[12rem] leading-tight">
-                  {t.campaigns.gacha.lockedHint}
-                </span>
-              )}
-              
-              <div className="flex items-center bg-muted/30 p-0.5 rounded-xl border border-border/50">
-                <button
-                  onClick={() => {
-                    setPendingSecurityLevel("standard");
-                    setSecurityConfirmOpen(true);
-                  }}
-                  className={cn(
-                    "px-3 py-1 text-xs font-bold rounded-lg transition-all",
-                    isPublic 
-                      ? "bg-white dark:bg-slate-800 shadow-sm text-emerald-600" 
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  disabled={statusBusy || campaign?.isExternalLinked}
-                >
-                  公開
-                </button>
-                <button
-                  onClick={() => {
-                    setPendingSecurityLevel("high");
-                    setSecurityConfirmOpen(true);
-                  }}
-                  className={cn(
-                    "px-3 py-1 text-xs font-bold rounded-lg transition-all",
-                    !isPublic 
-                      ? "bg-white dark:bg-slate-800 shadow-sm text-blue-600" 
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  disabled={statusBusy || campaign?.isExternalLinked}
-                >
-                  限定
-                </button>
-              </div>
+      {!isLgUp && !isPublic ? (
+        <CampaignDangoToolBar
+          className="lg:hidden"
+          isExternalLinked={!!campaign?.isExternalLinked}
+          onOpenDangoTool={openDangoTool}
+          onOpenGachaConfig={() => setIsGachaConfigOpen(true)}
+          onStartIntegration={() => setSettingsOpen(true)}
+        />
+      ) : null}
 
-              <Button
-                variant={campaign?.isExternalLinked ? "ghost" : "outline"}
-                size="sm"
-                className={cn(
-                  "h-8 text-[10px] uppercase font-bold transition-all",
-                  campaign?.isExternalLinked
-                    ? "text-muted-foreground hover:text-purple-600 hover:bg-purple-500/5"
-                    : "border-purple-500/30 text-purple-600 hover:bg-purple-500/5 hover:border-purple-500/50"
-                )}
-                onClick={() => {
-                  if (campaign?.isExternalLinked) {
-                    setPendingIntegrationAction("pause");
-                  } else {
-                    setPendingIntegrationAction("enable");
-                  }
-                  setIntegrationConfirmOpen(true);
-                }}
-                disabled={integrationBusy}
-              >
-                <LinkIcon className="w-3 h-3 mr-1" />
-                {campaign?.isExternalLinked
-                  ? t.campaigns.gacha.disableTitle
-                  : gachaWasConfigured
-                    ? t.campaigns.gacha.enableTitleResume
-                    : t.campaigns.gacha.enableTitleStart}
-              </Button>
-
-              {campaign?.isExternalLinked && (
-                <>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 border-purple-500/30 text-purple-600 hover:bg-purple-500/5 hover:border-purple-500/50 text-[10px] font-bold uppercase transition-all"
-                    onClick={() => {
-                      const dangoToolUrl = process.env.NEXT_PUBLIC_DANGO_TOOL_URL || "https://dango-tool.vercel.app";
-                      const apiBaseUrl = typeof window !== "undefined" ? window.location.origin : "";
-                      window.open(`${dangoToolUrl}/gacha?campaign_id=${campaignId}&open_bulk_modal=true&api_base_url=${encodeURIComponent(apiBaseUrl)}`, "_blank");
-                    }}
-                  >
-                    <ExternalLink className="w-3 h-3 mr-1" />
-                    だんごツールで設計
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 rounded-full text-muted-foreground hover:text-purple-600 hover:bg-purple-500/5"
-                    onClick={() => setIsGachaConfigOpen(true)}
-                    title={t.campaigns.gacha.configTitle}
-                  >
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                </>
-              )}
-
-              {!isPublic && (
-                <>
-                  <span className="text-muted-foreground ml-2">配布方式</span>
-                  <select
-                    className="rounded-lg border border-border/60 bg-background/80 px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-                    value={campaign.distributionMode ?? "per_link"}
-                    disabled={statusBusy || campaign?.isExternalLinked}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      void (async () => {
-                        const r = await fetch(`/api/campaigns/${campaignId}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ distributionMode: v }),
-                        });
-                        if (r.ok) await reloadWorkflow();
-                      })();
-                    }}
-                  >
-                    <option value="per_link">個別リンク（手渡し）</option>
-                    <option value="reception">共通受付（チェックイン）</option>
-                  </select>
-                </>
-              )}
-
-              <div className="flex items-center gap-2 ml-2 pl-4 border-l border-border/30">
-                <span className="text-muted-foreground flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  有効期限
-                </span>
-                <div className="flex items-center gap-1">
-                  <input
-                    type="datetime-local"
-                    className="rounded-lg border border-border/60 bg-background/80 px-2 py-1 text-xs outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-                    value={campaign.expiresAt ? new Date(new Date(campaign.expiresAt).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ""}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (!v) return;
-                      void (async () => {
-                        const r = await fetch(`/api/campaigns/${campaignId}`, {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ expiresAt: new Date(v).toISOString() }),
-                        });
-                        if (r.ok) await reloadWorkflow();
-                      })();
-                    }}
-                  />
-                  {campaign.expiresAt && (
-                    <button
-                      onClick={() => {
-                        void (async () => {
-                          const r = await fetch(`/api/campaigns/${campaignId}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ expiresAt: null }),
-                          });
-                          if (r.ok) await reloadWorkflow();
-                        })();
-                      }}
-                      className="p-1 hover:bg-destructive/10 rounded-md text-muted-foreground hover:text-destructive transition-colors"
-                      title="期限をクリア"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {campaign.distributionMode === "reception" &&
-              campaign.publicReceptionToken ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs"
-                  disabled={campaign.status !== "active"}
-                  onClick={() => {
-                    const u = `${window.location.origin}/receive/${campaign.publicReceptionToken}`;
-                    void navigator.clipboard.writeText(u);
-                    toast.success("受付URLをコピーしました");
-                  }}
-                  title={campaign.status !== "active" ? "公開するとコピーできるようになります" : ""}
-                >
-                  受付URLをコピー
-                </Button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-        <div className="flex space-x-3">
-          <Button
-            className={cn(
-              "shadow-lg transition-all",
-              campaign?.status === "draft"
-                ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20"
-                : "bg-slate-200 hover:bg-slate-300 text-slate-900 shadow-slate-200/20"
-            )}
-            disabled={workflowLoading || !campaignId || statusBusy}
-            onClick={() => {
-              if (campaign?.status === "draft") {
-                setPendingStatus("active");
-                setConfirmOpen(true);
-              } else if (campaign?.status === "active") {
-                setPendingStatus("completed");
-                setConfirmOpen(true);
-              } else if (campaign?.status === "completed") {
-                setPendingStatus("active");
-                setConfirmOpen(true);
-              }
-            }}
-          >
-            {statusBusy ? (
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-            ) : campaign?.status === "active" ? (
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2" />
-            ) : (
-              <Megaphone className="w-4 h-4 mr-2" />
-            )}
-            {campaign?.status === "active"
-              ? "公開中（終了する）"
-              : campaign?.status === "completed"
-              ? "終了済み（再開する）"
-              : "キャンペーンを公開する"}
-          </Button>
-          <Button
-            variant="outline"
-            className="glass"
-            disabled={workflowLoading || !campaignId || exportBusy}
-            onClick={() => void handleExportCsv()}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            {exportBusy ? t.campaigns.exporting : t.campaigns.exportLinks}
-          </Button>
-          <Button
-            variant="ghost"
-            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-            disabled={workflowLoading || !campaignId || isDeleting}
-            onClick={() => setDeleteConfirmOpen(true)}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            {t.common.delete}
-          </Button>
-        </div>
-      </div>
+      <CampaignDetailDesktopHeader
+        campaign={campaign ?? null}
+        campaignId={campaignId ?? null}
+        workflowLoading={workflowLoading}
+        liveViewers={liveViewers}
+        statusBusy={statusBusy}
+        exportBusy={exportBusy}
+        isDeleting={isDeleting}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onPublishAction={openPublishFlow}
+        onExportCsv={() => void handleExportCsv()}
+        onDelete={() => setDeleteConfirmOpen(true)}
+        onCopyReceptionUrl={copyReceptionUrl}
+        showReceptionCopy={
+          !!(isPublic && campaign?.distributionMode === "reception" && campaign.publicReceptionToken)
+        }
+        isExternalLinked={!!campaign?.isExternalLinked}
+        onOpenDangoTool={campaign?.isExternalLinked ? openDangoTool : undefined}
+        onOpenGachaConfig={
+          campaign?.isExternalLinked ? () => setIsGachaConfigOpen(true) : undefined
+        }
+      />
 
       {workflowError && (
         <p className="text-sm text-destructive border border-destructive/30 rounded-lg px-3 py-2 bg-destructive/5">
@@ -577,122 +417,177 @@ export default function CampaignDetailPage() {
       )}
 
       {isPublic && campaign?.status === "active" && campaign.publicReceptionToken && (
-        <div className="p-6 rounded-[2rem] bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 shadow-sm animate-in fade-in zoom-in-95 duration-500">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-emerald-900 dark:text-emerald-100 flex items-center gap-2">
-                <LinkIcon className="w-5 h-5 text-emerald-500" />
-                パブリック共有リンク
-              </h3>
-              <p className="text-sm text-emerald-700/70 dark:text-emerald-400/70 font-medium">
-                このリンクをSNSや概要欄に貼るだけで、誰でもファイルを受け取れます。
-              </p>
-            </div>
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="flex-1 md:w-80 bg-white/50 dark:bg-black/20 backdrop-blur-sm border border-emerald-500/20 rounded-2xl px-4 py-3 font-mono text-xs text-muted-foreground truncate shadow-inner">
-                {`${window.location.origin}/receive/${campaign.publicReceptionToken}`}
-              </div>
-              <Button
-                onClick={() => {
-                  const u = `${window.location.origin}/receive/${campaign.publicReceptionToken}`;
-                  void navigator.clipboard.writeText(u);
-                  toast.success("共有リンクをコピーしました");
-                }}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl px-6 h-12 font-bold shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.02] active:scale-95"
-              >
-                コピー
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-      {workflowLoading ? (
-        <div className="flex-1 rounded-xl border border-border/50 bg-muted/20 animate-pulse min-h-[240px]" />
-      ) : (
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
-            <FilePoolSection
-              files={files}
-              selectedFileIds={selectedFileIds}
-              onToggleSelection={toggleSelection}
-              onToggleAllSelection={toggleAllSelection}
-              onSelectMultiple={setSelectedFiles}
-              onFilesDropped={handleFilesDropped}
-              onOpenLibrary={() => {
-                setShowLibraryModal(true);
-                fetchLibraryFiles();
-              }}
-              onUnassignFiles={handleUnassignFromCampaign}
-              rarities={campaign?.gachaConfig?.rarities}
-              onUpdateFileRarity={handleUpdateFileRarity}
-            />
-
-            <RecipientsSection
-              recipients={recipients}
-              files={files}
-              pulsedRecipientId={pulsedRecipientId}
-              onRemoveFile={handleRemoveFile}
-              onRemoveRecipient={handleRemoveRecipient}
-              onMerge={handleMergeRecipients}
-              readOnly={false}
-              onAddRecipients={() => {
-                setAddRecipientResetKey((k) => k + 1);
-                setAddRecipientOpen(true);
-              }}
-              addRecipientsDisabled={workflowLoading || campaign?.status !== "active"}
-              showPoolEmptyHint={!workflowLoading && files.length === 0}
-              isDraft={campaign?.status === "draft"}
-              isPublic={isPublic}
-              viewMode={recipientsViewMode}
-              onViewModeChange={setRecipientsViewMode}
-              focusExternalTx={focusExternalTx}
-            />
-          </div>
-
-          <DragOverlay>
-            {activeDragRecipient ? (
-              <div className="p-4 rounded-2xl border border-sky-500 bg-background/95 shadow-2xl flex items-center space-x-3 rotate-2 scale-105 cursor-grabbing min-w-[200px] transition-none pointer-events-none">
-                <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center text-sky-500">
-                  <Users className="w-5 h-5" />
+        <>
+          <div className="hidden lg:block">
+            <div className="rounded-[2rem] border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent p-6 shadow-sm">
+              <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+                <div className="space-y-1">
+                  <h3 className="flex items-center gap-2 text-lg font-bold text-emerald-900 dark:text-emerald-100">
+                    <LinkIcon className="h-5 w-5 text-emerald-500" />
+                    パブリック共有リンク
+                  </h3>
+                  <p className="text-sm font-medium text-emerald-700/70 dark:text-emerald-400/70">
+                    このリンクをSNSや概要欄に貼るだけで、誰でもファイルを受け取れます。
+                  </p>
                 </div>
-                <div>
-                  <p className="text-sm font-bold">{activeDragRecipient.name}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Recipient</p>
+                <div className="flex w-full items-center gap-3 md:w-auto">
+                  <div className="flex-1 truncate rounded-2xl border border-emerald-500/20 bg-white/50 px-4 py-3 font-mono text-xs text-muted-foreground shadow-inner dark:bg-black/20 md:w-80">
+                    {`${typeof window !== "undefined" ? window.location.origin : ""}/receive/${campaign.publicReceptionToken}`}
+                  </div>
+                  <Button
+                    onClick={copyReceptionUrl}
+                    className="h-12 rounded-xl bg-emerald-500 px-6 font-bold text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600"
+                  >
+                    コピー
+                  </Button>
                 </div>
               </div>
-            ) : activeDragFile ? (
-              draggedFileIds.length > 1 ? (
-                <StackedDragOverlay
-                  label={t.campaigns.filesSelected.replace("{count}", draggedFileIds.length.toString())}
-                />
-              ) : (
-                <div className="p-3 rounded-lg border border-emerald-500 bg-background/90 shadow-2xl flex items-center space-x-3 rotate-3 scale-105 cursor-grabbing transition-none pointer-events-none">
-                  <div className="p-2 bg-emerald-500/20 rounded-md text-emerald-500 shrink-0 relative overflow-hidden flex items-center justify-center w-10 h-10">
-                    {activeDragFile.type === "image" && activeDragFile.previewUrl ? (
-                      <Image
-                        src={activeDragFile.previewUrl}
-                        alt={activeDragFile.name}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : activeDragFile.type === "audio" ? (
-                      <FileAudio className="w-5 h-5" />
-                    ) : (
-                      <FileImage className="w-5 h-5" />
-                    )}
-                  </div>
-                  <div className="overflow-hidden">
-                    <p className="text-sm font-medium line-clamp-1">{activeDragFile.name}</p>
-                  </div>
-                </div>
-              )
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+            </div>
+          </div>
+          <div className="lg:hidden">
+            <CampaignPublicLinkBanner publicToken={campaign.publicReceptionToken} />
+          </div>
+        </>
       )}
+
+      <div className={cn("min-h-0", isLgUp && "flex flex-1 flex-col")}>
+        <CampaignDetailWorkArea
+          isLgUp={isLgUp}
+          workTab={workTab}
+          onWorkTabChange={setWorkTab}
+          workflowLoading={workflowLoading}
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          files={files}
+          recipients={recipients}
+          selectedFileIds={selectedFileIds}
+          toggleSelection={toggleSelection}
+          toggleAllSelection={toggleAllSelection}
+          setSelectedFiles={setSelectedFiles}
+          handleFilesDropped={handleFilesDropped}
+          onOpenLibrary={() => {
+            setShowLibraryModal(true);
+            fetchLibraryFiles();
+          }}
+          handleUnassignFromCampaign={handleUnassignFromCampaign}
+          rarities={campaign?.gachaConfig?.rarities}
+          onUpdateFileRarity={handleUpdateFileRarity}
+          pulsedRecipientId={pulsedRecipientId}
+          onRemoveFile={handleRemoveFile}
+          onRemoveRecipient={handleRemoveRecipient}
+          onMergeRecipients={handleMergeRecipients}
+          onAddRecipients={() => {
+            setAddRecipientResetKey((k) => k + 1);
+            setAddRecipientOpen(true);
+          }}
+          addRecipientsDisabled={workflowLoading || campaign?.status !== "active"}
+          showPoolEmptyHint={!workflowLoading && files.length === 0}
+          isDraft={campaign?.status === "draft"}
+          isPublic={isPublic}
+          recipientsViewMode={recipientsViewModeEffective}
+          onRecipientsViewModeChange={setRecipientsViewMode}
+          focusExternalTx={focusExternalTx}
+          activeDragFile={activeDragFile}
+          activeDragRecipient={activeDragRecipient}
+          draggedFileIds={draggedFileIds}
+          onRequestAssignWizard={(recipientId) => openAssignWizard({ recipientId })}
+        />
+      </div>
+
+      <CampaignAssignFooter
+        selectedCount={selectedFileIds.size}
+        onAssign={() => openAssignWizard()}
+      />
+
+      <CampaignAddRecipientFab
+        visible={showRecipientFab}
+        disabled={workflowLoading || campaign?.status !== "active"}
+        isDraft={campaign?.status === "draft"}
+        onAdd={openAddRecipient}
+        onPublish={openPublishFlow}
+      />
+
+      <CampaignSettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        campaign={campaign ?? null}
+        campaignId={campaignId ?? null}
+        workflowLoading={workflowLoading}
+        statusBusy={statusBusy}
+        exportBusy={exportBusy}
+        isDeleting={isDeleting}
+        integrationBusy={integrationBusy}
+        isPublic={isPublic}
+        gachaWasConfigured={gachaWasConfigured}
+        onPublishAction={openPublishFlow}
+        onExportCsv={() => void handleExportCsv()}
+        onDelete={() => setDeleteConfirmOpen(true)}
+        onSecurityChange={(level) => {
+          setPendingSecurityLevel(level);
+          setSecurityConfirmOpen(true);
+        }}
+        onIntegrationToggle={(action) => {
+          setPendingIntegrationAction(action);
+          setIntegrationConfirmOpen(true);
+        }}
+        onOpenGachaConfig={() => {
+          setSettingsOpen(false);
+          setIsGachaConfigOpen(true);
+        }}
+        onOpenDangoTool={openDangoTool}
+        onDistributionModeChange={(mode) => {
+          if (!campaignId) return;
+          void (async () => {
+            const r = await fetch(`/api/campaigns/${campaignId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ distributionMode: mode }),
+            });
+            if (r.ok) await reloadWorkflow();
+          })();
+        }}
+        onExpiresAtChange={(iso) => {
+          if (!campaignId) return;
+          void (async () => {
+            const r = await fetch(`/api/campaigns/${campaignId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ expiresAt: iso }),
+            });
+            if (r.ok) await reloadWorkflow();
+          })();
+        }}
+        onClearExpiresAt={() => {
+          if (!campaignId) return;
+          void (async () => {
+            const r = await fetch(`/api/campaigns/${campaignId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ expiresAt: null }),
+            });
+            if (r.ok) await reloadWorkflow();
+          })();
+        }}
+        onCopyReceptionUrl={copyReceptionUrl}
+      />
+
+      <CampaignAssignWizard
+        open={assignWizardOpen}
+        onClose={() => {
+          setAssignWizardOpen(false);
+          setWizardInitialRecipientId(null);
+        }}
+        files={files}
+        recipients={recipients}
+        initialFileIds={selectedFileIds}
+        initialRecipientId={wizardInitialRecipientId}
+        onAssign={assignFilesToRecipient}
+        onSuccess={() => {
+          setWorkTab("recipients");
+          toast.success("ファイルを割り当てました");
+        }}
+      />
 
       <LibrarySelectModal
         isOpen={showLibraryModal}

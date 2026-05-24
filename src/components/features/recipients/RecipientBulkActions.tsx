@@ -11,53 +11,66 @@ interface RecipientBulkActionsProps {
   onClearSelection: () => void;
 }
 
-export function RecipientBulkActions({ 
-  selectedCount, 
-  onBulkAddTags, 
-  onDeleteSelected, 
-  onClearSelection 
+export function RecipientBulkActions({
+  selectedCount,
+  onBulkAddTags,
+  onDeleteSelected,
+  onClearSelection,
 }: RecipientBulkActionsProps) {
   if (selectedCount === 0) return null;
 
   return (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-foreground text-background px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 min-w-[400px]">
-        <div className="flex items-center gap-2">
-          <Badge className="bg-emerald-500 text-white border-none h-6 w-6 flex items-center justify-center p-0 rounded-full">
-            {selectedCount}
-          </Badge>
-          <span className="text-sm font-medium">個を選択中</span>
+    <div
+      className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 flex justify-center px-3 duration-300 animate-in fade-in slide-in-from-bottom-4 lg:bottom-8"
+      role="region"
+      aria-label="一括操作"
+    >
+      <div className="flex w-full max-w-lg flex-col gap-3 rounded-2xl bg-foreground p-4 text-background shadow-2xl sm:flex-row sm:items-center sm:gap-4 sm:p-5">
+        <div className="flex items-center justify-between gap-2 sm:justify-start">
+          <div className="flex items-center gap-2">
+            <Badge className="flex h-7 w-7 items-center justify-center rounded-full border-none bg-emerald-500 p-0 text-white">
+              {selectedCount}
+            </Badge>
+            <span className="text-sm font-medium">個を選択中</span>
+          </div>
+          <button
+            type="button"
+            className="flex size-11 items-center justify-center rounded-full text-background/50 hover:text-background sm:hidden"
+            onClick={onClearSelection}
+            aria-label="選択を解除"
+          >
+            <Plus className="h-4 w-4 rotate-45" />
+          </button>
         </div>
-        
-        <div className="h-6 w-px bg-background/20" />
-        
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-background hover:bg-background/10"
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Button
+            variant="ghost"
+            size="touch"
+            className="w-full text-background hover:bg-background/10 sm:w-auto"
             onClick={onBulkAddTags}
           >
-            <TagIcon className="w-4 h-4 mr-2" />
+            <TagIcon className="mr-2 h-4 w-4" />
             タグを一括変更
           </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-destructive-foreground hover:bg-destructive/20"
+          <Button
+            variant="ghost"
+            size="touch"
+            className="w-full text-destructive-foreground hover:bg-destructive/20 sm:w-auto"
             onClick={onDeleteSelected}
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="mr-2 h-4 w-4" />
             削除
           </Button>
         </div>
-        
-        <button 
-          className="ml-auto text-background/50 hover:text-background p-1"
+
+        <button
+          type="button"
+          className="ml-auto hidden size-11 items-center justify-center rounded-full text-background/50 hover:text-background sm:flex"
           onClick={onClearSelection}
           aria-label="選択を解除"
         >
-          <Plus className="w-4 h-4 rotate-45" />
+          <Plus className="h-4 w-4 rotate-45" />
         </button>
       </div>
     </div>

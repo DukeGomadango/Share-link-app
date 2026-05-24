@@ -13,6 +13,12 @@ export function getSiteUrl(): string {
 
 export const SITE_CONFIG = {
   name: "だんごシェアリンク",
+  /** LP ヒーロー・OG 画像で共有するキャッチコピー */
+  tagline: {
+    line1: "一人ひとりに、",
+    line2Highlight: "リンク一つ",
+    line2After: "で。",
+  },
   /** ルート LP 向けのデフォルト title（layout の default） */
   defaultTitle:
     "だんごシェアリンク | 配信者向けファイル配布・特典リンク管理",

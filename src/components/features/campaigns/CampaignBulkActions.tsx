@@ -25,7 +25,7 @@ export function CampaignBulkActions({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 z-50 w-[min(92vw,900px)] -translate-x-1/2 rounded-xl border border-white/10 bg-black/85 p-3 text-white shadow-2xl backdrop-blur">
+    <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] left-1/2 z-50 w-[min(92vw,900px)] -translate-x-1/2 rounded-xl border border-white/10 bg-black/85 p-3 text-white shadow-2xl backdrop-blur lg:bottom-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm">
           {t.campaigns.bulk.selectedCount.replace("{count}", String(selectedCount))}

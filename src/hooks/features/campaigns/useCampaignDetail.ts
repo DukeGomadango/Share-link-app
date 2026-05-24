@@ -2,14 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  DragEndEvent,
-  DragStartEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
+import { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import { useAppDndSensors } from "@/lib/dnd-sensors";
 import { toast } from "sonner";
 import type {
   Campaign,
@@ -118,12 +112,7 @@ export function useCampaignDetail() {
     ensureAllFilesLoaded,
   } = useWorkspaceLibrary();
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(KeyboardSensor)
-  );
+  const sensors = useAppDndSensors();
 
   const loadWorkflow = useCallback(
     async (opts?: { quiet?: boolean }) => {
@@ -499,6 +488,42 @@ export function useCampaignDetail() {
     [campaignId, loadWorkflow]
   );
 
+  const assignFilesToRecipient = useCallback(
+    async (recipientSlotId: string, fileIds: string[]) => {
+      if (!campaignId || fileIds.length === 0 || campaign?.status === "draft") {
+        return false;
+      }
+
+      setRecipients((prev) =>
+        prev.map((r) => {
+          if (r.id === recipientSlotId) {
+            const currentIds = r.assignedFileIds || [];
+            const newIds = Array.from(new Set([...currentIds, ...fileIds]));
+            return { ...r, assignedFileIds: newIds, status: "verified" as RecipientStatus };
+          }
+          return r;
+        })
+      );
+
+      await Promise.all(
+        fileIds.map((fid) =>
+          fetch(`/api/campaigns/${campaignId}/recipient-slots/${recipientSlotId}/assign`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ campaignAssetId: fid }),
+          })
+        )
+      );
+
+      setPulsedRecipientId(recipientSlotId);
+      setTimeout(() => setPulsedRecipientId(null), 2000);
+      await loadWorkflow({ quiet: true });
+      setSelectedFileIds(new Set());
+      return true;
+    },
+    [campaign?.status, campaignId, loadWorkflow]
+  );
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
@@ -543,37 +568,13 @@ export function useCampaignDetail() {
       }
 
       if (targetIds.length > 0) {
-        // Local Update for all target files
-        setRecipients(prev => prev.map(r => {
-          if (r.id === claimId) {
-            const currentIds = r.assignedFileIds || [];
-            const newIds = Array.from(new Set([...currentIds, ...targetIds]));
-            return { ...r, assignedFileIds: newIds, status: 'verified' as RecipientStatus };
-          }
-          return r;
-        }));
-
-        await Promise.all(
-          targetIds.map((fid) =>
-            fetch(`/api/campaigns/${campaignId}/recipient-slots/${claimId}/assign`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ campaignAssetId: fid }),
-            })
-          )
-        );
-        
-        setPulsedRecipientId(claimId);
-        setTimeout(() => setPulsedRecipientId(null), 2000);
-        
-        await loadWorkflow({ quiet: true });
+        await assignFilesToRecipient(claimId, targetIds);
       }
 
       setActiveDragFile(null);
       setDraggedFileIds([]);
-      setSelectedFileIds(new Set());
     },
-    [campaign?.status, campaignId, draggedFileIds, handleMergeRecipients, loadWorkflow]
+    [assignFilesToRecipient, campaign?.status, campaignId, draggedFileIds, handleMergeRecipients]
   );
 
   const deleteCampaign = useCallback(async () => {
@@ -670,6 +671,7 @@ export function useCampaignDetail() {
     toggleAllSelection,
     handleDragStart,
     handleDragEnd,
+    assignFilesToRecipient,
     handleFilesDropped,
     deleteCampaign,
     handleUpdateGachaConfig,

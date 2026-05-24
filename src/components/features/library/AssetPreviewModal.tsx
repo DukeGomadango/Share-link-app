@@ -30,23 +30,31 @@ export function AssetPreviewModal({ file, onClose }: AssetPreviewModalProps) {
   const src = mediaUrl || file.previewUrl || file.url;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
-      <div className="relative w-full max-w-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-3 backdrop-blur-sm sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label={file.name}
+    >
+      <div className="relative flex w-full max-w-2xl flex-col items-center">
         <Button
           variant="outline"
           size="icon"
-          className="absolute -top-12 right-0 rounded-full bg-background/50 hover:bg-background"
+          className="absolute right-0 top-0 z-10 size-10 rounded-full bg-background/80 shadow-sm hover:bg-background sm:-top-12"
           onClick={onClose}
+          aria-label={t.common.cancel}
         >
-          <X className="w-5 h-5" />
+          <X className="size-5" />
         </Button>
 
         {loading ? (
-          <GlassCard className="p-12 text-center text-muted-foreground">
+          <GlassCard className="mt-12 w-full p-12 text-center text-muted-foreground sm:mt-0">
             {t.common.loading}
           </GlassCard>
         ) : file.type.startsWith("image/") && src ? (
-          <ImageViewer src={src} />
+          <div className="mt-12 w-full sm:mt-0">
+            <ImageViewer src={src} fit="contain" alt={file.name} />
+          </div>
         ) : file.type.startsWith("audio/") && src ? (
           <AudioPlayer src={src} title={file.name} />
         ) : (

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { GlassCard } from "@/components/shared/GlassCard";
+import { SettingsSection } from "@/components/settings/SettingsSection";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
@@ -117,22 +118,24 @@ export default function IntegrationsSettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild className="rounded-full shrink-0">
+    <div className="mx-auto max-w-4xl space-y-8">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" asChild className="shrink-0 rounded-full">
           <Link href="/settings">
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="size-5" />
           </Link>
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t.integrations.title}</h1>
-          <p className="text-muted-foreground mt-1">{t.integrations.subtitle}</p>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{t.integrations.title}</h1>
+          <p className="mt-1 text-muted-foreground">{t.integrations.subtitle}</p>
         </div>
       </div>
 
+      <SettingsSection
+        heading={t.integrations.listHeading}
+        description={t.integrations.redirectNote}
+      >
       <GlassCard className="space-y-4">
-        <h2 className="font-semibold text-lg">{t.integrations.listHeading}</h2>
-        <p className="text-sm text-muted-foreground">{t.integrations.redirectNote}</p>
         <p className="text-sm text-muted-foreground">{t.integrations.oauthRotationNote}</p>
 
         {oauthGachaCount >= 2 ? (
@@ -166,7 +169,8 @@ export default function IntegrationsSettingsPage() {
             type="button"
             onClick={() => void issue()}
             disabled={loading}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full"
+            size="touch"
+            className="min-h-11 w-full bg-emerald-500 text-white hover:bg-emerald-600 sm:w-auto sm:rounded-full"
           >
             {loading ? t.common.loading : t.integrations.issueToken}
           </Button>
@@ -205,7 +209,12 @@ export default function IntegrationsSettingsPage() {
                     </p>
                   )}
                 </div>
-                <Button variant="outline" size="sm" onClick={() => startRevoke(tok.id)}>
+                <Button
+                  variant="outline"
+                  size="touch"
+                  className="min-h-11 w-full sm:h-8 sm:min-h-8 sm:w-auto sm:px-3 sm:text-sm"
+                  onClick={() => startRevoke(tok.id)}
+                >
                   {t.integrations.revoke}
                 </Button>
               </li>
@@ -213,6 +222,7 @@ export default function IntegrationsSettingsPage() {
           </ul>
         )}
       </GlassCard>
+      </SettingsSection>
 
       <ConfirmModal
         isOpen={confirmOpen}
