@@ -3,6 +3,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { CountdownBadge } from "@/components/shared/CountdownBadge";
 import { Button } from "@/components/ui/button";
 import { Download, Gift } from "lucide-react";
@@ -15,7 +16,11 @@ import { ClaimActionBar } from "./ClaimActionBar";
 import { Lightbox } from "@/components/shared/Lightbox";
 
 import { claimDownloadUrl } from "@/lib/claim/download-url";
-import { downloadSingleFile, downloadFilesAsZip } from "@/lib/download-utils";
+import {
+  downloadSingleFile,
+  downloadFilesAsZip,
+  downloadFilesSequentially,
+} from "@/lib/download-utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,14 +40,31 @@ interface ClaimContentViewProps {
   onOpenCollection?: () => void;
 }
 
+type DownloadProgress = { current: number; total: number };
+
 export function ClaimContentView({ files, expiryDate, campaignName, claimToken, hideActionBar, onOpenCollection }: ClaimContentViewProps) {
   const { t } = useTranslation();
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [activePreviewIndex, setActivePreviewIndex] = useState<number | null>(null);
 
   const downloadSrc = (file: ClaimFile) =>
     claimToken ? claimDownloadUrl(claimToken, file.id) : file.src;
+
+  const toDownloadEntries = (targets: ClaimFile[]) =>
+    targets.map((f) => ({ src: downloadSrc(f), filename: f.filename }));
+
+  const notifyDownloadResult = (succeeded: number, failed: string[]) => {
+    if (failed.length === 0) return;
+    if (succeeded === 0) {
+      toast.error(t.claim.downloadAllFailed);
+      return;
+    }
+    toast.warning(
+      t.claim.downloadPartialFailure.replace("{count}", String(failed.length))
+    );
+  };
 
   const toggleSelection = (id: string) => {
     const newSelected = new Set(selectedFileIds);
@@ -67,36 +89,49 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
     const src = file ? downloadSrc(file) : "";
     if (!src) return;
     setIsDownloading(true);
+    setDownloadProgress(null);
     try {
-      await downloadSingleFile(src, file!.filename || "file");
+      const ok = await downloadSingleFile(src, file!.filename || "file");
+      if (!ok) {
+        toast.error(t.claim.downloadAllFailed);
+      }
     } finally {
       setIsDownloading(false);
+      setDownloadProgress(null);
     }
   };
 
   const handleDownloadZip = async (targets: ClaimFile[]) => {
     setIsDownloading(true);
+    setDownloadProgress(null);
     try {
-      await downloadFilesAsZip(
-        targets.map((f) => ({ src: downloadSrc(f), filename: f.filename })),
-        "dango-bundle.zip"
-      );
+      await downloadFilesAsZip(toDownloadEntries(targets), "dango-bundle.zip");
+    } catch (error) {
+      console.error("ZIP download failed:", error);
+      toast.error(t.claim.downloadAllFailed);
     } finally {
       setIsDownloading(false);
+      setDownloadProgress(null);
     }
   };
 
   const handleDownloadIndividually = async (targets: ClaimFile[]) => {
+    if (targets.length === 0) return;
     setIsDownloading(true);
+    setDownloadProgress({ current: 0, total: targets.length });
     try {
-      for (const f of targets) {
-        const src = downloadSrc(f);
-        if (src) {
-          await downloadSingleFile(src, f.filename);
+      const { succeeded, failed } = await downloadFilesSequentially(
+        toDownloadEntries(targets),
+        {
+          onProgress: (current, total) => {
+            setDownloadProgress({ current, total });
+          },
         }
-      }
+      );
+      notifyDownloadResult(succeeded, failed);
     } finally {
       setIsDownloading(false);
+      setDownloadProgress(null);
     }
   };
 
@@ -105,13 +140,24 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
       selectedFileIds.size === 0
         ? files
         : files.filter((f) => selectedFileIds.has(f.id));
-    
+
     if (targets.length === 1) {
-      handleDownloadSingle(targets[0].id);
+      void handleDownloadSingle(targets[0]!.id);
     } else {
-      // 複数ある場合はデフォルトで ZIP
-      handleDownloadZip(targets);
+      void handleDownloadIndividually(targets);
     }
+  };
+
+  const actionButtonLabel = () => {
+    if (isDownloading && downloadProgress && downloadProgress.total > 1) {
+      return t.claim.savingProgress
+        .replace("{current}", downloadProgress.current.toString())
+        .replace("{total}", downloadProgress.total.toString());
+    }
+    if (isDownloading) {
+      return t.claim.preparing;
+    }
+    return selectedFileIds.size === 0 ? t.claim.saveAll : t.claim.saveSelected;
   };
 
   const allSelected = selectedFileIds.size === files.length && files.length > 0;
@@ -205,29 +251,35 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
           className="absolute bottom-[max(2rem,env(safe-area-inset-bottom))] left-0 right-0 flex justify-center px-4"
         >
           <div className="pointer-events-auto w-full max-w-sm bg-white/70 backdrop-blur-2xl rounded-full p-2 flex items-center justify-between border border-white shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
-            <div className="px-4 text-sm font-medium">
-              {selectedFileIds.size > 0 ? (
+            <div className="px-4 text-sm font-medium min-w-0">
+              {isDownloading && downloadProgress && downloadProgress.total > 1 ? (
+                <span className="text-emerald-500 truncate block">
+                  {t.claim.savingProgress
+                    .replace("{current}", downloadProgress.current.toString())
+                    .replace("{total}", downloadProgress.total.toString())}
+                </span>
+              ) : selectedFileIds.size > 0 ? (
                 <span className="text-emerald-500">{t.claim.selectedCount.replace("{count}", selectedFileIds.size.toString())}</span>
               ) : (
                 <span className="text-muted-foreground">{t.claim.downloadBundle}</span>
               )}
             </div>
 
-            <div className="flex gap-1">
+            <div className="flex gap-1 shrink-0">
               {targets.length > 1 ? (
                 <DropdownMenu>
                   <div className="flex items-center rounded-full bg-emerald-500 overflow-hidden shadow-[0_0_15px_oklch(0.645_0.165_158.452/0.3)] transition-all hover:scale-105">
                     <Button 
                       onClick={handleMainAction}
                       disabled={isDownloading}
-                      className="rounded-none bg-transparent hover:bg-emerald-600 text-white px-5 h-10 border-r border-emerald-400/30 font-bold"
+                      className="rounded-none bg-transparent hover:bg-emerald-600 text-white px-5 h-10 border-r border-emerald-400/30 font-bold max-w-[11rem] truncate"
                     >
                       {isDownloading ? (
-                        <span className="animate-pulse">{t.claim.preparing}</span>
+                        <span className="animate-pulse truncate">{actionButtonLabel()}</span>
                       ) : (
                         <>
-                          <Download className="w-4 h-4 mr-2" />
-                          {selectedFileIds.size === 0 ? t.claim.saveAll : t.claim.saveSelected}
+                          <Download className="w-4 h-4 mr-2 shrink-0" />
+                          <span className="truncate">{actionButtonLabel()}</span>
                         </>
                       )}
                     </Button>
@@ -241,20 +293,13 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
                       </Button>
                     </DropdownMenuTrigger>
                   </div>
-                  <DropdownMenuContent align="end" side="top" className="rounded-2xl border-white/20 bg-white/80 backdrop-blur-xl mb-2 min-w-[180px] shadow-xl">
+                  <DropdownMenuContent align="end" side="top" className="rounded-2xl border-white/20 bg-white/80 backdrop-blur-xl mb-2 min-w-[200px] shadow-xl">
                     <DropdownMenuItem 
                       className="rounded-xl py-3 cursor-pointer focus:bg-emerald-500/10 font-bold"
-                      onClick={() => handleDownloadZip(targets)}
+                      onClick={() => void handleDownloadZip(targets)}
                     >
                       <Download className="w-4 h-4 mr-2 text-emerald-500" />
                       {t.claim.downloadAsZip}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      className="rounded-xl py-3 cursor-pointer focus:bg-emerald-500/10 font-bold"
-                      onClick={() => handleDownloadIndividually(targets)}
-                    >
-                      <Download className="w-4 h-4 mr-2 text-emerald-500" />
-                      {t.claim.downloadIndividually}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -265,11 +310,11 @@ export function ClaimContentView({ files, expiryDate, campaignName, claimToken, 
                   className="rounded-full bg-emerald-500 hover:bg-emerald-600 text-white px-6 h-10 shadow-[0_0_15px_oklch(0.645_0.165_158.452/0.3)] transition-all hover:scale-105 font-bold"
                 >
                   {isDownloading ? (
-                    <span className="animate-pulse">{t.claim.preparing}</span>
+                    <span className="animate-pulse">{actionButtonLabel()}</span>
                   ) : (
                     <>
                       <Download className="w-4 h-4 mr-2" />
-                      {selectedFileIds.size === 0 ? t.claim.saveAll : t.claim.saveSelected}
+                      {actionButtonLabel()}
                     </>
                   )}
                 </Button>
