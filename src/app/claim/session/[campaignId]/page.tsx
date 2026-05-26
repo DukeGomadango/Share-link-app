@@ -26,6 +26,7 @@ export default function ClaimSessionByCampaignPage() {
     pending?: boolean;
     passkeyLinked?: boolean;
     claimSecret?: string;
+    isClaimed?: boolean;
     files: ClaimFile[];
   } | null>(null);
   const [noSession, setNoSession] = useState(false);
@@ -63,6 +64,7 @@ export default function ClaimSessionByCampaignPage() {
         pending?: boolean;
         passkeyLinked?: boolean;
         claimSecret?: string;
+        isClaimed?: boolean;
         files: Array<{
           id: string;
           type: string;
@@ -84,8 +86,12 @@ export default function ClaimSessionByCampaignPage() {
         pending: data.pending,
         passkeyLinked: data.passkeyLinked,
         claimSecret: data.claimSecret,
+        isClaimed: data.isClaimed,
         files,
       });
+      if (data.isClaimed) {
+        setIsOpened(true);
+      }
       
       // 新しい個別トークン形式の URL へ自動移行（リダイレクト）
       if (data.claimSecret) {
@@ -128,6 +134,7 @@ export default function ClaimSessionByCampaignPage() {
       prevPendingRef.current === true &&
       p === false &&
       bundle &&
+      !bundle.isClaimed &&
       bundle.files.length > 0
     ) {
       setIsOpened(false);
@@ -175,6 +182,7 @@ export default function ClaimSessionByCampaignPage() {
         d.setDate(d.getDate() + 3);
         return d;
       })();
+  const hasOpened = isOpened || Boolean(bundle?.isClaimed && bundle.files.length > 0);
 
   if (!campaignId) {
     return (
@@ -234,7 +242,7 @@ export default function ClaimSessionByCampaignPage() {
     );
   }
 
-  if (!isOpened && bundle.files.length > 0) {
+  if (!hasOpened && bundle.files.length > 0) {
     return (
       <div className="min-h-[100dvh] flex flex-col items-center">
         <ClaimUnopenedView
@@ -245,6 +253,7 @@ export default function ClaimSessionByCampaignPage() {
                 method: "POST",
                 credentials: "include",
               });
+              setBundle((prev) => (prev ? { ...prev, isClaimed: true } : prev));
             } catch (e) {
               console.error("Failed to update status to claimed:", e);
             }

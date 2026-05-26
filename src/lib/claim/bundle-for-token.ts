@@ -20,6 +20,8 @@ export type ClaimBundleResponse = {
   pending?: boolean;
   /** この claim のトークン（リダイレクト等で使用） */
   claimSecret?: string;
+  /** 受取人が一度開封済みかどうか */
+  isClaimed?: boolean;
   /** この claim にパスキー（WebAuthn）が紐づいている */
   passkeyLinked?: boolean;
   /** この閲覧に有効な認証セッションがある、またはパブリックである */
@@ -57,6 +59,7 @@ export async function buildClaimBundleForSecret(
       campaignStatus: campaigns.status,
       expiresAt: campaigns.expiresAt,
       securityLevel: campaigns.securityLevel,
+      claimStatus: claims.status,
       slotId: campaignRecipientSlots.id,
       displayName: campaignRecipientSlots.listenerDisplayName,
     })
@@ -78,6 +81,7 @@ export async function buildClaimBundleForSecret(
 
   const securityLevel = hit.securityLevel as "standard" | "high";
   const isPublic = securityLevel === "standard";
+  const isClaimed = hit.claimStatus === "claimed";
   
   // パスキー紐付け状況の確認
   const passkeyRows = await db
@@ -106,6 +110,7 @@ export async function buildClaimBundleForSecret(
       campaignName: (hit.campaignName && hit.campaignName.trim() !== "") ? hit.campaignName : "特別な贈り物",
       campaignId: hit.campaignId,
       claimSecret,
+      isClaimed,
       passkeyLinked,
       isAuthorized: false,
       authRequired: true,
@@ -140,6 +145,7 @@ export async function buildClaimBundleForSecret(
       campaignId: hit.campaignId,
       pending: true,
       claimSecret,
+      isClaimed,
       passkeyLinked,
       isAuthorized: true,
       displayName: hit.displayName || "ゲスト",
@@ -196,6 +202,7 @@ export async function buildClaimBundleForSecret(
     campaignName: hit.campaignName || "特別な贈り物",
     campaignId: hit.campaignId,
     passkeyLinked,
+    isClaimed,
     isAuthorized: true,
     pending: validFiles.length === 0,
     displayName: hit.displayName || "ゲスト",

@@ -73,6 +73,7 @@ export default function ClaimPage() {
     files: ClaimFile[];
     passkeyLinked?: boolean;
     claimSecret?: string;
+    isClaimed?: boolean;
     isAuthorized?: boolean;
     authRequired?: boolean;
     displayName?: string;
@@ -134,11 +135,15 @@ export default function ClaimPage() {
           campaignName: data.campaignName,
           campaignId: data.campaignId,
           files,
+          isClaimed: data.isClaimed,
           isAuthorized: data.isAuthorized,
           authRequired: data.authRequired,
           passkeyLinked: data.passkeyLinked,
           displayName: data.displayName,
         });
+        if (data.isClaimed) {
+          setIsOpened(true);
+        }
       }
     } catch (e) {
       console.error("Refetch failed", e);
@@ -221,6 +226,7 @@ export default function ClaimPage() {
           isAuthorized?: boolean;
           authRequired?: boolean;
           passkeyLinked?: boolean;
+          isClaimed?: boolean;
           displayName?: string;
         };
         const files: ClaimFile[] = data.files.map((f) => ({
@@ -236,11 +242,15 @@ export default function ClaimPage() {
             campaignName: data.campaignName, 
             campaignId: data.campaignId,
             files,
+            isClaimed: data.isClaimed,
             isAuthorized: data.isAuthorized,
             authRequired: data.authRequired,
             passkeyLinked: data.passkeyLinked,
             displayName: data.displayName,
           });
+          if (data.isClaimed) {
+            setIsOpened(true);
+          }
         }
       } catch {
         if (!cancelled) setClaimError("データの読み込みに失敗しました");
@@ -262,6 +272,7 @@ export default function ClaimPage() {
       await fetch(`/api/claim/${encodeURIComponent(token)}/claim`, {
         method: "POST",
       });
+      setBundle((prev) => (prev ? { ...prev, isClaimed: true } : prev));
     } catch (e) {
       console.error("Failed to update status to claimed:", e);
     }
@@ -270,7 +281,8 @@ export default function ClaimPage() {
 
   // フェーズ判定のロジックを復元
   const isAuthRequired = bundle?.authRequired && !bundle?.isAuthorized;
-  const phaseKey = isAuthRequired ? "auth" : !isOpened ? "unopened" : "content";
+  const hasOpened = isOpened || Boolean(bundle?.isClaimed && bundle.files.length > 0);
+  const phaseKey = isAuthRequired ? "auth" : !hasOpened ? "unopened" : "content";
 
   const expiryDate = bundle
     ? new Date(bundle.expiryIso)
