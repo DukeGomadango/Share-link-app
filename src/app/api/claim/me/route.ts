@@ -11,7 +11,7 @@ import {
   listenerIdentities, 
   campaignRecipientSlots 
 } from "@/db/schema";
-import { eq, desc, or } from "drizzle-orm";
+import { eq, desc, or, inArray } from "drizzle-orm";
 import { verifyListenerSessionToken, LISTENER_SESSION_COOKIE } from "@/lib/webauthn/listener-session-cookie";
 import { createSignedReadUrl } from "@/lib/assets/signed-urls";
 
@@ -78,9 +78,11 @@ export async function GET(_req: NextRequest) {
     // 3. キャンペーンごとにグルーピング
     const campaignMap = new Map<string, ListenerCampaignEntry>();
     const claimIds: string[] = [];
+    const campaignIdByClaimId = new Map<string, string>();
 
     for (const c of allClaims) {
       claimIds.push(c.claimId);
+      campaignIdByClaimId.set(c.claimId, c.campaignId);
       if (!campaignMap.has(c.campaignId)) {
         campaignMap.set(c.campaignId, {
           id: c.campaignId,
@@ -108,7 +110,7 @@ export async function GET(_req: NextRequest) {
       });
     }
 
-    // 4. アセットプレビューの取得 (前回同様のロジック)
+    // 4. アセットプレビューの取得
     if (claimIds.length > 0) {
       const assetPreviews = await db
         .select({
@@ -118,9 +120,10 @@ export async function GET(_req: NextRequest) {
           bucket: assets.bucket,
           objectKey: assets.objectKey,
         })
-        .from(assets)
-        .innerJoin(campaignAssets, eq(assets.id, campaignAssets.assetId))
-        .leftJoin(claimAssets, eq(campaignAssets.id, claimAssets.campaignAssetId))
+        .from(claimAssets)
+        .innerJoin(campaignAssets, eq(claimAssets.campaignAssetId, campaignAssets.id))
+        .innerJoin(assets, eq(campaignAssets.assetId, assets.id))
+        .where(inArray(claimAssets.claimId, claimIds))
         .limit(100);
 
       const previewWithUrls = await Promise.all(
@@ -134,14 +137,15 @@ export async function GET(_req: NextRequest) {
       );
 
       for (const p of previewWithUrls) {
-        for (const [, campData] of campaignMap.entries()) {
-          if (campData.previews.length < 3 && p.url) {
-            campData.previews.push({
-              name: p.assetName,
-              mimeType: p.mimeType,
-              url: p.url
-            });
-          }
+        const campaignId = campaignIdByClaimId.get(p.claimId);
+        if (!campaignId || !p.url) continue;
+        const campData = campaignMap.get(campaignId);
+        if (campData && campData.previews.length < 3) {
+          campData.previews.push({
+            name: p.assetName,
+            mimeType: p.mimeType,
+            url: p.url
+          });
         }
       }
     }

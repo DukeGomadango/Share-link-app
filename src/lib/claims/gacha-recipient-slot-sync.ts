@@ -209,6 +209,7 @@ export type DetachGachaResult =
 
 export async function detachOrPurgeGachaExternalSlot(
   db: Db,
+  campaignId: string,
   externalTxId: string,
   mode: "detach" | "purge"
 ): Promise<DetachGachaResult> {
@@ -218,7 +219,12 @@ export async function detachOrPurgeGachaExternalSlot(
       recipientSlotId: claims.recipientSlotId,
     })
     .from(claims)
-    .where(eq(claims.externalTransactionId, externalTxId))
+    .where(
+      and(
+        eq(claims.externalTransactionId, externalTxId),
+        eq(claims.campaignId, campaignId)
+      )
+    )
     .limit(1);
 
   if (!claim) {

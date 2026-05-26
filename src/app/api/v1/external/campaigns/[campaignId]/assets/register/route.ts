@@ -6,6 +6,7 @@ import { resolveIntegrationBearer } from "@/lib/external-auth";
 import { ensureCampaignToolIntegrationWritable } from "@/lib/external-integration-pause";
 import { handleCorsPreflight, jsonWithCors } from "@/lib/external-cors";
 import { getStorageBucket, MAX_UPLOAD_BYTES } from "@/lib/storage/config";
+import { headR2Object } from "@/lib/storage/r2-storage";
 import { validateUploadPolicy } from "@/lib/storage/upload-policy";
 import {
   computeAssetExpiresAt,
@@ -66,6 +67,9 @@ export async function POST(request: Request, ctx: RouteParams) {
   if (!assetId || !objectKey || !originalFilename || typeof sizeBytes !== "number") {
     return jsonWithCors({ error: "invalid_input" }, request, { status: 400 });
   }
+  if (!Number.isSafeInteger(sizeBytes) || sizeBytes < 1) {
+    return jsonWithCors({ error: "invalid_size" }, request, { status: 400 });
+  }
 
   if (!assertObjectKeyBelongsToWorkspace(auth.workspaceId, objectKey, assetId)) {
     return jsonWithCors({ error: "invalid_object_key" }, request, { status: 400 });
@@ -85,11 +89,33 @@ export async function POST(request: Request, ctx: RouteParams) {
     );
   }
 
+  const uploadedObject = await headR2Object(objectKey);
+  if (!uploadedObject || typeof uploadedObject.contentLength !== "number") {
+    return jsonWithCors({ error: "object_not_found" }, request, { status: 400 });
+  }
+  if (uploadedObject.contentLength !== sizeBytes) {
+    return jsonWithCors({ error: "size_mismatch" }, request, { status: 400 });
+  }
+  if (
+    uploadedObject.contentType.split(";")[0].trim().toLowerCase() !==
+    resolvedMime.split(";")[0].trim().toLowerCase()
+  ) {
+    return jsonWithCors({ error: "content_type_mismatch" }, request, { status: 400 });
+  }
+
   const bucket = getStorageBucket();
 
   try {
     // 1. Library Assets に登録 (既にある場合はスキップ)
     const existing = await db.select().from(assets).where(eq(assets.id, assetId)).limit(1);
+    if (existing[0]?.workspaceId && existing[0].workspaceId !== auth.workspaceId) {
+      return jsonWithCors(
+        { error: "forbidden", message: "指定された素材はこのワークスペースに属していません" },
+        request,
+        { status: 403 }
+      );
+    }
+
     if (!existing[0]) {
       const quota = await assertWorkspaceCanStoreBytes(auth.workspaceId, sizeBytes);
       if (!quota.ok) {

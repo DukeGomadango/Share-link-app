@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { campaignAssets, campaigns, claimAssets, claims } from "@/db/schema";
@@ -41,21 +41,6 @@ export async function issueClaimsBatch(
       continue;
     }
 
-    const existing = await db
-      .select({ claim: claims })
-      .from(claims)
-      .where(eq(claims.externalTransactionId, extId))
-      .limit(1);
-
-    if (existing[0]) {
-      results.push({
-        external_transaction_id: extId,
-        ok: true,
-        claim_url: claimUrlForSecret(existing[0].claim.claimSecret),
-      });
-      continue;
-    }
-
     // アセットの存在とワークスペース権限の確認
     if (item.campaign_asset_ids.length === 0) {
       results.push({
@@ -66,18 +51,19 @@ export async function issueClaimsBatch(
       continue;
     }
 
+    const requestedAssetIds = Array.from(new Set(item.campaign_asset_ids));
     const assetRows = await db
       .select({ campaignId: campaigns.id })
       .from(campaignAssets)
       .innerJoin(campaigns, eq(campaignAssets.campaignId, campaigns.id))
       .where(
         and(
-          inArray(campaignAssets.id, item.campaign_asset_ids),
+          inArray(campaignAssets.id, requestedAssetIds),
           eq(campaigns.workspaceId, workspaceId)
         )
       );
 
-    if (assetRows.length === 0) {
+    if (assetRows.length !== requestedAssetIds.length) {
       results.push({
         external_transaction_id: extId,
         ok: false,
@@ -86,6 +72,35 @@ export async function issueClaimsBatch(
       continue;
     }
     const campaignId = assetRows[0].campaignId;
+    const hasMixedCampaignAssets = assetRows.some((row) => row.campaignId !== campaignId);
+    if (hasMixedCampaignAssets) {
+      results.push({
+        external_transaction_id: extId,
+        ok: false,
+        error: "指定されたアセットが同じキャンペーンに属していません",
+      });
+      continue;
+    }
+
+    const existing = await db
+      .select({ claim: claims })
+      .from(claims)
+      .where(
+        and(
+          eq(claims.externalTransactionId, extId),
+          eq(claims.campaignId, campaignId)
+        )
+      )
+      .limit(1);
+
+    if (existing[0]) {
+      results.push({
+        external_transaction_id: extId,
+        ok: true,
+        claim_url: claimUrlForSecret(existing[0].claim.claimSecret),
+      });
+      continue;
+    }
 
     const secret = newClaimSecret();
     try {
@@ -104,7 +119,7 @@ export async function issueClaimsBatch(
       // 2. 複数のアセットを中間テーブルに紐付け
       if (newClaim) {
         await db.insert(claimAssets).values(
-          item.campaign_asset_ids.map((aid) => ({
+          requestedAssetIds.map((aid) => ({
             claimId: newClaim.id,
             campaignAssetId: aid,
           }))
@@ -128,5 +143,3 @@ export async function issueClaimsBatch(
 
   return results;
 }
-
-import { and } from "drizzle-orm";

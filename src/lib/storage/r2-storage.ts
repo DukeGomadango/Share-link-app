@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -64,6 +65,34 @@ export type R2ObjectBody = {
   contentType: string;
   contentLength?: number;
 };
+
+export type R2ObjectMeta = {
+  contentType: string;
+  contentLength?: number;
+};
+
+/** 登録前に R2 オブジェクトの存在・実サイズ・Content-Type を確認する */
+export async function headR2Object(objectKey: string): Promise<R2ObjectMeta | null> {
+  const client = getR2Client();
+  if (!client) {
+    return null;
+  }
+  try {
+    const out = await client.send(
+      new HeadObjectCommand({
+        Bucket: getR2BucketName(),
+        Key: objectKey,
+      })
+    );
+    return {
+      contentType: out.ContentType ?? "application/octet-stream",
+      contentLength: out.ContentLength,
+    };
+  } catch (e) {
+    console.error("R2 head object failed:", e);
+    return null;
+  }
+}
 
 /** サーバー側で R2 オブジェクトを読み出す（受取ダウンロードプロキシ用） */
 export async function readR2Object(

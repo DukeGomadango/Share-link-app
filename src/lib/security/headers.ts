@@ -22,6 +22,12 @@ function supabaseConnectHosts(): string[] {
 
 export function buildContentSecurityPolicy(): string {
   const supabase = supabaseConnectHosts();
+  const scriptSrc = [
+    "'self'",
+    "'unsafe-inline'",
+    ...(process.env.NODE_ENV === "production" ? [] : ["'unsafe-eval'"]),
+    "https://js.stripe.com",
+  ].join(" ");
   const connectSrc = [
     "'self'",
     ...supabase,
@@ -39,8 +45,8 @@ export function buildContentSecurityPolicy(): string {
     "form-action 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
-    // Next.js App Router（dev/prod ともにインラインスクリプトを要する場合あり）
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
+    // Next.js App Router は inline script が必要なため、eval のみ本番で外す。
+    `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",

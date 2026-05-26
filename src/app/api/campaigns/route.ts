@@ -5,7 +5,7 @@ import { getSessionWorkspaceContext } from "@/lib/auth/session";
 import { fetchCampaignsWithStats } from "@/lib/campaigns-query";
 import { getDb } from "@/db";
 import { assets, campaigns, campaignAssets } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 export async function GET() {
   const ctx = await getSessionWorkspaceContext();
@@ -63,14 +63,30 @@ export async function POST(request: Request) {
     .returning();
 
   if (body.assetIds && body.assetIds.length > 0) {
+    const requestedAssetIds = Array.from(
+      new Set(body.assetIds.filter((assetId) => typeof assetId === "string"))
+    );
+    if (requestedAssetIds.length !== body.assetIds.length) {
+      return NextResponse.json({ error: "invalid_asset_ids" }, { status: 400 });
+    }
+
     const libRows = await db
       .select({ id: assets.id, originalFilename: assets.originalFilename })
       .from(assets)
-      .where(eq(assets.workspaceId, ctx.workspaceId));
+      .where(
+        and(
+          eq(assets.workspaceId, ctx.workspaceId),
+          inArray(assets.id, requestedAssetIds)
+        )
+      );
+    if (libRows.length !== requestedAssetIds.length) {
+      return NextResponse.json({ error: "asset_not_found" }, { status: 404 });
+    }
+
     const nameById = new Map(libRows.map((a) => [a.id, a.originalFilename]));
 
     await db.insert(campaignAssets).values(
-      body.assetIds.map((assetId) => ({
+      requestedAssetIds.map((assetId) => ({
         campaignId: row.id,
         assetId,
         label: nameById.get(assetId) ?? null,

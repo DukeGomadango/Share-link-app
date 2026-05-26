@@ -115,7 +115,7 @@ describe.skipIf(!hasDb)("gacha-recipient-slot-sync (integration)", () => {
       assetIds: [],
     });
 
-    const result = await detachOrPurgeGachaExternalSlot(db, gachaTx, "detach");
+    const result = await detachOrPurgeGachaExternalSlot(db, fixture.campaignId, gachaTx, "detach");
 
     expect(result).toMatchObject({
       ok: true,
@@ -153,7 +153,7 @@ describe.skipIf(!hasDb)("gacha-recipient-slot-sync (integration)", () => {
       claimId: fixture.claimId,
     });
 
-    const result = await detachOrPurgeGachaExternalSlot(db, gachaTx, "purge");
+    const result = await detachOrPurgeGachaExternalSlot(db, fixture.campaignId, gachaTx, "purge");
 
     expect(result).toEqual({ ok: false, error: "slot_in_use", status: 409 });
     expect(await countClaimsOnSlot(db, fixture.slotId)).toBe(1);
@@ -174,7 +174,7 @@ describe.skipIf(!hasDb)("gacha-recipient-slot-sync (integration)", () => {
       assetIds: [],
     });
 
-    const result = await detachOrPurgeGachaExternalSlot(db, gachaTx, "purge");
+    const result = await detachOrPurgeGachaExternalSlot(db, fixture.campaignId, gachaTx, "purge");
 
     expect(result).toMatchObject({
       ok: true,
@@ -208,7 +208,7 @@ describe.skipIf(!hasDb)("gacha-recipient-slot-sync (integration)", () => {
       listenerName: "受付分",
     });
 
-    const result = await detachOrPurgeGachaExternalSlot(db, gachaTx, "purge");
+    const result = await detachOrPurgeGachaExternalSlot(db, fixture.campaignId, gachaTx, "purge");
 
     expect(result).toMatchObject({
       ok: true,

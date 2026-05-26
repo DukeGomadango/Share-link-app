@@ -72,7 +72,12 @@ export async function GET(request: Request, ctx: RouteParams) {
       campaignRecipientSlots,
       eq(claims.recipientSlotId, campaignRecipientSlots.id)
     )
-    .where(eq(claims.externalTransactionId, externalTxId))
+    .where(
+      and(
+        eq(claims.externalTransactionId, externalTxId),
+        eq(claims.campaignId, campaignId)
+      )
+    )
     .limit(1);
 
   if (!row?.slotId || row.slotCampaignId !== campaignId) {
@@ -134,7 +139,7 @@ export async function DELETE(request: Request, ctx: RouteParams) {
   );
   if (pauseBlock) return pauseBlock;
 
-  const result = await detachOrPurgeGachaExternalSlot(db, externalTxId, mode);
+  const result = await detachOrPurgeGachaExternalSlot(db, campaignId, externalTxId, mode);
 
   if (!result.ok) {
     return jsonWithCors(
@@ -297,6 +302,13 @@ export async function POST(request: Request, ctx: RouteParams) {
         (a.assetId && idSet.has(a.assetId.toLowerCase()))
       );
     });
+    if (assetsToLink.length !== idSet.size) {
+      return jsonWithCors(
+        { error: "invalid_asset_ids", message: "指定されたアセットがキャンペーン内に見つかりません" },
+        request,
+        { status: 400 }
+      );
+    }
   }
   const assetIds = assetsToLink.map((a) => a.id);
 
@@ -315,7 +327,12 @@ export async function POST(request: Request, ctx: RouteParams) {
       recipientSlotId: claims.recipientSlotId,
     })
     .from(claims)
-    .where(eq(claims.externalTransactionId, externalTxId))
+    .where(
+      and(
+        eq(claims.externalTransactionId, externalTxId),
+        eq(claims.campaignId, campaignId)
+      )
+    )
     .limit(1);
 
   if (existingClaim?.recipientSlotId) {

@@ -8,7 +8,29 @@ import { isR2Configured, isStorageConfigured } from "@/lib/storage/config";
  * 本番デプロイ後の設定確認用（秘密値は返さない）。
  * GET /api/health
  */
-export async function GET() {
+function canReturnDetailedHealth(request: Request): boolean {
+  if (process.env.NODE_ENV !== "production") {
+    return true;
+  }
+  const secret = process.env.HEALTHCHECK_SECRET?.trim();
+  if (!secret) {
+    return false;
+  }
+  const url = new URL(request.url);
+  return (
+    request.headers.get("X-Health-Secret") === secret ||
+    url.searchParams.get("secret") === secret
+  );
+}
+
+export async function GET(request: Request) {
+  if (!canReturnDetailedHealth(request)) {
+    return NextResponse.json(
+      { ok: true },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
   const externalCors = process.env.EXTERNAL_CORS_ORIGINS?.trim();
   const checks = {
     DATABASE_URL: Boolean(process.env.DATABASE_URL?.trim()),
@@ -72,6 +94,9 @@ export async function GET() {
             ? "R2_* 環境変数（4 つ）を設定"
             : undefined,
     },
-    { status: ok ? 200 : 503 }
+    {
+      status: ok ? 200 : 503,
+      headers: { "Cache-Control": "no-store" },
+    }
   );
 }

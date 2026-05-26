@@ -255,7 +255,7 @@ export const claims = pgTable(
     campaignId: uuid("campaign_id")
       .notNull()
       .references(() => campaigns.id, { onDelete: "cascade" }),
-    externalTransactionId: text("external_transaction_id").notNull().unique(),
+    externalTransactionId: text("external_transaction_id").notNull(),
     claimSecret: text("claim_secret").notNull().unique(),
     recipientDisplayName: text("recipient_display_name"), // 下位互換用、基本は slot 経由で取得
     status: claimStatusEnum("status").default("issued").notNull(),
@@ -269,6 +269,10 @@ export const claims = pgTable(
   (t) => [
     index("claims_recipient_slot_id_idx").on(t.recipientSlotId),
     index("claims_campaign_id_idx").on(t.campaignId),
+    uniqueIndex("claims_campaign_external_transaction_uidx").on(
+      t.campaignId,
+      t.externalTransactionId
+    ),
   ]
 );
 

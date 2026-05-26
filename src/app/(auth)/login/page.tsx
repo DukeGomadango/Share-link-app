@@ -7,7 +7,7 @@ import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Gift } from "lucide-react";
-import { getAuthCallbackUrl } from "@/lib/auth/callback-url";
+import { getAuthCallbackUrl, normalizeAuthNextPath } from "@/lib/auth/callback-url";
 import { sendLoginOtp } from "@/lib/auth/email-otp";
 import { safeAuthSendError, safeAuthVerifyError } from "@/lib/auth/safe-auth-messages";
 import { useTranslation } from "@/lib/i18n";
@@ -17,7 +17,7 @@ function LoginInner() {
   const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/dashboard";
+  const next = normalizeAuthNextPath(searchParams.get("next"));
 
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState("");
