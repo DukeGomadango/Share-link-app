@@ -13,7 +13,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   return (
     <WorkspaceLibraryProvider>
-      <div className="flex h-[100dvh] min-h-[100dvh] overflow-hidden bg-background lg:h-screen lg:min-h-screen">
+      <div className="flex h-[100dvh] min-h-[100dvh] overflow-hidden bg-background lg:h-screen lg:min-h-screen dashboard-root">
         <DashboardSidebar />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <DashboardMobileHeader onOpenMenu={() => setMenuOpen(true)} />

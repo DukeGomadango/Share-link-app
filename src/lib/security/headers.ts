@@ -27,6 +27,8 @@ export function buildContentSecurityPolicy(): string {
     "'unsafe-inline'",
     ...(process.env.NODE_ENV === "production" ? [] : ["'unsafe-eval'"]),
     "https://js.stripe.com",
+    "http://localhost:3000",
+    "https://dango-portal.vercel.app",
   ].join(" ");
   const connectSrc = [
     "'self'",

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/lib/i18n";
@@ -95,6 +96,21 @@ export default function RootLayout({
             <GoogleAnalytics />
             <GlobalScrollbarActivity />
             <Toaster richColors closeButton position="top-center" />
+            <style dangerouslySetInnerHTML={{ __html: `
+              body:has(.dashboard-root) dango-header {
+                display: none !important;
+              }
+              body:not(:has(.dashboard-root)) header.sticky {
+                display: none !important;
+              }
+              @media (min-width: 768px) {
+                body:not(:has(.dashboard-root)) {
+                  padding-top: 92px;
+                }
+              }
+            `}} />
+            <dango-header active-tool="share" portal-url={process.env.NODE_ENV === "production" ? "https://dango-portal.vercel.app" : "http://localhost:3000"}></dango-header>
+            <Script src={process.env.NODE_ENV === "production" ? "https://dango-portal.vercel.app/dango-header.js" : "http://localhost:3000/dango-header.js"} strategy="afterInteractive" />
             {children}
           </I18nProvider>
         </ThemeProvider>
