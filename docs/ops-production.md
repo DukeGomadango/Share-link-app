@@ -12,8 +12,12 @@ Phase 3（E2E・Storage 移行・Stripe）の順序とコマンド: [`phase3-roa
 | `NEXT_PUBLIC_APP_URL` | 受取リンク・OAuth リダイレクト |
 | `CRON_SECRET` | 期限切れアセット削除 Cron |
 | `EXTERNAL_CORS_ORIGINS` | だんごツールからの `/api/v1/external/*` |
+| `HEALTHCHECK_SECRET` | `/api/health` の詳細応答保護 |
+| `CLAIM_DOWNLOAD_URL_ALLOWLIST_HOSTS` | レガシー `asset_url` ダウンロードの許可ホスト（CSV） |
 
 確認: `GET https://<your-app>/api/health`（秘密値は返さない）
+
+DB セキュリティ確認: `npm run security:check-db`（`0008` の trigger / RLS / policy を確認）
 
 ## セキュリティ（フェーズ 1・コード済み）
 

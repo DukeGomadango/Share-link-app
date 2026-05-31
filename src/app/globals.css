@@ -51,7 +51,7 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.975 0.004 160); /* ソフトミント・オフホワイト #f5f8f6 */
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -83,10 +83,11 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --hero-outline: oklch(0.645 0.165 158.452 / 0.18);
 }
 
 .dark {
-  --background: oklch(0.16 0.002 285);  /* #121212相当 - Low-light UX対応 */
+  --background: oklch(0.12 0.008 160);  /* ディープフォレスト・ダーク #050a07 */
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
@@ -100,6 +101,7 @@
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.645 0.165 158.452 / 0.2);
   --accent-foreground: oklch(0.645 0.165 158.452);
+  --hero-outline: oklch(0.75 0.12 165.0 / 0.32);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 22%);
   --input: oklch(1 0 0 / 26%);
@@ -411,4 +413,101 @@
     min-height: 2.75rem;
     min-width: 2.75rem;
   }
+}
+
+/* Lenis smooth scrolling config */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overflow: clip;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* Custom scroll progress bar */
+.lp-scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, oklch(0.645 0.165 158.452), oklch(0.8 0.12 170));
+  z-index: 1000;
+  will-change: width;
+}
+
+/* Custom interactive custom cursor ring */
+.lp-custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid oklch(0.645 0.165 158.452);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: width 0.25s, height 0.25s, background-color 0.25s, border-color 0.25s;
+  will-change: transform;
+}
+
+.lp-custom-cursor-hover {
+  width: 48px;
+  height: 48px;
+  background-color: oklch(0.645 0.165 158.452 / 0.12);
+  border-color: oklch(0.645 0.165 158.452);
+}
+
+/* Shimmer & text animations */
+@keyframes emerald-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.text-emerald-shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.645 0.165 158.452) 0%,
+    oklch(0.9 0.1 160) 30%,
+    oklch(0.6 0.14 180) 70%,
+    oklch(0.645 0.165 158.452) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: emerald-shimmer 5s ease infinite;
+}
+
+/* Accent Line Observer visibility */
+.lp-accent-line {
+  width: 0;
+  height: 2px;
+  margin-top: 0.75rem;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, oklch(0.645 0.165 158.452), oklch(0.8 0.12 170));
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lp-accent-line.is-visible {
+  width: 4.5rem;
 }

@@ -38,8 +38,10 @@
 | [ ] | `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET_NAME` | 4 つすべて |
 | [ ] | `NEXT_PUBLIC_APP_URL` | 本番 URL（末尾スラッシュなし） |
 | [ ] | `CRON_SECRET` | 32 文字以上の乱数 |
+| [ ] | `HEALTHCHECK_SECRET` | 本番 `/api/health` の詳細応答用（未設定時は `{ ok: true }` のみ） |
 | [ ] | `UPSTASH_REDIS_REST_URL` | 推奨 — [Upstash Console](https://console.upstash.com/) |
 | [ ] | `UPSTASH_REDIS_REST_TOKEN` | 上とセット |
+| [ ] | `CLAIM_DOWNLOAD_URL_ALLOWLIST_HOSTS` | レガシー `asset_url` の許可ホスト（CSV、例: `cdn.example.com,.trusted-cdn.net`） |
 | [ ] | `WEBAUTHN_RP_ID` | 本番ホスト名のみ（例: `your-app.vercel.app`） |
 | [ ] | `WEBAUTHN_ORIGIN` | `https://` + 同上ホスト |
 | [ ] | `WEBAUTHN_SESSION_SECRET` | 32 文字以上の乱数（または専用 `AUTH_SECRET`） |
@@ -53,6 +55,7 @@
 **検証**
 
 - [ ] デプロイ後 `GET https://<本番>/api/health` → DB・ストレージ等が ok
+- [ ] （推奨）`HEALTHCHECK_SECRET` 付きの `GET /api/health` で依存先の詳細状態も確認
 - [ ] Preview 環境に `sk_live` / `SUPABASE_SERVICE_ROLE_KEY` が無いことを目視確認
 
 参照: [`.env.example`](../.env.example)
@@ -215,7 +218,23 @@
 **検証**
 
 - [ ] 連携 API を短時間に大量呼び出し → 429（極端な負荷テストは不要、ログで Upstash ヒット確認でも可）
-- [ ] Upstash 未設定でもアプリは動く（インメモリ fallback）— 本番は設定推奨
+- [ ] Upstash 未設定でもアプリは動く（インメモリ fallback）— ただし本番は **必須扱い** とし、未設定デプロイを避ける
+
+---
+
+### A6. DB セキュリティ migration（`0008`）適用確認
+
+| [ ] | 作業 |
+|-----|------|
+| [ ] | 本番接続先で `npm run security:check-db` を実行し、`hasWorkspaceTrigger: true` / `policyCount > 0` / `relrowsecurity: true` を確認 |
+| [ ] | `latestMigrations` に `0008_security_workspace_boundaries` 相当の履歴があることを確認 |
+| [ ] | `claims_campaign_external_transaction_uidx` が作成済みであることを確認 |
+| [ ] | `assets_size_bytes_positive` 制約が `VALIDATED` 状態か確認 |
+
+**補足**:
+
+- ローカル Docker/Postgres と本番 Supabase で接続先を混同しない（`current_database()` / `current_user` を事前確認）。
+- migration が空振りになる場合、`drizzle.__drizzle_migrations` 履歴の有無と既存スキーマ差分を先に確認する。
 
 ---
 

@@ -9,6 +9,7 @@ import {
   slotAssets,
 } from "@/db/schema";
 import { buildClaimBundleForSecret } from "@/lib/claim/bundle-for-token";
+import { sanitizeExternalDownloadUrl } from "@/lib/security/safe-external-url";
 
 export type ClaimFileDownloadSource =
   | { kind: "r2"; objectKey: string }
@@ -115,11 +116,18 @@ export async function resolveClaimFileDownload(
   if (!externalUrl) {
     return null;
   }
+  const safeUrl = sanitizeExternalDownloadUrl(
+    externalUrl,
+    process.env.CLAIM_DOWNLOAD_URL_ALLOWLIST_HOSTS
+  );
+  if (!safeUrl) {
+    return null;
+  }
 
   const filename = hit.ca.label?.trim() ?? "download";
   return {
     filename,
     mimeType: "application/octet-stream",
-    source: { kind: "url", url: externalUrl },
+    source: { kind: "url", url: safeUrl },
   };
 }

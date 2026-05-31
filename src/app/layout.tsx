@@ -97,14 +97,15 @@ export default function RootLayout({
             <GlobalScrollbarActivity />
             <Toaster richColors closeButton position="top-center" />
             <style dangerouslySetInnerHTML={{ __html: `
-              body:has(.dashboard-root) dango-header {
+              body:has(.dashboard-root) dango-header,
+              body:has(.no-dango-header) dango-header {
                 display: none !important;
               }
-              body:not(:has(.dashboard-root)) header.sticky {
+              body:not(:has(.dashboard-root)):not(:has(.no-dango-header)) header.sticky {
                 display: none !important;
               }
               @media (min-width: 768px) {
-                body:not(:has(.dashboard-root)) {
+                body:not(:has(.dashboard-root)):not(:has(.no-dango-header)) {
                   padding-top: 92px;
                 }
               }
