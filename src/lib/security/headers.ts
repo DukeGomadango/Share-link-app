@@ -51,7 +51,7 @@ export function buildContentSecurityPolicy(): string {
     `script-src ${scriptSrc}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
-    "font-src 'self' data:",
+    "font-src 'self' data: https://dango-portal.vercel.app http://localhost:3000",
     `connect-src ${connectSrc}`,
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://accounts.google.com https://discord.com",
     "media-src 'self' blob: https:",

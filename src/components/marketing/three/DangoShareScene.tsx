@@ -360,6 +360,7 @@ function ParticleStream({ startPos, endPos, pulseTrigger, isMobile, scrollPercen
 
   const uniforms = useMemo(() => ({
     uColor: { value: new THREE.Color("#6ee7b7") },
+    uTime: { value: 0 },
     uPulse: { value: 0 },
   }), []);
 
