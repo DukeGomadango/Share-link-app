@@ -33,6 +33,17 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+lint-fix-dry.json
+
+# local investigation / one-off scripts
+/scratch/
+check-*.ts
+check_*.ts
+debug-*.ts
+migrate_paranoid.ts
+
+# editor
+*.code-workspace
 
 # env files (can opt-in for committing if needed)
 .env*

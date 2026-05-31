@@ -45,8 +45,6 @@ export async function POST(request: Request, ctx: RouteParams) {
 
   const db = getDb();
 
-  console.log(`[Merge] Starting merge: ${sourceSlotId} -> ${targetSlotId} (Campaign: ${campaignId})`);
-
   // 両方のスロットが存在し、かつキャンペーンに属しているか確認
   const slots = await db
     .select({
@@ -95,8 +93,6 @@ export async function POST(request: Request, ctx: RouteParams) {
         ...targetAssets.map(a => a.id),
       ]);
 
-      console.log(`[Merge] Combining assets: Source(${sourceAssets.length}) + Target(${targetAssets.length}) = Total(${combinedAssetIds.size})`);
-
       // 2. 統合先にアセットをすべて紐付ける
       if (combinedAssetIds.size > 0) {
         await tx
@@ -109,13 +105,10 @@ export async function POST(request: Request, ctx: RouteParams) {
       }
 
       // 3. sourceSlotId に紐付いている claims を targetSlotId に付け替える
-      const movedClaims = await tx
+      await tx
         .update(claims)
         .set({ recipientSlotId: targetSlotId })
-        .where(eq(claims.recipientSlotId, sourceSlotId))
-        .returning({ id: claims.id });
-      
-      console.log(`[Merge] Moved ${movedClaims.length} claims to target slot`);
+        .where(eq(claims.recipientSlotId, sourceSlotId));
 
       // 4. この枠に紐付いている「すべての」Claim（以前からいた人 + 新しく来た人）に全アセットを紐付ける
       const allClaimsInTarget = await tx
@@ -137,17 +130,13 @@ export async function POST(request: Request, ctx: RouteParams) {
           .insert(claimAssets)
           .values(claimAssetValues)
           .onConflictDoNothing();
-        console.log(`[Merge] Linked ${combinedAssetIds.size} assets to ${allClaimsInTarget.length} claims`);
       }
 
       // 5. sourceSlotId を削除する
-      const deleted = await tx
+      await tx
         .delete(campaignRecipientSlots)
-        .where(eq(campaignRecipientSlots.id, sourceSlotId))
-        .returning({ id: campaignRecipientSlots.id });
-      
-      console.log(`[Merge] Deleted source slot: ${deleted[0]?.id}`);
-      
+        .where(eq(campaignRecipientSlots.id, sourceSlotId));
+
       // 6. targetSlotId のステータスを更新
       if (combinedAssetIds.size > 0) {
         await tx
@@ -173,16 +162,12 @@ export async function POST(request: Request, ctx: RouteParams) {
         await tx
           .delete(recipients)
           .where(eq(recipients.id, sourceRecipientId));
-
-        console.log(`[Merge] Merged global recipient ${sourceRecipientId} -> ${targetRecipientId}`);
       } else if (sourceRecipientId && !targetRecipientId) {
         // ソースにだけ名簿がある場合、統合先スロットにソースの名簿IDを引き継ぐ
         await tx
           .update(campaignRecipientSlots)
           .set({ recipientId: sourceRecipientId })
           .where(eq(campaignRecipientSlots.id, targetSlotId));
-
-        console.log(`[Merge] Inherited recipient ${sourceRecipientId} to target slot`);
       }
     });
 

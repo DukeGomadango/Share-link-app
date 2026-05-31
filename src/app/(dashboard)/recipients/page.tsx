@@ -110,8 +110,7 @@ export default function RecipientsPage() {
     setAssignRecipientId(recipient.id);
   };
 
-  const handleQuickAssign = (recipientId: string, fileIds: string[]) => {
-    console.log(`Assigned ${fileIds.length} files to recipient ${recipientId}`);
+  const handleQuickAssign = (_recipientId: string, _fileIds: string[]) => {
     setAssignRecipientId(null);
   };
 
