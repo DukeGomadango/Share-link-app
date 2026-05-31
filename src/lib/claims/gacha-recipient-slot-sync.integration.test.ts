@@ -20,10 +20,11 @@ import {
   seedGachaReceptionFixture,
   type GachaTestFixture,
 } from "@/lib/claims/gacha-test-fixtures";
+import { probeIntegrationDb } from "@/test/probe-integration-db";
 
-const hasDb = Boolean(process.env.DATABASE_URL?.trim());
+const integrationDbAvailable = await probeIntegrationDb();
 
-describe.skipIf(!hasDb)("gacha-recipient-slot-sync (integration)", () => {
+describe.skipIf(!integrationDbAvailable)("gacha-recipient-slot-sync (integration)", () => {
   let fixture: GachaTestFixture;
 
   afterEach(async () => {
